@@ -17,3 +17,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Multi-tenancy foundation (T04): `tenant` table and `TenantScopedEntity` with Hibernate `@TenantId`.
   The tenant is resolved from the authenticated user or an explicit scope and fails closed when
   missing. Isolation and schema-convention tests are included (ADR-0007).
+- Authentication (T05): per-firm users with roles (titular, abogado, procurador, administrativo),
+  bcrypt passwords, session-cookie login with SPA CSRF protection, session-id and CSRF-token
+  rotation on login, generic problem+json errors, failed-login throttling per account and per client,
+  `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me` (ADR-0008).

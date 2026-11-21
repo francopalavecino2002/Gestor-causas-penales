@@ -30,7 +30,8 @@ class SecurityConfigTests {
     @Test
     void shouldRejectUnauthenticatedRequestsToOtherPaths() throws Exception {
         mockMvc.perform(get("/api/v1/anything"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
     }
 
     @Test

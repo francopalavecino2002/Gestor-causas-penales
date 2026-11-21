@@ -1,29 +1,113 @@
 package ar.gestorpenal.security;
 
+import ar.gestorpenal.user.UserRepository;
+import jakarta.servlet.DispatcherType;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
+/**
+ * Cookie session + CSRF for the same-origin SPA (ADR-0008). Deny by default: only the health
+ * check, the CSRF bootstrap and the login are public.
+ */
 @Configuration
+@EnableConfigurationProperties(LoginThrottleProperties.class)
 public class SecurityConfig {
 
+    static final String LOGIN_PATH = "/api/v1/auth/login";
+    static final String CSRF_PATH = "/api/v1/auth/csrf";
+    static final String LOGOUT_PATH = "/api/v1/auth/logout";
+
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            CsrfTokenRepository csrfTokenRepository,
+            SecurityContextRepository securityContextRepository,
+            @Qualifier("handlerExceptionResolver") HandlerExceptionResolver problemResolver,
+            UserRepository users,
+            Clock clock,
+            @Value("${app.security.session.max-age}") Duration maxSessionAge)
+            throws Exception {
         http
-                // Stateless API without cookie auth; revisit if T05 stores credentials in cookies (ADR-0004).
-                .csrf(AbstractHttpConfigurer::disable)
+                .addFilterBefore(new ActiveUserFilter(users, clock, maxSessionAge), AuthorizationFilter.class)
+                .csrf(csrf -> csrf.spa().csrfTokenRepository(csrfTokenRepository))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
-                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(e -> e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                .securityContext(context -> context.securityContextRepository(securityContextRepository))
+                // Filter-level errors reach SecurityProblemHandler, so they are problem+json too.
+                .exceptionHandling(errors -> errors
+                        .authenticationEntryPoint((request, response, e) ->
+                                problemResolver.resolveException(request, response, null, e))
+                        .accessDeniedHandler((request, response, e) ->
+                                problemResolver.resolveException(request, response, null, e)))
+                .logout(logout -> logout
+                        .logoutUrl(LOGOUT_PATH)
+                        .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT)))
                 .authorizeHttpRequests(auth -> auth
+                        // Keeps the real status of errors instead of turning them into 401.
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, CSRF_PATH).permitAll()
+                        .requestMatchers(HttpMethod.POST, LOGIN_PATH).permitAll()
                         .anyRequest().authenticated());
         return http.build();
+    }
+
+    /** Readable by the SPA (not HttpOnly) by design: the double-submit pattern needs it. */
+    @Bean
+    CsrfTokenRepository csrfTokenRepository() {
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookieCustomizer(cookie -> cookie.secure(true).sameSite("Lax"));
+        return repository;
+    }
+
+    @Bean
+    SecurityContextRepository securityContextRepository() {
+        return new HttpSessionSecurityContextRepository();
+    }
+
+    /**
+     * bcrypt today; the {@code {id}} prefix lets a future encoder (e.g. Argon2) coexist. A stored
+     * hash without a known prefix never matches, instead of failing the login with a 500.
+     */
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        DelegatingPasswordEncoder encoder =
+                new DelegatingPasswordEncoder("bcrypt", Map.of("bcrypt", new BCryptPasswordEncoder()));
+        encoder.setDefaultPasswordEncoderForMatches(new NeverMatchingPasswordEncoder());
+        return encoder;
+    }
+
+    private static final class NeverMatchingPasswordEncoder implements PasswordEncoder {
+
+        @Override
+        public String encode(CharSequence rawPassword) {
+            throw new UnsupportedOperationException("Only used to reject unknown hash formats");
+        }
+
+        @Override
+        public boolean matches(CharSequence rawPassword, String encodedPassword) {
+            return false;
+        }
     }
 }
