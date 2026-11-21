@@ -110,3 +110,8 @@ task end to end. The loop for one task:
 - Free OpenCode models can run out mid-task or claim green without compiling: rotate and verify.
 - Permission rules are anchored with `/` (e.g. `Edit(/backend/**)`).
 - Restart Claude Code after changing `.claude/settings.json`.
+- The headless allowlist only matches simple commands: no heredocs, `sed -i`, `git -C` or non-localhost
+  `curl`. Use one command per Bash call and Write/Edit for files; look up versions with WebSearch/web-fetch.
+  Subagents may get Bash denied entirely: the orchestrator then runs generation and verify itself.
+- Local Git Bash lacks `mktemp`, so `./mvnw` (only-script) fails locally; verify with `mvn -B verify`
+  (same build), and CI runs `./mvnw` on Linux.

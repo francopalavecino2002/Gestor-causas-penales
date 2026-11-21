@@ -50,3 +50,26 @@ Superseded decisions are marked, never deleted.
   Chosen from the `-free` entries of `opencode models` by name only; their coding quality was not
   benchmarked, so the rotation plus mandatory re-verification (ADR-0001) is the safety net.
 - **Consequences:** If these models disappear from OpenCode, re-run `opencode models` and update the file.
+
+## ADR-0004: Backend skeleton baseline (T01)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** First backend code. Versions checked on Maven Central / postgresql.org on 2026-11-21.
+- **Decision:**
+  - Spring Boot **4.2.0** (modular starters: `spring-boot-starter-webmvc`, `-flyway`, `-webmvc-test`...),
+    Java 21 target, Hibernate 7.4, Testcontainers **2.0.5** (managed by the Boot BOM), Lombok **1.18.48**
+    declared in `annotationProcessorPaths`.
+  - Maven wrapper 3.3.4 in `only-script` mode with Maven 3.10.1, so no wrapper jar is committed.
+  - PostgreSQL image `postgres:18-alpine` for both Compose and Testcontainers. PostgreSQL 19 was
+    released on 2026-11-19; we wait for its first minor before moving.
+  - Base package `ar.gestorpenal` (from `AGENTS.md`).
+  - Security baseline: stateless, deny by default, only `/actuator/health/**` public; unauthenticated
+    requests get a plain 401. CSRF is disabled because no cookie-based auth exists yet; T05 must
+    re-enable it if credentials ever travel in cookies. problem+json error bodies are deferred to T05,
+    when the first real endpoints and auth errors appear.
+  - The main `application.properties` has no datasource defaults (startup fails loudly without
+    `DB_URL`/`DB_USERNAME`/`DB_PASSWORD`); local defaults live in the `dev` profile. Compose binds
+    Postgres to `127.0.0.1:5434` only.
+- **Consequences:** Run locally with `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`.
+  Tests do not need any env vars thanks to `@ServiceConnection`.

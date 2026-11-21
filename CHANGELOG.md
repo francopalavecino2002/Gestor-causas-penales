@@ -7,3 +7,5 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - Toolchain check (T00): free OpenCode models configured, results recorded in ADR-0003.
+- Backend skeleton (T01): Spring Boot 4.2 on Java 21, Flyway, deny-by-default security with public
+  health check, Testcontainers integration tests, Docker Compose Postgres on port 5434 (ADR-0004).
