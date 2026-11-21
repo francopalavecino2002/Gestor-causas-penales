@@ -1,5 +1,8 @@
 package ar.gestorpenal.user;
 
+import ar.gestorpenal.audit.AuditRedacted;
+import ar.gestorpenal.audit.Audited;
+import ar.gestorpenal.audit.NotAudited;
 import ar.gestorpenal.tenancy.TenantScopedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,8 +19,12 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/** A member of one firm. Created through {@link UserService}, which hashes the password. */
+/**
+ * A member of one firm. Created through {@link UserService}, which hashes the password. Changes are
+ * recorded in the history without the secrets' values (ADR-0010).
+ */
 @Entity
+@Audited
 @Table(name = "app_user")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -33,6 +40,7 @@ public class AppUser extends TenantScopedEntity {
     @Column(name = "display_name", nullable = false, length = 200)
     private String displayName;
 
+    @AuditRedacted
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
@@ -47,6 +55,7 @@ public class AppUser extends TenantScopedEntity {
     private Instant archivedAt;
 
     /** Encrypted TOTP secret; present while enrolling and once two-factor is enabled (ADR-0009). */
+    @AuditRedacted
     @Column(name = "totp_secret")
     private String totpSecret;
 
@@ -54,6 +63,7 @@ public class AppUser extends TenantScopedEntity {
     private Instant totpEnabledAt;
 
     /** Last accepted TOTP step, advanced atomically by {@link UserRepository#advanceTotpStep}. */
+    @NotAudited
     @Column(name = "totp_last_step")
     private Long totpLastStep;
 
