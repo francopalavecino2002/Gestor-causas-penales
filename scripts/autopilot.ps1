@@ -34,10 +34,16 @@ for ($i = 1; $i -le $MaxTasks; $i++) {
   $ErrorActionPreference = "Stop"
   $out = Get-Content $log -Raw
 
-  if ($out -match "NO_READY_TASKS") { Write-Host "Nothing ready: waiting on a gate or a blocked task." -ForegroundColor Yellow; break }
-  if ($out -match "TASK_BLOCKED")   { Write-Host "A task is blocked. See the draft PR." -ForegroundColor Yellow; break }
-  if ($out -match "(?i)usage limit|rate limit|limit reached") { Write-Host "Usage limit reached. Run again later." -ForegroundColor Yellow; break }
-  if ($out -notmatch "TASK_DONE")   { Write-Host "Run ended without TASK_DONE. Check $log." -ForegroundColor Red; break }
+  # Markers are matched only at the start of a line, and the usage-limit check runs only when
+  # no marker was printed: a task summary that mentions "rate limit" (e.g. login throttling)
+  # must not stop the loop.
+  if ($out -match "(?m)^NO_READY_TASKS") { Write-Host "Nothing ready: waiting on a gate or a blocked task." -ForegroundColor Yellow; break }
+  if ($out -match "(?m)^TASK_BLOCKED")   { Write-Host "A task is blocked. See the draft PR." -ForegroundColor Yellow; break }
+  if ($out -notmatch "(?m)^TASK_DONE") {
+    if ($out -match "(?i)usage limit|rate limit|limit reached") { Write-Host "Usage limit reached. Run again later." -ForegroundColor Yellow }
+    else { Write-Host "Run ended without TASK_DONE. Check $log." -ForegroundColor Red }
+    break
+  }
 
   Start-Sleep -Seconds $PauseSeconds
 }
