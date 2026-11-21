@@ -1,0 +1,41 @@
+# Circunscripciones judiciales (neuquen-review.md §1, "4. Circunscripción").
+# Ley 2891 organizes two Colegios de Jueces: I with seat in Neuquén, and II to V with seat in
+# Zapala and sub-seats. Attributes: judgesCollege and seat (seat of the Colegio de Jueces).
+# The regional names come from the base data model and are not in the law.
+catalog: circumscriptions
+source: Ley 2891, Orgánica de la Justicia Penal
+items:
+  - code: i-confluencia
+    name: I Circunscripción (Confluencia)
+    article: "Ley 2891"
+    attributes: {judgesCollege: Colegio de Jueces I, seat: Neuquén}
+  - code: ii-comarca
+    name: II Circunscripción (de la Comarca)
+    article: "Ley 2891"
+    flags: [validar]
+    note: Confirmar denominación y subsede.
+    attributes: {judgesCollege: Colegio de Jueces II a V, seat: Zapala}
+  - code: iii-pehuen
+    name: III Circunscripción (del Pehuén)
+    article: "Ley 2891"
+    flags: [validar]
+    note: Confirmar denominación y subsede.
+    attributes: {judgesCollege: Colegio de Jueces II a V, seat: Zapala}
+  - code: iv-lagos-del-sur
+    name: IV Circunscripción (Lagos del Sur)
+    article: "Ley 2891"
+    flags: [validar]
+    note: Confirmar denominación y subsede.
+    attributes: {judgesCollege: Colegio de Jueces II a V, seat: Zapala}
+  - code: v-alto-neuquen
+    name: V Circunscripción (Alto Neuquén)
+    article: "Ley 2891"
+    flags: [validar]
+    note: Confirmar denominación y subsede.
+    attributes: {judgesCollege: Colegio de Jueces II a V, seat: Zapala}
+  - code: vi-vaca-muerta
+    name: VI Circunscripción (Vaca Muerta)
+    flags: [validar]
+    note: >-
+      No aparece en la Ley 2891. Confirmar si existe hoy como VI Circunscripción, con qué Colegio
+      de Jueces y si tiene Oficina Judicial propia.

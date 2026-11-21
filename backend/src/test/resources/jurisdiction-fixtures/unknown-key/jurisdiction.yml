@@ -1,0 +1,5 @@
+# Fixture: "verison" is a typo; the loader must reject it instead of ignoring it.
+code: provincia-ficticia
+name: Provincia Ficticia
+verison: 1
+law: Código ficticio

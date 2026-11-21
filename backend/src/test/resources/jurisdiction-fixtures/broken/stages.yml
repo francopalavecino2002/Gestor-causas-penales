@@ -1,0 +1,13 @@
+# Fixture: wrong catalog id, a duplicate, an invalid code, a reserved code and a missing name.
+catalog: hearing-types
+source: Código ficticio
+items:
+  - code: repetida
+    name: Etapa repetida
+  - code: repetida
+    name: Etapa repetida otra vez
+  - code: Con Mayusculas
+    name: Código inválido
+  - code: custom-reservado
+    name: Código reservado
+  - code: sin-nombre

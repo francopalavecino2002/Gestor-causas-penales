@@ -1,0 +1,17 @@
+# Jurisdiction package: Neuquén (ADR-0013).
+# One folder per jurisdiction under resources/jurisdictions/. This manifest plus one file per
+# catalog (<catalog>.yml) is everything a jurisdiction needs; adding a province adds a folder.
+#
+# Source: docs/domain/neuquen-review.md, section 2 (stage 0 review). Every item keeps its legal
+# source and its review flags: "validar" (to confirm with a lawyer) and "no-verificado" (taken
+# from secondary sources, not from the text of the code). Do not drop them.
+#
+# Item codes are stable identifiers that cases and hearings will reference: never rename or remove
+# one. A new version may add items, fix names and articles, or update flags.
+code: neuquen
+name: Neuquén
+version: 1
+law: CPP de Neuquén (Ley 2784)
+# Quoted: an unquoted YAML date would be read as a timestamp.
+reviewedOn: "2026-11-21"
+source: docs/domain/neuquen-review.md §2

@@ -1,0 +1,59 @@
+# Medidas de coerción (neuquen-review.md §2.3): the 7 of art. 113 in the order of the article,
+# then the two measures of arts. 121 and 122. Attributes: position113 (place in the list of
+# art. 113), recordedData (what the measure needs on record) and notifiesVictim (art. 61 inc. 4).
+# Electronic monitoring is a modality of a measure, not a measure.
+catalog: coercive-measures
+source: CPP de Neuquén (Ley 2784)
+items:
+  - code: cuidado-o-vigilancia
+    name: Cuidado o vigilancia de una persona o institución
+    article: "113"
+    attributes: {position113: "1", recordedData: "Quién la ejerce, informes"}
+  - code: presentacion-periodica
+    name: Presentación periódica
+    article: "113"
+    flags: [validar]
+    note: La más común en la práctica.
+    attributes: {position113: "2", recordedData: "Ante quién, frecuencia"}
+  - code: prohibicion-de-salir-visitar-o-comunicarse
+    name: Prohibición de salir de un ámbito, visitar lugares o comunicarse con personas
+    article: "113"
+    attributes:
+      position113: "3"
+      recordedData: "Lugar o persona protegida, distancia"
+      notifiesVictim: "true"
+  - code: abandono-del-domicilio
+    name: Abandono del domicilio si la víctima convive con el imputado
+    article: "113"
+    attributes: {position113: "4", recordedData: "Domicilio", notifiesVictim: "true"}
+  - code: caucion-economica
+    name: Caución económica
+    article: "113"
+    attributes: {position113: "5", recordedData: "Monto, tipo, quién la presta"}
+  - code: detencion-domiciliaria
+    name: Detención domiciliaria
+    article: "113"
+    attributes:
+      position113: "6"
+      recordedData: "Domicilio, con o sin vigilancia, monitoreo electrónico"
+      notifiesVictim: "true"
+  - code: prision-preventiva
+    name: Prisión preventiva
+    article: "113, 116, 118 y 119"
+    note: >-
+      Máximo 1 año salvo asuntos complejos (art. 119); revisión en 5 días (art. 118). No procede en
+      acción privada, si cabe condena condicional, ni para mayores de 70, embarazadas, madres en
+      el primer año de lactancia o enfermos graves (art. 115).
+    attributes:
+      position113: "7"
+      recordedData: "Lugar de detención, riesgo invocado, duración fijada (art. 116)"
+  - code: internacion-provisional
+    name: Internación provisional
+    article: "121"
+    note: Por alteración mental. Fuera del MVP.
+    attributes: {recordedData: "Institución"}
+  - code: embargo-o-inhibicion
+    name: Embargo o inhibición
+    article: "122"
+    note: Para garantizar la multa. Fuera del MVP.
+    attributes: {recordedData: "Bienes, monto"}
