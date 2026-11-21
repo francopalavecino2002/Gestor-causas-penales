@@ -118,3 +118,4 @@ task end to end. The loop for one task:
 - `npx shadcn add` can write `import { cn } from "cn"` and install an unrelated `cn` package: fix the
   import to `@/lib/utils` and remove the package. Stop leftover preview/dev servers before `npm ci`
   (Windows locks native `.node` files).
+- A new PR can show "no checks reported" for a few minutes: wait and retry, it is not a blocker.

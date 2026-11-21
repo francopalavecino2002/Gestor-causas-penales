@@ -21,7 +21,12 @@ Run exactly one iteration of "The work loop" defined in `CLAUDE.md`. Do not ask 
    commit. Add the entry to `CHANGELOG.md` (create it if missing).
 8. `git push -u origin <branch>` and `gh pr create --title "<conventional title>" --body-file .agent-tmp/pr-body.md`
    with labels matching the area (`backend`, `frontend`, `docs`, `ci`) when they exist.
-9. `gh pr checks --watch`. If CI fails, fix and push (max 3 rounds). If green and
+9. Wait for CI. GitHub can take a few minutes to register checks on a new PR, and
+   `gh pr checks` fails with "no checks reported" meanwhile: that is not a blocker. Retry
+   `gh pr checks <n>` every 60 seconds for up to 15 minutes until checks appear, then run
+   `gh pr checks <n> --watch`. Never mark a task blocked only because CI has not started yet;
+   if it never starts, leave the PR open, print `TASK_DONE <id> <PR url> (merge pending CI)`
+   and stop. If CI fails, fix and push (max 3 rounds). If green and
    `AUTO_MERGE=true` in CLAUDE.md: `gh pr merge --squash --delete-branch`, then
    `git checkout main && git pull --ff-only`.
 10. Print one final line: `TASK_DONE <id> <PR url>`.
