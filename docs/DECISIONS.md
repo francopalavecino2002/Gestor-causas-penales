@@ -93,3 +93,31 @@ Superseded decisions are marked, never deleted.
 - **Consequences:** Skipped jobs report as "skipped", which GitHub treats as passing for required
   checks. When branch protection is configured, require `changes` and `repo-hygiene` plus the stack
   jobs.
+
+## ADR-0006: Frontend skeleton baseline (T03)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** First frontend code (stack chosen in ADR-0002). Versions checked on the npm registry
+  on 2026-11-21. No visual design yet (`gate:design`).
+- **Decision:**
+  - Vite **8.3**, React **19.3**, Tailwind CSS **4.3** via `@tailwindcss/vite`, shadcn/ui (neutral
+    base color), TanStack Router **1.170** and Query **5.108**, Vitest **5.1**, Playwright **1.65**,
+    ESLint **10** + typescript-eslint **8.73**, Prettier **3.10**, vite-plugin-pwa **2.0**.
+    Node >= 22.12 (required by Vite 8).
+  - TypeScript is pinned to **~6.0**, not 7.0: typescript-eslint 8.73 supports up to 6.0. TS 6
+    deprecates `baseUrl`, so the `@/` alias uses `paths` only, mirrored in Vite's `resolve.alias`.
+  - **Code-based routing** in `src/router.tsx` (`createAppRouter({ history })` so tests use memory
+    history). File-based routing (router plugin + generated route tree) is reconsidered once there
+    are many screens.
+  - Vitest config lives in `vite.config.ts` (jsdom, only `src/**/*.test.tsx`); no test globals,
+    jest-dom matchers imported in the setup file.
+  - Playwright runs against the production build (`build` + `preview` on 4173) so the manifest and
+    service worker are exercised; CI runs it after the build. Dev server stays on 5173 (`strictPort`).
+    The service worker never serves the SPA shell for `/api/` navigations.
+  - PWA: `registerType: "autoUpdate"`, manifest in Spanish (`lang: "es-AR"`), placeholder icons
+    generated from `public/favicon.svg`, to be replaced by the design system (T20).
+  - `npm audit` reports 4 moderate advisories in `glob`/`minimatch` pulled by `workbox-build`
+    (build-time only, nothing shipped). The only offered fix is downgrading vite-plugin-pwa; accepted.
+- **Consequences:** `npx shadcn add` may write a wrong `cn` import (`from "cn"`) because there is no
+  `baseUrl`; check the import after adding components.
