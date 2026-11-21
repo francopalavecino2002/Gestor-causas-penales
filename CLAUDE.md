@@ -115,3 +115,6 @@ task end to end. The loop for one task:
   Subagents may get Bash denied entirely: the orchestrator then runs generation and verify itself.
 - Local Git Bash lacks `mktemp`, so `./mvnw` (only-script) fails locally; verify with `mvn -B verify`
   (same build), and CI runs `./mvnw` on Linux.
+- `npx shadcn add` can write `import { cn } from "cn"` and install an unrelated `cn` package: fix the
+  import to `@/lib/utils` and remove the package. Stop leftover preview/dev servers before `npm ci`
+  (Windows locks native `.node` files).
