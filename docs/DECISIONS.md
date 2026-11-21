@@ -334,3 +334,30 @@ Superseded decisions are marked, never deleted.
     archiving too.
   - `AuditTrail` returns whole lists; add paging before exposing it over HTTP.
   - One extra `INSERT` per audited change, in the same transaction.
+
+## ADR-0011: Demo data seeded by an `ApplicationRunner` in the `demo` profile (T08)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** Development, screenshots and demos need a firm with users, without real data. The
+  options were a Flyway repeatable migration with SQL inserts and a seeder run by the application.
+- **Decision:**
+  - **`DemoDataSeeder`, an `ApplicationRunner` active only with the `demo` profile**, not a Flyway
+    seed. Passwords must be hashed by the application's `PasswordEncoder` (a migration would need a
+    precomputed hash committed to the repository), and going through `TenantService` and
+    `UserService` exercises the same rules as real data, including the audit listener, which
+    records the creation with a `NULL` actor (ADR-0010). Seed data in a migration would also run
+    in production.
+  - **Resumable:** the seeder creates only what is missing (the firm `estudio-demo`, then each user
+    by email), so restarting never duplicates users and completes a run that failed halfway. If the
+    demo firm was archived, it logs a warning and seeds nothing: slugs are never reused and nothing
+    is restored automatically.
+  - **The password comes from `DEMO_PASSWORD` with no default** (`app.demo.password`). Startup fails
+    if it is missing (unresolved placeholder), blank or shorter than 12 characters (validated
+    before anything is written). It is never logged and is masked in `toString`.
+  - **Clearly fictitious data:** the firm is "Estudio Demo (ficticio)" and the three users (owner,
+    lawyer, paralegal) have invented names with emails in the reserved `example.com` domain.
+- **Consequences:**
+  - Never activate `demo` in production: it creates accounts with a shared, known password.
+  - Run it with `DEMO_PASSWORD=... ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,demo`.
+  - Later tasks that add demo cases and hearings extend the same seeder inside the firm's tenant scope.
