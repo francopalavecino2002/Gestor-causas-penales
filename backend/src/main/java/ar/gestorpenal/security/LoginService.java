@@ -6,19 +6,25 @@ import ar.gestorpenal.user.AppUser;
 import ar.gestorpenal.user.UserRepository;
 import ar.gestorpenal.user.UserService;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
- * Checks firm + email + password. Every failure (unknown firm, unknown or archived user, wrong
- * password) looks the same to the caller and costs one password hash, so responses do not reveal
- * which firms or accounts exist.
+ * Checks firm + email + password, then the second factor when the user has one (ADR-0009). Every
+ * password failure (unknown firm, unknown or archived user, wrong password) looks the same to the
+ * caller and costs one password hash, so responses do not reveal which firms or accounts exist.
  *
- * <p>Not transactional on purpose: the user lookup runs inside a {@link TenantContext} scope, which
+ * <p>Both steps draw on the same throttle budget: a valid password that still needs a code keeps its
+ * reserved attempt, and only a complete login refunds it.
+ *
+ * <p>Not transactional on purpose: the user lookups run inside a {@link TenantContext} scope, which
  * must be entered before a transaction starts.
  */
 @Service
@@ -28,7 +34,9 @@ class LoginService {
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final LoginThrottle throttle;
+    private final TwoFactorService twoFactor;
     private final Clock clock;
+    private final Duration secondFactorTimeout;
     private final String hashForUnknownUsers;
 
     LoginService(
@@ -36,12 +44,16 @@ class LoginService {
             UserRepository users,
             PasswordEncoder passwordEncoder,
             LoginThrottle throttle,
-            Clock clock) {
+            TwoFactorService twoFactor,
+            Clock clock,
+            @Value("${app.security.two-factor.login-timeout}") Duration secondFactorTimeout) {
         this.tenants = tenants;
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.throttle = throttle;
+        this.twoFactor = twoFactor;
         this.clock = clock;
+        this.secondFactorTimeout = secondFactorTimeout;
         this.hashForUnknownUsers = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
@@ -49,7 +61,7 @@ class LoginService {
      * @throws LoginThrottledException if there were too many recent failures
      * @throws BadCredentialsException if the credentials are not valid
      */
-    AuthenticatedUser authenticate(LoginRequest request, String clientAddress) {
+    LoginResult authenticate(LoginRequest request, String clientAddress) {
         String slug = request.tenant().strip().toLowerCase(Locale.ROOT);
         String email = UserService.normalizeEmail(request.email());
         String accountKey = slug + "|" + email;
@@ -57,7 +69,29 @@ class LoginService {
         throttle.acquire(accountKey, clientAddress);
         AppUser user = verify(slug, email, request.password())
                 .orElseThrow(() -> new BadCredentialsException("Invalid firm, email or password"));
+        Instant now = clock.instant();
+        if (user.isTotpEnabled()) {
+            return new LoginResult.SecondFactorRequired(new PendingSecondFactor(
+                    user.getId(), user.getTenantId(), accountKey, now.plus(secondFactorTimeout)));
+        }
         throttle.recordSuccess(accountKey, clientAddress);
+        return new LoginResult.Authenticated(AuthenticatedUser.of(user, now));
+    }
+
+    /**
+     * @throws SecondFactorExpiredException if the pending login is too old
+     * @throws LoginThrottledException if there were too many recent failures
+     * @throws InvalidSecondFactorException if the code is not accepted
+     */
+    AuthenticatedUser completeSecondFactor(PendingSecondFactor pending, String code, String clientAddress) {
+        if (pending.isExpiredAt(clock.instant())) {
+            throw new SecondFactorExpiredException();
+        }
+        throttle.acquire(pending.accountKey(), clientAddress);
+        AppUser user = TenantContext.callAs(pending.tenantId(), () -> twoFactor.verifyLogin(pending.userId(), code))
+                .orElseThrow(InvalidSecondFactorException::new);
+        // Refunds this attempt and the one the password step kept; failed codes stay counted.
+        throttle.recordSuccess(pending.accountKey(), clientAddress, 2);
         return AuthenticatedUser.of(user, clock.instant());
     }
 

@@ -79,6 +79,21 @@ class LoginThrottleTests {
     }
 
     @Test
+    void shouldRefundEveryReservedAttemptOfATwoStepLogin() {
+        throttle.acquire("estudio-ficticio|otro@ejemplo.test", CLIENT);
+        throttle.acquire(ACCOUNT, CLIENT);
+        throttle.acquire(ACCOUNT, CLIENT);
+        throttle.recordSuccess(ACCOUNT, CLIENT, 2);
+
+        // Only the unrelated failure is left: four more attempts fit in the client's limit of five.
+        for (int i = 0; i < 4; i++) {
+            throttle.acquire("estudio-ficticio|user" + i + "@ejemplo.test", CLIENT);
+        }
+        assertThatThrownBy(() -> throttle.acquire("estudio-ficticio|nuevo@ejemplo.test", CLIENT))
+                .isInstanceOf(LoginThrottledException.class);
+    }
+
+    @Test
     void shouldNotLetAParallelBurstExceedTheLimit() throws Exception {
         int threads = 20;
         CountDownLatch start = new CountDownLatch(1);
