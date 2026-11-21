@@ -1,5 +1,7 @@
 ---
-status: draft
+status: reviewed
+reviewed_on: 2026-11-21
+approved_by: Franco (project thread, 2026-11-21 20:39 ART), pending lawyer validation of [validar] and [no verificado] items
 source: https://claude.ai/artifact/CAm26oj1Ux4YUhm6wD5ncY (rev 7, 2026-11-21)
 precedence: overrides data-model.md wherever they differ
 ---
