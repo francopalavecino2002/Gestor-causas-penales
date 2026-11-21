@@ -33,3 +33,5 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Demo data (T08): the `demo` profile seeds a clearly fictitious firm (`estudio-demo`) with an
   owner, a lawyer and a paralegal; resumable, password from `DEMO_PASSWORD` with no default
   (ADR-0011).
+- Portfolio README (T09): product pitch, Mermaid architecture diagram, stack, how to run and test
+  locally, key technical decisions linked to their ADRs, and a screenshots section (ADR-0012).

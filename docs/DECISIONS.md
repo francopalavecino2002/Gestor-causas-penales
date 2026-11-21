@@ -361,3 +361,18 @@ Superseded decisions are marked, never deleted.
   - Never activate `demo` in production: it creates accounts with a shared, known password.
   - Run it with `DEMO_PASSWORD=... ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,demo`.
   - Later tasks that add demo cases and hearings extend the same seeder inside the firm's tenant scope.
+
+## ADR-0012: README in Rioplatense Spanish (T09)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** CLAUDE.md asks for code, commits and PRs in English and UI text in Spanish, but says
+  nothing about the README. Its audience is the people who would use the product (criminal-defense
+  firms in Neuquén) and recruiters reading the portfolio, and the existing README was in Spanish.
+- **Options:** an English README (wider reach, but it would not speak to the actual users), a
+  bilingual one (twice the text to keep in sync), or Spanish.
+- **Decision:** The README stays in Rioplatense Spanish, like the UI. Technical identifiers, ADRs,
+  `CHANGELOG.md` and the rest of `docs/` stay in English. Headline decisions in the README link to
+  their ADR instead of repeating it.
+- **Consequences:** An English-only reader still gets the stack table, the Mermaid diagram and the
+  commands, and can follow the links into the English ADRs.
