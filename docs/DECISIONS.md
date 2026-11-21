@@ -34,3 +34,19 @@ Superseded decisions are marked, never deleted.
 - **Decision:** React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui, TanStack Query /
   Router / Table, Motion. Chosen by Franco on 2026-11-21.
 - **Consequences:** The portfolio shows both Angular (previous project) and React.
+
+## ADR-0003: Toolchain check (T00)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** The autonomous loop depends on local tools; verify them before building.
+- **Results:**
+  - OpenCode 1.19.4; `opencode run --help` works; `opencode.json` is accepted (`opencode debug config`
+    resolves it without errors).
+  - `gh` logged in with scopes `repo`, `read:org`, `gist`.
+  - Docker Compose v5.2.0, JDK Temurin 25.0.3 (Maven target stays Java 21), Node v22.23.4.
+- **Decision:** `.claude/opencode-models.txt` lists three free models, in order:
+  `opencode/deepseek-v4.1-flash-free`, `opencode/longcat-2.5-free`, `opencode/mimo-v2.6-flash-free`.
+  Chosen from the `-free` entries of `opencode models` by name only; their coding quality was not
+  benchmarked, so the rotation plus mandatory re-verification (ADR-0001) is the safety net.
+- **Consequences:** If these models disappear from OpenCode, re-run `opencode models` and update the file.
