@@ -26,8 +26,12 @@ for ($i = 1; $i -le $MaxTasks; $i++) {
   $log = ".agent-logs\autopilot-$stamp.log"
   Write-Host "[$i/$MaxTasks] Running /next-task (log: $log)" -ForegroundColor Cyan
 
+  # Windows PowerShell 5.1 turns native stderr lines into ErrorRecords under 2>&1; with
+  # ErrorActionPreference=Stop a harmless warning from claude would abort the loop.
+  $ErrorActionPreference = "Continue"
   claude -p "/next-task" --model $Model --fallback-model sonnet --permission-mode dontAsk 2>&1 |
-    Tee-Object -FilePath $log
+    ForEach-Object { "$_" } | Tee-Object -FilePath $log
+  $ErrorActionPreference = "Stop"
   $out = Get-Content $log -Raw
 
   if ($out -match "NO_READY_TASKS") { Write-Host "Nothing ready: waiting on a gate or a blocked task." -ForegroundColor Yellow; break }
