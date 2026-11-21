@@ -1,5 +1,7 @@
 # Gestor de causas penales
 
+[![CI](https://github.com/francopalavecino2002/Gestor-causas-penales/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/francopalavecino2002/Gestor-causas-penales/actions/workflows/ci.yml)
+
 Gestor de causas penales para estudios jurídicos chicos (1 a 5 abogados), pensado para el
 **proceso penal acusatorio de Neuquén** (CPP Ley 2784): la agenda de audiencias es el eje,
 no el expediente.

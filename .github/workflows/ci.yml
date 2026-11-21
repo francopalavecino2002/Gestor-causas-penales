@@ -4,50 +4,86 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Only PR runs are superseded; every push to main finishes so the badge never shows "cancelled".
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
+  # Decides which stacks to build. A stack runs only if its folder exists and, on pull
+  # requests, only if the folder (or this workflow) changed. Pushes to main and manual runs
+  # build every stack that exists, so the README badge reflects the whole repository.
   changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
-      backend: ${{ steps.check.outputs.backend }}
-      frontend: ${{ steps.check.outputs.frontend }}
+      backend: ${{ steps.decide.outputs.backend }}
+      frontend: ${{ steps.decide.outputs.frontend }}
     steps:
-      - uses: actions/checkout@v4
-      - id: check
+      - uses: actions/checkout@v7
+      - id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+      - id: decide
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
+          BACKEND_CHANGED: ${{ steps.filter.outputs.backend }}
+          FRONTEND_CHANGED: ${{ steps.filter.outputs.frontend }}
         run: |
-          [ -f backend/pom.xml ] && echo "backend=true" >> "$GITHUB_OUTPUT" || echo "backend=false" >> "$GITHUB_OUTPUT"
-          [ -f frontend/package.json ] && echo "frontend=true" >> "$GITHUB_OUTPUT" || echo "frontend=false" >> "$GITHUB_OUTPUT"
+          should_run() {
+            local marker="$1" changed="$2"
+            if [ ! -f "$marker" ]; then echo false
+            elif [ "$IS_PR" != "true" ]; then echo true
+            else [ "$changed" = "true" ] && echo true || echo false
+            fi
+          }
+          echo "backend=$(should_run backend/pom.xml "$BACKEND_CHANGED")" >> "$GITHUB_OUTPUT"
+          echo "frontend=$(should_run frontend/package.json "$FRONTEND_CHANGED")" >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
 
   backend:
     needs: changes
     if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
+      # Testcontainers uses the Docker engine preinstalled on ubuntu-latest runners.
       - run: chmod +x mvnw && ./mvnw -B verify
 
   frontend:
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -60,7 +96,13 @@ jobs:
 
   repo-hygiene:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - name: Check scripts parse
-        run: bash -n scripts/opencode-task.sh
+      - uses: actions/checkout@v7
+      - name: Check shell scripts parse
+        run: |
+          shopt -s nullglob
+          for script in scripts/*.sh; do
+            echo "bash -n $script"
+            bash -n "$script"
+          done

@@ -73,3 +73,23 @@ Superseded decisions are marked, never deleted.
     Postgres to `127.0.0.1:5434` only.
 - **Consequences:** Run locally with `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`.
   Tests do not need any env vars thanks to `@ServiceConnection`.
+
+## ADR-0005: CI workflow (T02)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** Backend and frontend live in one repository; the frontend does not exist yet.
+  PRs that only touch one stack should not wait for the other. Action versions checked on their
+  GitHub release pages on 2026-11-21.
+- **Decision:**
+  - One workflow, `.github/workflows/ci.yml`, with a `changes` job that decides which stacks run.
+    A stack runs only if its marker file exists (`backend/pom.xml`, `frontend/package.json`) and, on
+    pull requests, only if its folder or the workflow itself changed (`dorny/paths-filter@v4`).
+  - Pushes to `main` and manual runs (`workflow_dispatch`) build every existing stack, so the README
+    badge always reflects the whole repository.
+  - Actions pinned to major tags: `actions/checkout@v7`, `actions/setup-java@v6`,
+    `actions/setup-node@v7`. Least-privilege `permissions` (read-only) and per-job timeouts.
+  - A `repo-hygiene` job syntax-checks every `scripts/*.sh`.
+- **Consequences:** Skipped jobs report as "skipped", which GitHub treats as passing for required
+  checks. When branch protection is configured, require `changes` and `repo-hygiene` plus the stack
+  jobs.
