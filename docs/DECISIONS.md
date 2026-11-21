@@ -278,3 +278,59 @@ Superseded decisions are marked, never deleted.
   `login-throttled` problem. Enabling or disabling 2FA does not end the user's other open sessions.
   Because each step is accepted once, the code used to confirm the enrollment cannot also be used
   to log in within the same 30 seconds; the user waits for the next code.
+
+## ADR-0010: Change history with Hibernate event listeners, archive instead of delete (T07)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** Lawyers must be able to see who changed a hearing, a charge or a user's role, when,
+  and what the value was before. The product rule is "nothing is deleted, it is archived". The
+  options were Hibernate Envers (one `_aud` shadow table per entity), database triggers, and a
+  generic event table filled by Hibernate listeners.
+- **Decision:**
+  - **One generic `audit_event` table**: firm, time, actor, entity type and id, action
+    (`CREATE`, `UPDATE`, `ARCHIVE`, `RESTORE`) and the field differences as a JSONB array of
+    `{field, oldValue, newValue}`. Values are stored as text and associations as the id of the
+    associated record. A `bigint` identity gives a total order even inside one transaction.
+  - **Opt-in per entity with `@Audited`**, all fields by default. `@AuditRedacted` keeps the fact that
+    a secret changed (and whether it is set) without its value (password hash, TOTP secret);
+    `@NotAudited` skips technical state (the TOTP replay step). `tenantId` is never recorded. An
+    update that only touches skipped fields records nothing. `AppUser` is the first audited entity.
+  - **Hibernate `PostInsert`/`PostUpdate` listeners** (`AuditRecorder`) instead of Envers or triggers.
+    Envers would add a shadow table per entity, all of which need `tenant_id` and their own schema
+    changes; triggers cannot know the logged-in user without a `set_config` per transaction and
+    cannot see `@AuditRedacted`. The listener runs during the flush on the same connection, so
+    the entry commits or rolls back with the change. It writes with plain JDBC because entities
+    cannot be persisted in the middle of a flush; the `tenant_id` comes from the audited entity.
+  - **The actor** is the authenticated principal when it implements `AuditActor`
+    (`AuthenticatedUser`), and `NULL` for seed data and jobs. If the actor belongs to another firm
+    than the changed record, the change is rejected instead of being attributed to an outsider.
+  - **Reading** goes through the `AuditEvent` entity (`@Immutable`, tenant-scoped), so `@TenantId`
+    filters it like any other entity: `AuditTrail.historyOf(entityClass, id)` and
+    `AuditTrail.changesMadeBy(userId)`. No HTTP endpoint yet; it comes with the screens that show it.
+  - **Append-only in the database:** triggers reject `UPDATE`, `DELETE` and `TRUNCATE` on
+    `audit_event`, so not even a bug in the application can rewrite history.
+  - **Archive instead of delete:** `DeletionGuard`, a `PreDelete` listener, throws
+    `ArchiveInsteadOfDeleteException` for every entity, so `remove()` rolls the transaction back.
+    Archiving is setting `archivedAt`; the history shows it as `ARCHIVE` and clearing it as `RESTORE`.
+  - Startup fails if an `@Audited` entity is not tenant-scoped, has no UUID id, or audits a field
+    without a faithful text form (embeddables, arrays, maps, JSON): such fields must be marked
+    `@NotAudited` or `@AuditRedacted`. `@Audited` is inherited by entity subclasses.
+- **Consequences:**
+  - **Bulk JPQL and native `UPDATE`/`DELETE` statements are not audited and not blocked**, because
+    they bypass the entity lifecycle. Use them only for `@NotAudited` technical state (today:
+    `totp_last_step`, recovery code consumption) and review any new one.
+  - Collections (`@OneToMany`, `@ElementCollection`) are not recorded on the owning side; audit the
+    child entity instead.
+  - Recovery codes and tenants are not audited yet. Tenants are global, and archiving a firm needs a
+    platform-administrator role that does not exist.
+  - A database owner can still drop the triggers. Real tamper evidence (hash chaining, shipping the
+    log elsewhere) and an access log (logins, reads of sensitive records, client IP) are future work.
+  - Fields are audited by default, so every new free-text field of an audited entity is copied into
+    an append-only log. Whoever adds a sensitive field must decide whether it is `@AuditRedacted`.
+    This conflicts with a suppression request under Ley 25.326 (art. 16): such a request will need
+    a documented, privileged redaction procedure that bypasses the triggers [validar with a lawyer].
+  - `DeletionGuard` also blocks orphan removal and cascaded removes; model those relations as
+    archiving too.
+  - `AuditTrail` returns whole lists; add paging before exposing it over HTTP.
+  - One extra `INSERT` per audited change, in the same transaction.
