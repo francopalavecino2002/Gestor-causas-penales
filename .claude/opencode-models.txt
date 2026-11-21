@@ -1,0 +1,2 @@
+# Free OpenCode models, in order of preference ("provider/model", one per line).
+# Filled by ROADMAP task T00 from `opencode models`. Edit freely; first line is tried first.

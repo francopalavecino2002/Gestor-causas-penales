@@ -8,3 +8,10 @@ no el expediente.
 
 La documentación completa (arquitectura, cómo correrlo y capturas) se completa a medida que
 avanza el [ROADMAP](ROADMAP.md).
+
+## Cómo se construye
+
+El proyecto se desarrolla con un flujo autónomo de agentes de IA: Claude Code orquesta,
+OpenCode escribe el backend con modelos gratuitos y Claude el frontend. Cada tarea del
+[ROADMAP](ROADMAP.md) termina en un PR verificado y documentado. Detalle en
+[docs/AUTOPILOT.md](docs/AUTOPILOT.md) y decisiones en [docs/DECISIONS.md](docs/DECISIONS.md).
