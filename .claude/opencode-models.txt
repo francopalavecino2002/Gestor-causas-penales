@@ -1,2 +1,5 @@
 # Free OpenCode models, in order of preference ("provider/model", one per line).
 # Filled by ROADMAP task T00 from `opencode models`. Edit freely; first line is tried first.
+opencode/deepseek-v4.1-flash-free
+opencode/longcat-2.5-free
+opencode/mimo-v2.6-flash-free
