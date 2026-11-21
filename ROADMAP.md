@@ -25,7 +25,7 @@ Gates are opened only by a human edit. The loop never opens a gate by itself.
 | T06 | 2FA with TOTP (enroll, verify, recovery codes). | backend | T05 | done (#11) |
 | T07 | Audit log: generic change history (who, when, entity, field, old, new) + archive instead of delete (`archived_at`), with tests. | backend | T04 | done (#12) |
 | T08 | Fictitious seed data generator (profile `demo`): 1 firm, 3 users, Spanish fake names clearly fictitious. | backend | T07 | done (#13) |
-| T09 | README for portfolio: product pitch, architecture diagram (Mermaid), how to run locally, tech decisions, screenshots section. `CHANGELOG.md` (Keep a Changelog). | orchestrator | T02, T03 | todo |
+| T09 | README for portfolio: product pitch, architecture diagram (Mermaid), how to run locally, tech decisions, screenshots section. `CHANGELOG.md` (Keep a Changelog). | orchestrator | T02, T03 | done |
 
 ## Milestone 1: Domain core (after stage 0)
 
