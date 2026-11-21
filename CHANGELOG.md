@@ -21,3 +21,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   bcrypt passwords, session-cookie login with SPA CSRF protection, session-id and CSRF-token
   rotation on login, generic problem+json errors, failed-login throttling per account and per client,
   `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me` (ADR-0008).
+- Two-factor authentication (T06): opt-in TOTP (RFC 6238) for any authenticator app, with password-
+  confirmed enrollment, secrets encrypted at rest with AES-256-GCM (`TOTP_ENCRYPTION_KEY`), replay
+  protection, 10 single-use recovery codes, a two-step login (`202` then
+  `POST /api/v1/auth/login/second-factor`) that shares the login throttle, and
+  `/api/v1/me/two-factor` endpoints to enroll, regenerate codes and disable (ADR-0009).
