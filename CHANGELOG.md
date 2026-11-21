@@ -35,3 +35,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (ADR-0011).
 - Portfolio README (T09): product pitch, Mermaid architecture diagram, stack, how to run and test
   locally, key technical decisions linked to their ADRs, and a screenshots section (ADR-0012).
+- Jurisdiction packages (T10): the Neuquén catalogs (stages and closing outcomes, hearing types
+  ordered by 2014 frequency, hearing statuses and cancellation reasons, coercive measures of art. 113,
+  procedural risks, liberty situations, alternative outcomes, circumscriptions) ship as versioned
+  YAML validated at startup, each item with its legal source and its `[validar]`/`[no verificado]`
+  flag. Firms rename, hide or add items per catalog policy without losing the original name and
+  article; changes are audited. `GET /api/v1/catalogs`, `GET /api/v1/catalogs/{catalog}`,
+  `POST /api/v1/catalogs/{catalog}/items`, `PUT /api/v1/catalogs/{catalog}/items/{code}` (ADR-0013).

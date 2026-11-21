@@ -119,3 +119,6 @@ task end to end. The loop for one task:
   import to `@/lib/utils` and remove the package. Stop leftover preview/dev servers before `npm ci`
   (Windows locks native `.node` files).
 - A new PR can show "no checks reported" for a few minutes: wait and retry, it is not a blocker.
+- In MockMvc tests do not use Spring Security's `csrf()` post-processor: it swaps the CSRF repository
+  of the shared test context and breaks the cookie-based login tests. Send the same random value as
+  the `XSRF-TOKEN` cookie and the `X-XSRF-TOKEN` header instead (see `CatalogApiTests`).
