@@ -26,3 +26,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   protection, 10 single-use recovery codes, a two-step login (`202` then
   `POST /api/v1/auth/login/second-factor`) that shares the login throttle, and
   `/api/v1/me/two-factor` endpoints to enroll, regenerate codes and disable (ADR-0009).
+- Audit log (T07): append-only, tenant-scoped change history (who, when, entity, field, old and new
+  value) recorded by Hibernate listeners for `@Audited` entities, with redacted secrets and
+  `ARCHIVE`/`RESTORE` actions; deleting entities is rejected so records are archived instead
+  (ADR-0010).

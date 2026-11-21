@@ -1,5 +1,6 @@
 package ar.gestorpenal.security;
 
+import ar.gestorpenal.audit.AuditActor;
 import ar.gestorpenal.tenancy.TenantPrincipal;
 import ar.gestorpenal.user.AppUser;
 import ar.gestorpenal.user.Role;
@@ -17,7 +18,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
  * re-checks it on every request.
  */
 public record AuthenticatedUser(UUID userId, UUID tenantId, Role role, Instant authenticatedAt)
-        implements TenantPrincipal, AuthenticatedPrincipal, Serializable {
+        implements TenantPrincipal, AuditActor, AuthenticatedPrincipal, Serializable {
 
     static AuthenticatedUser of(AppUser user, Instant authenticatedAt) {
         return new AuthenticatedUser(user.getId(), user.getTenantId(), user.getRole(), authenticatedAt);
