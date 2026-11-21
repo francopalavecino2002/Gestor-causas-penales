@@ -30,3 +30,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   value) recorded by Hibernate listeners for `@Audited` entities, with redacted secrets and
   `ARCHIVE`/`RESTORE` actions; deleting entities is rejected so records are archived instead
   (ADR-0010).
+- Demo data (T08): the `demo` profile seeds a clearly fictitious firm (`estudio-demo`) with an
+  owner, a lawyer and a paralegal; resumable, password from `DEMO_PASSWORD` with no default
+  (ADR-0011).

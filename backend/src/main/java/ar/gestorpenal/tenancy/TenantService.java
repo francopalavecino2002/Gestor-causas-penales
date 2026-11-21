@@ -31,6 +31,12 @@ public class TenantService {
                 .map(Tenant::getId);
     }
 
+    /** Whether any firm, archived or not, already uses the slug (slugs are never reused). */
+    @Transactional(readOnly = true)
+    public boolean isSlugTaken(String slug) {
+        return tenants.findBySlug(slug).isPresent();
+    }
+
     @Transactional(readOnly = true)
     public Optional<TenantSummary> describe(UUID tenantId) {
         return tenants.findById(tenantId).map(TenantSummary::of);
