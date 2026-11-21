@@ -219,3 +219,62 @@ Superseded decisions are marked, never deleted.
   - A person working for two firms has two accounts. The firm switcher (T21) logs in again.
   - `TenantService` is the public entry point to tenants: create, resolve a slug, describe one firm.
     It never lists tenants.
+
+## ADR-0009: Two-factor authentication with TOTP and recovery codes (T06)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** Lawyers log in from phones that get lost and from shared office computers, and the
+  data is criminal-record data (Ley 25.326, art. 7). A second factor must work with any common
+  authenticator app, without SMS (cost, SIM swapping) and without a third-party service.
+- **Decision:**
+  - **TOTP (RFC 6238)** with the parameters every app supports: HMAC-SHA1, 6 digits, 30-second
+    steps, one step of drift accepted on each side. Implemented in ~100 lines on top of the JDK
+    (`Totp`, `Base32`) and tested against the RFC 6238 and RFC 4648 vectors. No library was added:
+    the algorithm is small and stable, and the common Java libraries add QR or HTTP dependencies we
+    do not need. The SPA will draw the QR code from the `otpauth://` URI.
+  - **Opt-in per user for now.** A firm-wide "2FA required" policy is left for the settings screen
+    (T25); `/api/v1/me` exposes `twoFactorEnabled` so the UI can nudge users.
+  - **Enrollment in two steps.** `POST /api/v1/me/two-factor/enrollment` with `{password}` returns a
+    new secret and its URI; 2FA stays off until `POST .../enrollment/confirm` receives a valid code,
+    so a user who abandons the setup is never locked out. Confirming returns **10 recovery codes**,
+    shown once. `GET /api/v1/me/two-factor` returns `{enabled, recoveryCodesRemaining}`.
+  - **Secrets encrypted at rest** with AES-256-GCM (`TotpSecretCipher`). The key comes from
+    `TOTP_ENCRYPTION_KEY` (32 bytes in base64), has no default outside the `dev` profile, and the
+    app refuses to start without it. The user id is authenticated data, so a ciphertext copied to
+    another row does not decrypt. The stored value has a `v1:` prefix to allow key rotation later.
+    Losing the key disables every enrolled second factor (users fall back to recovery codes or an
+    admin reset, which does not exist yet).
+  - **No replay.** `totp_last_step` stores the last accepted step. It is advanced with one
+    conditional `UPDATE ... WHERE totp_last_step < :step`, so a code works once even when two
+    requests race.
+  - **Recovery codes** are 16 characters of Crockford base32 (80 random bits), shown as
+    `XXXX-XXXX-XXXX-XXXX`, accepted in any case and with or without dashes. Only their SHA-256 is
+    stored: with 80 bits of entropy a slow hash adds nothing, and lookups stay a single indexed
+    query. Each code is consumed with a conditional update; regenerating archives the old set
+    (`archived_at`), nothing is deleted.
+  - **Two-step login.** When the password is right and 2FA is on, `POST /api/v1/auth/login` answers
+    **202** with `{"status": "SECOND_FACTOR_REQUIRED"}` instead of 204. The old session is
+    invalidated and a fresh one holds only a `PendingSecondFactor` (user, tenant, deadline of
+    `app.security.two-factor.login-timeout`, 5 minutes); it has no security context, so every
+    protected endpoint still answers 401. `POST /api/v1/auth/login/second-factor` with `{code}`
+    (TOTP or recovery code) completes the login: new session id, new CSRF token, 204.
+  - **Throttling.** Both login steps share the account's budget from ADR-0008: a valid password
+    that still needs a code keeps its reserved attempt, and only a complete login refunds it (both
+    the password's and the code's attempts, so many 2FA logins behind one office NAT do not fill the
+    per-client budget). So an attacker who knows the password gets at most four code guesses per
+    15 minutes. The
+    authenticated actions that check a code or password (confirm, regenerate, disable) use the same
+    throttle under a per-user key.
+  - **Changing 2FA needs proof.** Starting an enrollment needs the password; regenerating recovery
+    codes needs a current code; disabling needs the password and a code. A stolen session alone
+    cannot bind the account to another phone, read new codes or turn 2FA off.
+  - **Errors** (problem+json): `invalid-second-factor` and `second-factor-expired` (401) in the
+    login; `invalid-confirmation` (422, not 401, because the session is still valid) and
+    `two-factor-state` (409) in the settings.
+- **Consequences:** The pending login lives in the in-memory session, with the same single-instance
+  limits as ADR-0008. There is no admin reset of another user's 2FA yet; it needs the audit log
+  (T07) and the user management screens (T25). Throttled settings actions answer with the generic
+  `login-throttled` problem. Enabling or disabling 2FA does not end the user's other open sessions.
+  Because each step is accepted once, the code used to confirm the enrollment cannot also be used
+  to log in within the same 30 seconds; the user waits for the next code.

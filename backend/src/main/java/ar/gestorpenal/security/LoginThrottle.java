@@ -59,9 +59,17 @@ class LoginThrottle {
 
     /** Refunds the attempt reserved by {@link #acquire} and forgets the account's failures. */
     synchronized void recordSuccess(String accountKey, String clientKey) {
+        recordSuccess(accountKey, clientKey, 1);
+    }
+
+    /**
+     * Like {@link #recordSuccess(String, String)} for an action that reserved several attempts, such
+     * as a login in two steps: the client gets back the last {@code reservedAttempts}.
+     */
+    synchronized void recordSuccess(String accountKey, String clientKey, int reservedAttempts) {
         attempts.remove(account(accountKey));
         Deque<Instant> client = attempts.get(client(clientKey));
-        if (client != null && !client.isEmpty()) {
+        for (int i = 0; i < reservedAttempts && client != null && !client.isEmpty(); i++) {
             client.removeLast();
         }
     }

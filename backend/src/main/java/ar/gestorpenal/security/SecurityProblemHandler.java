@@ -25,6 +25,29 @@ class SecurityProblemHandler {
                 "The firm, email or password is not valid.");
     }
 
+    @ExceptionHandler(InvalidSecondFactorException.class)
+    ProblemDetail invalidSecondFactor() {
+        return problem(HttpStatus.UNAUTHORIZED, "invalid-second-factor", "Invalid verification code",
+                "The verification code is not valid.");
+    }
+
+    @ExceptionHandler(SecondFactorExpiredException.class)
+    ProblemDetail secondFactorExpired() {
+        return problem(HttpStatus.UNAUTHORIZED, "second-factor-expired", "Login expired",
+                "There is no pending login or it expired. Log in again.");
+    }
+
+    @ExceptionHandler(TwoFactorConfirmationException.class)
+    ProblemDetail invalidConfirmation() {
+        return problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid-confirmation", "Not confirmed",
+                "The code or password is not valid.");
+    }
+
+    @ExceptionHandler(TwoFactorStateException.class)
+    ProblemDetail twoFactorState(TwoFactorStateException exception) {
+        return problem(HttpStatus.CONFLICT, "two-factor-state", "Two-factor state conflict", exception.getMessage());
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     ProblemDetail authenticationRequired() {
         return problem(HttpStatus.UNAUTHORIZED, "authentication-required", "Authentication required",

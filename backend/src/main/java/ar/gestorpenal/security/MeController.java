@@ -33,8 +33,10 @@ class MeController {
                 .orElseThrow(() -> new InsufficientAuthenticationException("The user is no longer active"));
         TenantSummary tenant = tenants.describe(principal.tenantId())
                 .orElseThrow(() -> new InsufficientAuthenticationException("The firm no longer exists"));
-        return new MeResponse(user.getId(), user.getEmail(), user.getDisplayName(), user.getRole(), tenant);
+        return new MeResponse(
+                user.getId(), user.getEmail(), user.getDisplayName(), user.getRole(), user.isTotpEnabled(), tenant);
     }
 
-    record MeResponse(UUID id, String email, String displayName, Role role, TenantSummary tenant) {}
+    record MeResponse(
+            UUID id, String email, String displayName, Role role, boolean twoFactorEnabled, TenantSummary tenant) {}
 }

@@ -28,13 +28,14 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
  * Cookie session + CSRF for the same-origin SPA (ADR-0008). Deny by default: only the health
- * check, the CSRF bootstrap and the login are public.
+ * check, the CSRF bootstrap and the two login steps (ADR-0009) are public.
  */
 @Configuration
 @EnableConfigurationProperties(LoginThrottleProperties.class)
 public class SecurityConfig {
 
     static final String LOGIN_PATH = "/api/v1/auth/login";
+    static final String SECOND_FACTOR_PATH = "/api/v1/auth/login/second-factor";
     static final String CSRF_PATH = "/api/v1/auth/csrf";
     static final String LOGOUT_PATH = "/api/v1/auth/logout";
 
@@ -68,7 +69,7 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, CSRF_PATH).permitAll()
-                        .requestMatchers(HttpMethod.POST, LOGIN_PATH).permitAll()
+                        .requestMatchers(HttpMethod.POST, LOGIN_PATH, SECOND_FACTOR_PATH).permitAll()
                         .anyRequest().authenticated());
         return http.build();
     }
