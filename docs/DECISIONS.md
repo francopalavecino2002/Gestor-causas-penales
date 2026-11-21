@@ -159,3 +159,63 @@ Superseded decisions are marked, never deleted.
   `TenantRepository` is package-private, because it is the only cross-tenant read path. The
   explicit scope is thread-bound and is not propagated to async or scheduled work, which fails
   closed. Archiving tenants and audit columns (`updated_at`, change history) belong to T07.
+
+## ADR-0008: Authentication with a server session, CSRF and per-firm users (T05)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** The client is a same-origin PWA (Vite proxies `/api` in development). Sessions must
+  be revocable: a fired paralegal or a stolen phone has to be cut off. Users belong to a firm, and
+  `@TenantId` (ADR-0007) makes every user lookup tenant-scoped.
+- **Decision:**
+  - **Server-side HTTP session, not JWT.** The session cookie `GP_SESSION` is `HttpOnly`,
+    `Secure` and `SameSite=Lax`, with a 30-minute idle timeout and a 12-hour absolute lifetime
+    (`app.security.session.max-age`). Logging out invalidates it on the server, which a stateless
+    JWT cannot do without a denylist. Chrome and Firefox accept `Secure` cookies on
+    `http://localhost`, so development needs no TLS. Safari does not, so use Chrome or Firefox locally.
+  - **Every request re-checks the user** (`ActiveUserFilter`, one primary-key lookup). If the
+    user was archived, their role changed, or the absolute lifetime is over, the session is
+    invalidated and the request is treated as anonymous (401).
+  - **CSRF is on again** (it was off in ADR-0004 because there were no cookies), using Spring Security's
+    SPA mode: the `XSRF-TOKEN` cookie is readable by JavaScript and the SPA sends it back in the
+    `X-XSRF-TOKEN` header. `GET /api/v1/auth/csrf` issues the cookie. The login itself needs the
+    token (login CSRF).
+  - **Login** is `POST /api/v1/auth/login` with `{tenant, email, password}`, where `tenant` is the firm's
+    slug ("estudio"). The firm is resolved first and the user is looked up inside its
+    `TenantContext`, so a login never reads across tenants and no global user table is needed. The
+    same email can exist in two firms as two accounts. On success, the session id is changed
+    (against session fixation) and the CSRF token is rotated. The response is 204, and the SPA then
+    calls `GET /api/v1/me`. Logout is `POST /api/v1/auth/logout` and returns 204.
+  - **One generic failure.** Unknown firm, unknown or archived user, a password longer than bcrypt's
+    72 bytes and a wrong password all return the same 401 problem. Unknown users are checked
+    against a dummy hash, so the response time does not reveal which accounts exist.
+  - **Passwords:** bcrypt (cost 10) behind a `DelegatingPasswordEncoder`, so hashes are stored as
+    `{bcrypt}...`, and Argon2 can be added later without a migration. Argon2 would need BouncyCastle.
+    Policy: at least 12 characters, at most 72 bytes.
+  - **Rate limiting:** an in-memory sliding window. Each account (firm + email) gets 5 failures and each
+    client address gets 20 failures per 15 minutes (configurable under `app.security.login.*`).
+    Over the limit, every attempt gets 429 with `Retry-After`, even with the right password. Each
+    attempt is reserved atomically before the password is checked, so parallel requests cannot get
+    extra guesses, and a success refunds it. At most 50,000 keys are tracked, and the least recently
+    used are evicted first. No library was added: Bucket4j would be needed only with several instances.
+  - **Roles:** `OWNER`, `LAWYER`, `PARALEGAL`, `ADMIN_STAFF`, one per user, exposed as `ROLE_*`.
+  - **Errors are problem+json** (`spring.mvc.problemdetails.enabled`). The security filters delegate
+    their 401/403 responses to the same `@RestControllerAdvice`, so the body shape is the same everywhere.
+    `type` values are stable relative identifiers (`/problems/invalid-credentials`...) for the client
+    to switch on. Nothing serves a page at those paths.
+  - Spring Boot's default in-memory user (`UserDetailsServiceAutoConfiguration`) is excluded.
+- **Consequences:**
+  - Sessions and throttle counters live in memory: a restart logs everyone out and resets the
+    counters. Before running more than one instance, move sessions to Spring Session JDBC (a new
+    global table) and the counters to a shared store.
+  - Behind a reverse proxy, client addresses and `Secure` detection need
+    `server.forward-headers-strategy` set. Otherwise every request seems to come from the proxy and
+    the per-client limit applies to all users together.
+  - Accepted trade-off of lockout-style throttling: anyone who knows a firm slug and an email
+    can keep that account locked by failing 5 times every 15 minutes. If it becomes a problem, add
+    a counter keyed by account and client, so the owner's usual address stays allowed.
+  - Flooding the throttle with more than 50,000 distinct keys could evict a victim's counter. The
+    per-client limit makes that require thousands of addresses.
+  - A person working for two firms has two accounts. The firm switcher (T21) logs in again.
+  - `TenantService` is the public entry point to tenants: create, resolve a slug, describe one firm.
+    It never lists tenants.
