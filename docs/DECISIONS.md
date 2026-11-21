@@ -121,3 +121,41 @@ Superseded decisions are marked, never deleted.
     (build-time only, nothing shipped). The only offered fix is downgrading vite-plugin-pwa; accepted.
 - **Consequences:** `npx shadcn add` may write a wrong `cn` import (`from "cn"`) because there is no
   `baseUrl`; check the import after adding components.
+
+## ADR-0007: Multi-tenancy with Hibernate `@TenantId` (T04)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** Every firm (estudio) shares one database and one schema. Criminal-record data is
+  sensitive (Ley 25.326, art. 7), so a missing `WHERE tenant_id = ?` must not leak data. The options
+  were PostgreSQL row-level security (RLS), Hibernate filters, and Hibernate's `@TenantId`
+  discriminator.
+- **Decision:**
+  - **Shared schema, `tenant_id uuid NOT NULL REFERENCES tenant(id)` on every business table.**
+    The `tenant` table and `flyway_schema_history` are the only global tables.
+  - **Hibernate 7 `@TenantId`** on a `TenantScopedEntity` mapped superclass. Hibernate stamps the
+    tenant on insert and adds the restriction to every entity load, HQL/JPQL query, and bulk
+    update/delete. Unlike `@Filter`, it cannot be forgotten or switched off per session, and unlike
+    hand-written predicates it covers `findById`.
+  - **Tenant resolution** (`CurrentTenantResolver`): an explicit `TenantContext.runAs(...)` scope (seed
+    data, jobs, tests) wins, then the authenticated principal implementing `TenantPrincipal`. The
+    tenant always comes from the logged-in user (T05), never from a header or a request parameter.
+  - **Fail closed:** with no tenant resolved, the resolver returns the nil UUID. A check constraint
+    forbids that id in `tenant`, so tenant-scoped queries return nothing and inserts fail on the
+    foreign key. No tenant is "root".
+  - A scope cannot be entered inside a running transaction (the Hibernate session is already bound
+    to a tenant). `TenantContext` throws instead of silently using the wrong tenant.
+  - Guard tests: every table outside the global list must have a non-null `tenant_id` foreign key to
+    `tenant`, and every entity except `Tenant` must extend `TenantScopedEntity`.
+  - **RLS was not adopted yet.** It is the stronger guarantee, but superusers and table owners bypass
+    it. It needs a separate non-owner runtime role, a `set_config('app.tenant_id', ...)` call per
+    transaction, and role provisioning in Compose, Testcontainers and CI. The schema already has
+    `tenant_id` on every table, so RLS policies can be added later as defense in depth without data
+    changes.
+- **Consequences:** Native SQL and `JdbcTemplate` bypass `@TenantId`. Business code must use JPA, and
+  any native query must filter by tenant explicitly and get an isolation test. Unique constraints
+  on business tables should include `tenant_id` (for example `(tenant_id, internal_number)`).
+  Test-only tables live in `src/test/resources/db/testmigration` as repeatable migrations.
+  `TenantRepository` is package-private, because it is the only cross-tenant read path. The
+  explicit scope is thread-bound and is not propagated to async or scheduled work, which fails
+  closed. Archiving tenants and audit columns (`updated_at`, change history) belong to T07.

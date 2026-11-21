@@ -14,3 +14,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Frontend skeleton (T03): Vite 8 + React 19 + TypeScript, Tailwind CSS v4, shadcn/ui, TanStack
   Router and Query, Vitest and Playwright smoke tests, installable PWA with Spanish manifest, `/api`
   proxied to the backend on 8081, placeholder home "Gestor de causas penales" (ADR-0006).
+- Multi-tenancy foundation (T04): `tenant` table and `TenantScopedEntity` with Hibernate `@TenantId`.
+  The tenant is resolved from the authenticated user or an explicit scope and fails closed when
+  missing. Isolation and schema-convention tests are included (ADR-0007).
