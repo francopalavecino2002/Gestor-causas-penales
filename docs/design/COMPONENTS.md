@@ -75,6 +75,7 @@ Keep legajo numbers on one line (`whitespace-nowrap`): they break at the hyphen 
 | `--spacing-bottom-nav` | `h-bottom-nav` | 64 px | Bottom nav items |
 | `--container-content` | `max-w-content` | 1180 px | Content column |
 | utilities | `pt-safe`, `pb-safe`, `pb-bottom-nav-safe` | `env(safe-area-inset-*)` | Notch, home bar, room under the bottom nav |
+| utility (T22) | `top-below-top-bar` | top bar + safe-area inset | `sticky` headers that stay under the mobile top bar (agenda day headers); pair with `lg:static` |
 
 ### Radius, elevation, motion
 
@@ -122,6 +123,7 @@ from `radix-ui`) and keep a 44 px touch target.
 | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | | Segmented look; give `TabsList` an `aria-label`. |
 | `DropdownMenu` + `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuLabel`, `DropdownMenuRadioGroup`, `DropdownMenuRadioItem`, `DropdownMenuSeparator` | | Action menus (firm switcher, account). 44 px items; give a radio group an `aria-label`. |
 | Shell (`components/shell/`): `AppShell`, `Sidebar`, `TopBar`, `BottomNav`, `FirmSwitcher`, `UserMenu`, `PageHeader`, `BrandMark` | | Signed-in layout (T21). Pages render inside `<main id="contenido">`: start with `PageHeader` (the only `h1`), never another `<main>`. |
+| Agenda (`features/agenda/`, T22): `HearingCard`, `HearingRow`, `AgendaStatusBadge`, `DayRail`, `WeekList`, `DetaineeAlerts`, `AgendaToolbar`, `AgendaSkeleton`, `AgendaEmpty`, `AgendaError` | `HearingCard` `finished` starts collapsed | `HearingCard` is the full card on the day rail (`h2` title); `HearingRow` the week row (`h3`), a card on phones and a table-like row from 768 px. `AgendaStatusBadge` falls back to a neutral badge with the firm's own status name. The "Día / Semana" switch uses toggle buttons (`aria-pressed`) because it changes the URL, not a tab panel. ADR-0023. |
 | `Separator` | `orientation`, `decorative` | Decorative by default. |
 | `Skeleton` | | `aria-hidden`; wrap a group in `role="status" aria-busy="true" aria-label="Cargando …"`. |
 

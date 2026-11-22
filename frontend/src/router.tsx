@@ -11,6 +11,7 @@ import {
 import { Folder, Hourglass, Settings, Users } from "lucide-react";
 
 import { AppShell } from "@/components/shell/app-shell";
+import { parseAgendaSearch } from "@/features/agenda/agenda-search";
 import { LoginPage, type LoginSearch } from "@/features/auth/login-page";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { LOGIN_PATH, loginSearchFor } from "@/features/auth/redirect";
@@ -73,9 +74,11 @@ const appRoute = createRoute({
   component: AppShell,
 });
 
+/** Home: the hearing agenda. `?vista`, `?fecha` and `?abogado` keep the view linkable (T22). */
 const agendaRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/",
+  validateSearch: parseAgendaSearch,
   component: HomePage,
 });
 

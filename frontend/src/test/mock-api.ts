@@ -1,11 +1,14 @@
 import { vi } from "vitest";
 
+import { FIRM_TIME_ZONE } from "@/features/agenda/agenda-dates";
 import type { Me } from "@/features/auth/auth-api";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
   method: string;
   path: string;
+  /** Query string parameters, e.g. { from: "2026-11-23" }. */
+  query: Record<string, string>;
   headers: Record<string, string>;
   body: unknown;
 }
@@ -74,6 +77,7 @@ export function mockFetch(routes: Record<string, Handler>) {
     const request: RecordedRequest = {
       method,
       path: url.pathname,
+      query: Object.fromEntries(url.searchParams),
       headers,
       body: typeof init.body === "string" ? JSON.parse(init.body) : undefined,
     };
@@ -86,9 +90,23 @@ export function mockFetch(routes: Record<string, Handler>) {
   return requests;
 }
 
-/** Signed-in session: /me answers the demo user. */
+/**
+ * Signed-in session: /me answers the demo user, and the home (agenda) loads empty unless a test
+ * passes its own agenda routes.
+ */
 export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {}) {
-  return mockFetch({ "GET /api/v1/me": () => json(200, me), ...routes });
+  return mockFetch({
+    "GET /api/v1/me": () => json(200, me),
+    "GET /api/v1/agenda": ({ query }) =>
+      json(200, {
+        from: query.from,
+        to: query.to,
+        timeZone: FIRM_TIME_ZONE,
+        items: [],
+      }),
+    "GET /api/v1/detainee-alerts": () => json(200, []),
+    ...routes,
+  });
 }
 
 /** Anonymous session: /me answers 401. */

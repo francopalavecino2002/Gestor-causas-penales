@@ -1044,3 +1044,52 @@ Superseded decisions are marked, never deleted.
   with accounts in two firms signs in twice; that matches the security model (one session,
   one tenant). The main JS chunk is ~630 kB (≈199 kB gzip) and Vite warns above 500 kB;
   splitting routes (or `zod/mini`) is a follow-up when real screens land.
+
+## ADR-0023: Hearing agenda as the home screen (T22)
+
+- **Date:** 2026-11-22
+- **Status:** accepted
+- **Context:** T22 turns the home placeholder into the agenda, on top of `GET /api/v1/agenda`
+  (local days in the firm's zone, `to` inclusive, max 31 days, optional `lawyerId`) and
+  `GET /api/v1/detainee-alerts` (ADR-0016). The UI needs a lawyer filter, but the backend has
+  no endpoint that lists the firm's users yet.
+- **Decision:**
+  - **State in the URL**: the `/` route validates `?vista=semana`, `?fecha=YYYY-MM-DD` and
+    `?abogado=<user id>` (`parseAgendaSearch`); invalid values fall back to the defaults (day
+    view, today, whole firm), and defaults are left out of the URL. Any view can be bookmarked
+    or shared; back/forward walk through days.
+  - **Time zone**: "today" and the requested range are computed in the `timeZone` of the
+    newest agenda answer in the cache, and in `FIRM_TIME_ZONE` = `America/Argentina/Salta`
+    (the backend's `HearingCalendar.ZONE`, written once in `agenda-dates.ts`) before the first
+    one; times and day grouping use the `timeZone` of the answer on screen. All formatting goes through
+    `Intl` with an explicit zone, never the device's. Weeks run Monday to Sunday.
+  - **Lawyer filter without a users endpoint**: options are "Todo el estudio" (no filter),
+    "Mis audiencias" (the signed-in user's id from `/me`, left out until it is known) and every
+    lawyer that appeared in an agenda already loaded in this session, by name. `useAgendaCache`
+    subscribes to the TanStack Query cache with `useSyncExternalStore` (string snapshot, so
+    unrelated cache events do not re-render). A
+    lawyer id from a shared link that we have not seen yet shows as "Otro abogado o abogada".
+    When the backend gets a firm-users endpoint (settings task), the options come from it and
+    this fallback goes away.
+  - **Day view** is the rail of DESIGN.md direction A: time column, dots, the "Ahora" line
+    after the hearings that already started (today only), and hearings that already ended
+    collapsed to title, status and defendants with a "Mirá el detalle" toggle. Auto-scrolling
+    to "Ahora" is left out: collapsing already brings the next hearing up.
+  - **Week view** shows seven days, empty ones included ("Sin audiencias"), with headers that
+    stick under the mobile top bar (new utility `top-below-top-bar`) and link to that day. From
+    768 px each hearing is a table-like row (time, hearing, room and judge, status), the
+    docket idea kept from direction B.
+  - **Markers**: "Persona detenida" (red badge and edge, the only red) and "Superposición de
+    horario" (outline badge); each with an icon and a word. Firm-specific statuses that are not
+    in the OFIJU catalog show their own name in a neutral badge.
+  - **Detainee alerts** sit above the hearings in one `detained` alert: defendant, what is due
+    and when ("La revisión de la medida es el miércoles 25/11 (en 2 días)"), case, CPP
+    article and the backend's "Cálculo asistido" disclaimer. Three show, the rest behind a
+    toggle. If they fail to load the page says so (it never hides them silently).
+  - Loading shows rail skeletons; an empty range offers the next useful view (the week, the
+    next week, the whole firm); errors say what happened and offer "Volvé a intentar".
+  - The Vitest and Playwright suites share one fictitious week (`src/test/agenda-fixtures.ts`)
+    and pin the clock to Monday 23 November 2026, 10:20 in Neuquén.
+- **Consequences:** The lawyer filter cannot offer a colleague with no hearing seen in the
+  session until a users endpoint exists. The agenda never shows a date or time in the device's
+  zone. No "Cargá una audiencia" button yet: the hearing form is a later task.

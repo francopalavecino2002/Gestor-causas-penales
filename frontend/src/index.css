@@ -178,6 +178,11 @@
   padding-bottom: calc(var(--spacing-bottom-nav) + env(safe-area-inset-bottom) + 1.5rem);
 }
 
+/* Sticky offset for headers that stick under the mobile top bar (agenda day headers, T22). */
+@utility top-below-top-bar {
+  top: calc(var(--spacing-top-bar) + env(safe-area-inset-top));
+}
+
 /* Theme-dependent tokens, resolved at runtime from the variables above. */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
