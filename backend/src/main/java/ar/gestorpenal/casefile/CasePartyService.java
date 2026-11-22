@@ -30,7 +30,7 @@ class CasePartyService {
 
     @Transactional
     PartyView add(AuthenticatedUser user, UUID caseId, PartyData data) {
-        CaseFile caseFile = access.requireVisible(user, caseId);
+        CaseFile caseFile = access.requireEditable(user, caseId);
         String role = Text.clean(data.roleCode());
         if (role == null) {
             throw new InvalidCaseDataException("A party needs a role");
@@ -39,8 +39,12 @@ class CasePartyService {
             throw new InvalidCaseDataException("A defendant is not a party: use the defendants endpoint");
         }
         catalogs.requireOffered(Catalog.PARTY_ROLES, role, null);
-        persons.find(data.personId())
-                .orElseThrow(() -> new CaseRecordNotFoundException("There is no person " + data.personId()));
+        boolean archivedPerson = persons.find(data.personId())
+                .orElseThrow(() -> new CaseRecordNotFoundException("There is no person " + data.personId()))
+                .archived();
+        if (archivedPerson) {
+            throw new InvalidCaseDataException("An archived person cannot be added to a case: restore it first");
+        }
         if (parties.existsByCaseIdAndPersonIdAndRoleCodeAndArchivedAtIsNull(caseId, data.personId(), role)) {
             throw new DuplicateRecordException("The person already has this role in the case");
         }

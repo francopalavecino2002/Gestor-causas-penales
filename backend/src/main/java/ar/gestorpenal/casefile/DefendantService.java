@@ -39,12 +39,15 @@ class DefendantService {
 
     @Transactional
     DefendantView add(AuthenticatedUser user, UUID caseId, DefendantData data) {
-        CaseFile caseFile = access.requireVisible(user, caseId);
+        CaseFile caseFile = access.requireEditable(user, caseId);
         if (data.personId() == null) {
             throw new InvalidCaseDataException("A defendant needs a person");
         }
         PersonSummary person = persons.find(data.personId())
                 .orElseThrow(() -> new CaseRecordNotFoundException("There is no person " + data.personId()));
+        if (person.archived()) {
+            throw new InvalidCaseDataException("An archived person cannot be added to a case: restore it first");
+        }
         if (defendants.existsByCaseIdAndPersonIdAndArchivedAtIsNull(caseId, person.id())) {
             throw new DuplicateRecordException("The person is already a defendant in the case");
         }
@@ -55,10 +58,14 @@ class DefendantService {
 
     @Transactional
     DefendantView update(AuthenticatedUser user, UUID caseId, UUID defendantId, DefendantData data) {
-        access.requireVisible(user, caseId);
-        Defendant defendant = find(caseId, defendantId);
+        access.requireEditable(user, caseId);
+        Defendant defendant = findEditable(caseId, defendantId);
         if (data.personId() != null && !data.personId().equals(defendant.getPersonId())) {
             throw new InvalidCaseDataException("The person of a defendant cannot change");
+        }
+        // A full replace: the defaults are for a new defendant, never to reset an existing one.
+        if (data.stageCode() == null || data.status() == null || data.defendedByFirm() == null) {
+            throw new InvalidCaseDataException("Updating a defendant needs its stage, status and defendedByFirm");
         }
         PersonSummary person = persons.find(defendant.getPersonId()).orElseThrow();
         requireCatalogCodes(data, defendant.getStageCode(), defendant.getClosingOutcomeCode());
@@ -74,14 +81,15 @@ class DefendantService {
 
     @Transactional
     ChargeView addCharge(AuthenticatedUser user, UUID caseId, UUID defendantId, ChargeData data) {
-        access.requireVisible(user, caseId);
-        Defendant defendant = find(caseId, defendantId);
+        access.requireEditable(user, caseId);
+        Defendant defendant = findEditable(caseId, defendantId);
         return ChargeView.of(charges.saveAndFlush(DefendantCharge.create(defendant.getId(), data)));
     }
 
     @Transactional
     ChargeView updateCharge(AuthenticatedUser user, UUID caseId, UUID defendantId, UUID chargeId, ChargeData data) {
-        access.requireVisible(user, caseId);
+        access.requireEditable(user, caseId);
+        findEditable(caseId, defendantId);
         DefendantCharge charge = findCharge(caseId, defendantId, chargeId);
         charge.apply(data);
         return ChargeView.of(charge);
@@ -104,6 +112,14 @@ class DefendantService {
     private Defendant find(UUID caseId, UUID defendantId) {
         return defendants.findByIdAndCaseId(defendantId, caseId)
                 .orElseThrow(() -> new CaseRecordNotFoundException("The case has no defendant " + defendantId));
+    }
+
+    private Defendant findEditable(UUID caseId, UUID defendantId) {
+        Defendant defendant = find(caseId, defendantId);
+        if (defendant.isArchived()) {
+            throw new ArchivedRecordException("The defendant is archived");
+        }
+        return defendant;
     }
 
     private DefendantCharge findCharge(UUID caseId, UUID defendantId, UUID chargeId) {

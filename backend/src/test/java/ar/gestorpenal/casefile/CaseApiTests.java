@@ -150,7 +150,8 @@ class CaseApiTests extends CaseApiTestSupport {
                 .andExpect(status().isBadRequest());
 
         putJson(paralegal, "/api/v1/cases/" + caseId + "/defendants/" + defendant,
-                "{\"stageCode\": \"investigacion-preparatoria\", \"chargesFormulatedOn\": \"2026-02-03\","
+                "{\"stageCode\": \"investigacion-preparatoria\", \"status\": \"ACTIVE\","
+                        + " \"chargesFormulatedOn\": \"2026-02-03\","
                         + " \"defenceCounselKind\": \"PUBLIC\", \"defendedByFirm\": false,"
                         + " \"defenceCounselName\": \"Defensoría ficticia\","
                         + " \"rebellionDeclaredOn\": \"2026-03-01\", \"rebellionLiftedOn\": \"2026-04-01\"}")
@@ -190,6 +191,63 @@ class CaseApiTests extends CaseApiTestSupport {
         expectDefendantInvalid(url, human,
                 ", \"rebellionDeclaredOn\": \"2026-03-01\", \"rebellionLiftedOn\": \"2026-02-01\"");
         expectDefendantInvalid(url, legal, ", \"indigenousPeople\": true");
+    }
+
+    @Test
+    void updatingADefendantShouldNeedItsStageStatusAndDefenceSoNothingIsResetByOmission() throws Exception {
+        String caseId = createCase(lawyer, caseJson("Caso con imputado cerrado", ""));
+        String person = createPerson(lawyer, humanJson("Ana", "Quiroga Ejemplo", null));
+        String defendant = addDefendant(lawyer, caseId,
+                "{\"personId\": \"" + person + "\", \"status\": \"CLOSED\", \"stageCode\": \"cerrada\","
+                        + " \"closingOutcomeCode\": \"sobreseimiento\"}");
+
+        putJson(lawyer, "/api/v1/cases/" + caseId + "/defendants/" + defendant, "{}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("/problems/invalid-case-data"));
+        mockMvc.perform(get("/api/v1/cases/" + caseId).with(lawyer))
+                .andExpect(jsonPath("$.defendants[0].status").value("CLOSED"))
+                .andExpect(jsonPath("$.defendants[0].closingOutcomeCode").value("sobreseimiento"));
+    }
+
+    @Test
+    void anArchivedCaseOrDefendantShouldBeReadOnlyUntilRestored() throws Exception {
+        String caseId = createCase(lawyer, caseJson("Caso archivado de solo lectura", ""));
+        String ana = createPerson(lawyer, humanJson("Ana", "Quiroga Ejemplo", null));
+        String beto = createPerson(lawyer, humanJson("Beto", "Salazar Ejemplo", null));
+        String defendant = addDefendant(lawyer, caseId, "{\"personId\": \"" + ana + "\"}");
+        String defendantUrl = "/api/v1/cases/" + caseId + "/defendants/" + defendant;
+        String fullDefendant = "{\"stageCode\": \"juicio\", \"status\": \"ACTIVE\", \"defendedByFirm\": true}";
+
+        postEmpty(lawyer, defendantUrl + "/archive").andExpect(status().isNoContent());
+        putJson(lawyer, defendantUrl, fullDefendant)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("/problems/archived-record"));
+        postJson(lawyer, defendantUrl + "/charges", "{\"offence\": \"Robo simple\"}")
+                .andExpect(status().isConflict());
+
+        postEmpty(lawyer, "/api/v1/cases/" + caseId + "/archive").andExpect(status().isNoContent());
+        putJson(lawyer, "/api/v1/cases/" + caseId, caseJson("Caso archivado editado", ""))
+                .andExpect(status().isConflict());
+        postJson(lawyer, "/api/v1/cases/" + caseId + "/defendants", "{\"personId\": \"" + beto + "\"}")
+                .andExpect(status().isConflict());
+        postJson(lawyer, "/api/v1/cases/" + caseId + "/parties", "{\"personId\": \"" + beto + "\", \"roleCode\": \"testigo\"}")
+                .andExpect(status().isConflict());
+
+        postEmpty(lawyer, "/api/v1/cases/" + caseId + "/restore").andExpect(status().isNoContent());
+        postJson(lawyer, "/api/v1/cases/" + caseId + "/defendants", "{\"personId\": \"" + beto + "\"}")
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void anArchivedPersonShouldNotJoinACase() throws Exception {
+        String caseId = createCase(lawyer, caseJson("Caso con persona archivada", ""));
+        String person = createPerson(lawyer, humanJson("Ana", "Quiroga Ejemplo", null));
+        postEmpty(lawyer, "/api/v1/persons/" + person + "/archive").andExpect(status().isNoContent());
+
+        postJson(lawyer, "/api/v1/cases/" + caseId + "/defendants", "{\"personId\": \"" + person + "\"}")
+                .andExpect(status().isBadRequest());
+        postJson(lawyer, "/api/v1/cases/" + caseId + "/parties", "{\"personId\": \"" + person + "\", \"roleCode\": \"testigo\"}")
+                .andExpect(status().isBadRequest());
     }
 
     @Test

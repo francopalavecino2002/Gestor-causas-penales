@@ -22,8 +22,11 @@ record CaseData(
         Boolean reserved,
         UUID responsibleUserId) {
 
-    /** Omitted means not reserved. */
-    boolean isReservedCase() {
-        return Boolean.TRUE.equals(reserved);
+    /**
+     * The reserved flag to store: omitted keeps the current value (not reserved on a new case), so a
+     * client that does not send it never un-reserves a case by accident.
+     */
+    boolean reservedOr(boolean current) {
+        return reserved == null ? current : reserved;
     }
 }

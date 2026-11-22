@@ -25,6 +25,15 @@ class CaseAccess {
                 .orElseThrow(() -> new CaseRecordNotFoundException("There is no case " + caseId));
     }
 
+    /** A visible case that is not archived: an archived case is read-only until it is restored. */
+    CaseFile requireEditable(AuthenticatedUser user, UUID caseId) {
+        CaseFile caseFile = requireVisible(user, caseId);
+        if (caseFile.isArchived()) {
+            throw new ArchivedRecordException("The case is archived: restore it before changing it");
+        }
+        return caseFile;
+    }
+
     boolean canSee(AuthenticatedUser user, CaseFile caseFile) {
         return CasePermissions.canSeeWithoutTeam(user, caseFile.isReserved())
                 || team.existsByCaseIdAndUserIdAndArchivedAtIsNull(caseFile.getId(), user.userId());

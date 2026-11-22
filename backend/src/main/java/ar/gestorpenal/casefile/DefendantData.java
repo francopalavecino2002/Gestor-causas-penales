@@ -7,8 +7,9 @@ import java.util.UUID;
 
 /**
  * The editable fields of a defendant, as sent by the client. {@code personId} is required to add a
- * defendant and cannot change afterwards. Omitted values take their defaults: stage
- * {@code averiguacion-preliminar}, status {@code ACTIVE}, defended by the firm.
+ * defendant and cannot change afterwards. When a defendant is added, omitted values take their
+ * defaults: stage {@code averiguacion-preliminar}, status {@code ACTIVE}, defended by the firm. An
+ * update is a full replace and needs stage, status and {@code defendedByFirm}.
  */
 record DefendantData(
         UUID personId,

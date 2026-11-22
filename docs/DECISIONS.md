@@ -549,7 +549,15 @@ Superseded decisions are marked, never deleted.
   - **Team:** `RESPONSIBLE` (exactly one, owner or lawyer), `COLLABORATOR` and `PARALEGAL`. The creator
     names the responsible (defaults to themselves). The team is replaced as a whole; removed rows and
     changed roles are archived and new rows added, so the history stays in the table and the audit
-    log. Only the owner or the case's responsible change the team or the reserved flag (`403`).
+    log. Only the owner or the case's responsible change the team or the reserved flag (`403`). A
+    case update that omits `reserved` keeps the current value, so a client that does not send it
+    never un-reserves a case and a collaborator can still edit the case data.
+  - **Updates are full replaces with no silent resets.** The defaults (stage, status, defended by the
+    firm) only apply when a defendant is added; updating one needs its stage, status and
+    `defendedByFirm` (`400` otherwise), so an empty body cannot reopen a closed defendant.
+  - **Archived means read-only.** An archived case or defendant cannot be edited, nor get new
+    defendants, parties or charges (`409 archived-record`) until it is restored; archiving children
+    stays allowed. An archived person cannot be added to a case (`400`): restore the person first.
   - **Reserved cases** are visible only to their active team and the owner. For anyone else they do
     not exist: `404` on every endpoint under the case and absent from the list, filtered in the query
     so the `total` is right. A non-owner who creates a reserved case is added to its team, so they do
@@ -560,7 +568,8 @@ Superseded decisions are marked, never deleted.
   - **Conflict check grows to case roles** (follows ADR-0014): each match now lists the person's
     active roles in cases, defendants as `imputado`. For a reserved case the user cannot see, the
     case id and caption are hidden and `reserved: true` is set, so the alert still fires without
-    revealing the case. To keep packages acyclic, `person` declares the `PersonCaseRoles` interface
+    revealing the case. The role (e.g. `imputado`) stays visible on purpose: that is the information
+    the conflict alert exists for. To keep packages acyclic, `person` declares the `PersonCaseRoles` interface
     and `casefile` implements it; `casefile` uses the public `Persons` facade.
   - **Indigenous people** (pertenencia a pueblo indígena, art. 109 and ILO Convention 169) is an
     optional yes/no on human defendants only, `[validar]`. Ethnic origin is sensitive data (Ley 25.326
@@ -570,6 +579,9 @@ Superseded decisions are marked, never deleted.
 - **Consequences:**
   - Every foreign key is loaded through a tenant-filtered repository or facade: a person or user of
     another firm answers `404`, and a child id from another case too.
+  - Accepted trade-off: case numbers are unique per firm, so a user who types the legajo or internal
+    number of a reserved case they cannot see gets the `409`, without `existingCaseId`. It reveals only
+    that the number is taken, which the user already knows, and avoids two cases with one legajo.
   - Deferred to later tasks: fact narrative, key dates, connected cases, juvenile court, an offence
     catalog, detainees and next hearing in the summary (T13), and deadlines per defendant (T14).
   - The demo firm gets fictitious persons and two cases (one reserved, one with two defendants in

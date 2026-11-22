@@ -25,7 +25,8 @@ class CaseAuditTests extends CaseApiTestSupport {
         String person = createPerson(lawyer, humanJson("Ana", "Quiroga Ejemplo", null));
         String defendant = addDefendant(lawyer, caseId, "{\"personId\": \"" + person + "\"}");
         putJson(lawyer, "/api/v1/cases/" + caseId + "/defendants/" + defendant,
-                "{\"stageCode\": \"juicio\", \"indigenousPeople\": true}")
+                "{\"stageCode\": \"juicio\", \"status\": \"ACTIVE\", \"defendedByFirm\": true,"
+                        + " \"indigenousPeople\": true}")
                 .andExpect(status().isOk());
 
         List<AuditEvent> history = TenantContext.callAs(tenantA,

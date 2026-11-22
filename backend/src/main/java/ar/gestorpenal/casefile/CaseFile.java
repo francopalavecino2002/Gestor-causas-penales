@@ -92,7 +92,7 @@ class CaseFile extends TenantScopedEntity {
         this.circumscriptionCode = circumscription;
         this.actionType = data.actionType();
         this.represents = data.represents();
-        this.reserved = data.isReservedCase();
+        this.reserved = data.reservedOr(this.reserved);
     }
 
     boolean isArchived() {

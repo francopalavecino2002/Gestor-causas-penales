@@ -73,8 +73,8 @@ class CaseService {
     /** Replaces the editable fields. Changing {@code reserved} is for the owner and the responsible. */
     @Transactional
     CaseDetail update(AuthenticatedUser user, UUID id, CaseData data) {
-        CaseFile caseFile = access.requireVisible(user, id);
-        if (data.isReservedCase() != caseFile.isReserved()) {
+        CaseFile caseFile = access.requireEditable(user, id);
+        if (data.reservedOr(caseFile.isReserved()) != caseFile.isReserved()) {
             CasePermissions.requireCanManageTeam(user, responsibleOf(id).orElse(null));
         }
         requireNumbersFree(user, data, id);
@@ -122,14 +122,9 @@ class CaseService {
      */
     @Transactional
     CaseDetail replaceTeam(AuthenticatedUser user, UUID id, TeamData data) {
-        CaseFile caseFile = access.requireVisible(user, id);
+        CaseFile caseFile = access.requireEditable(user, id);
         List<CaseTeamMember> current = team.findByCaseIdAndArchivedAtIsNullOrderByCreatedAtAscIdAsc(id);
-        UUID currentResponsible = current.stream()
-                .filter(member -> member.getTeamRole() == TeamRole.RESPONSIBLE)
-                .map(CaseTeamMember::getUserId)
-                .findFirst()
-                .orElse(null);
-        CasePermissions.requireCanManageTeam(user, currentResponsible);
+        CasePermissions.requireCanManageTeam(user, responsibleIn(current).orElse(null));
         requireValidTeam(data);
 
         List<TeamData.Member> toAdd = data.members().stream()
@@ -145,7 +140,11 @@ class CaseService {
     }
 
     private Optional<UUID> responsibleOf(UUID caseId) {
-        return team.findByCaseIdAndArchivedAtIsNullOrderByCreatedAtAscIdAsc(caseId).stream()
+        return responsibleIn(team.findByCaseIdAndArchivedAtIsNullOrderByCreatedAtAscIdAsc(caseId));
+    }
+
+    private static Optional<UUID> responsibleIn(List<CaseTeamMember> members) {
+        return members.stream()
                 .filter(member -> member.getTeamRole() == TeamRole.RESPONSIBLE)
                 .map(CaseTeamMember::getUserId)
                 .findFirst();

@@ -112,6 +112,35 @@ class ReservedCaseTests extends CaseApiTestSupport {
     }
 
     @Test
+    void anUpdateWithoutTheReservedFlagShouldKeepItAndBeAllowedToACollaborator() throws Exception {
+        String id = createCase(lawyer, caseJson("Caso reservado ficticio", RESERVED));
+        putJson(lawyer, "/api/v1/cases/" + id + "/team",
+                "{\"members\": [{\"userId\": \"" + lawyerId + "\", \"role\": \"RESPONSIBLE\"},"
+                        + " {\"userId\": \"" + otherLawyerId + "\", \"role\": \"COLLABORATOR\"}]}")
+                .andExpect(status().isOk());
+
+        putJson(otherLawyer, "/api/v1/cases/" + id, caseJson("Caso reservado renombrado", ""))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.caption").value("Caso reservado renombrado"))
+                .andExpect(jsonPath("$.reserved").value(true));
+    }
+
+    @Test
+    void aDuplicateNumberInAReservedCaseShouldNotRevealItsId() throws Exception {
+        String reserved = createCase(lawyer, caseJson("Caso reservado ficticio",
+                RESERVED + ", \"mpfLegajo\": \"MPFNQ 4321/2026\""));
+
+        postJson(otherLawyer, "/api/v1/cases", caseJson("Otro caso", ", \"mpfLegajo\": \"mpfnq4321/2026\""))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("/problems/case-duplicate-legajo"))
+                .andExpect(jsonPath("$.existingCaseId").doesNotExist())
+                .andExpect(content().string(not(containsString(reserved))));
+        postJson(lawyer, "/api/v1/cases", caseJson("Otro caso", ", \"mpfLegajo\": \"MPFNQ 4321/2026\""))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.existingCaseId").value(reserved));
+    }
+
+    @Test
     void aTeamNeedsExactlyOneResponsibleWhoIsAnOwnerOrLawyer() throws Exception {
         String id = createCase(lawyer, caseJson("Caso para equipo", ""));
 

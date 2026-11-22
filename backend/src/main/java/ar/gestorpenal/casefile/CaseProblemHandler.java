@@ -47,6 +47,11 @@ class CaseProblemHandler {
         return problem(HttpStatus.CONFLICT, "duplicate-record", "Already in the case", exception.getMessage());
     }
 
+    @ExceptionHandler(ArchivedRecordException.class)
+    ProblemDetail archived(ArchivedRecordException exception) {
+        return problem(HttpStatus.CONFLICT, "archived-record", "Archived", exception.getMessage());
+    }
+
     /**
      * Two requests changed the same thing at once: the unique key keeps one, the other retries. Any
      * other integrity violation is a bug and is rethrown, so it is not disguised as a race.
