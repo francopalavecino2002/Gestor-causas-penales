@@ -432,3 +432,68 @@ Superseded decisions are marked, never deleted.
     catalog by the service, not by a foreign key.
   - The articles of arts. 156 to 272 come from secondary sources; only the items the domain review
     tagged carry `[no verificado]`, exactly as in the review.
+
+## ADR-0014: Persons, clients and the conflict check (T11)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** A firm needs the people around its cases (defendants, victims, witnesses, experts...)
+  and, among them, its own clients with the consent to process their data. Cases do not exist yet
+  (T12), and the data is sensitive: Ley 25.326 treats data about health, ethnic origin or criminal
+  proceedings with special care (art. 2 defines sensitive data, art. 7 restricts collecting it).
+- **Decision:**
+  - **Roles are a catalog, links come with cases.** T11 adds the `party-roles` catalog to the
+    jurisdiction package (ADR-0013): imputado, víctima, querellante particular, querellante
+    institucional, testigo, perito, fiscal, defensor, juez, familiar de contacto and garante. It is
+    **rename-only** because behavior will hang on the codes. Each item has a `side` (`defence`,
+    `accusation`, `neutral`) and the victim has `notificationRights=true` (art. 61); only arts. 61 and
+    65 are cited, as in the domain review, and the institutional plaintiff is flagged `[validar]`.
+    The table that links a person to a case with a role is T12's.
+  - **Persons** (`person`, tenant-scoped, `@Audited`, archived never deleted): `HUMAN` (first and last
+    names) or `LEGAL` (legal name), optional aliases, document type (`DNI`, `PASSPORT`, `CUIT`,
+    `CUIL`, `OTHER`) and number, birth date, nationality, phone, email and address. Database checks
+    enforce the shape of each kind and that document type and number go together. The kind cannot
+    change.
+  - **One record per document.** A unique index on `(tenant, type, number)` keeps a person once; a
+    duplicate answers `409 person-duplicate-document` with `existingPersonId`, so the user opens the
+    existing record instead. Numbers are stored **normalized** (uppercase, no spaces, dots or
+    hyphens) and checked against the type's shape (a DNI has 7 or 8 digits, a CUIT or CUIL 11).
+  - **Conflict check by document** (`POST /persons/conflict-check` with the number in the body, so a
+    DNI never lands in a URL, an access log or the browser history; also embedded in a client's
+    detail). Matching is on the normalized number, and a DNI also matches a stored CUIT or CUIL whose
+    digits 3 to 10 hold the DNI (CUIL `20-30123456-7` is DNI `30123456`), in both directions. A
+    passport or other document with 11 digits never matches a DNI that way.
+    Archived people are included and flagged. It is a simple alert with a disclaimer (the system
+    assists, the lawyer controls); it grows to case roles in T12, where it will tell who the person
+    is on which case (for example, a prospective client who is the victim in another case).
+  - **Clients** (`client`): the firm's relationship with one person (unique per person, archived
+    counts), with intake date, how the client arrived, and the consent to data processing: date,
+    scope and a reference to the signed form (file storage comes later). Date and scope go together.
+  - **Authorized contacts** (`authorized_contact`) are plain rows of the client (name, relationship,
+    phone, email and **what the firm may tell them**), not persons: that avoids person-to-person
+    relations and their privacy questions. They are archived, never deleted.
+  - **Deliberately left out:** health, addictions, socioeconomic or ethnic data, relations between
+    persons and a free-text "notes" field on persons (it invites sensitive data). The "indigenous
+    people" field belongs to the defendant in the case, so it is T12's; ethnic origin is sensitive
+    data under art. 2 `[validar]`.
+  - **Authorization:** every member of the firm reads, creates and edits persons, clients and
+    contacts (no restriction for the administrative role yet); only the owner and lawyers archive and
+    restore persons and clients (`403` otherwise), since archiving hides a file from everyone. There
+    is no `DELETE` endpoint. Every foreign key is loaded through a tenant-filtered repository, so an
+    id of another firm answers `404`.
+- **Consequences:**
+  - A person who is a defendant in one case and a victim in another is one record (T12 gives the
+    roles); a document cannot be corrected into one that exists, the existing record must be used.
+  - Matching DNI and CUIT/CUIL is by digits only, without validating the check digit; accent-insensitive
+    search is left for later (a plain case-insensitive match is used).
+  - Package `neuquen` is now version 2 (new catalog).
+  - **Contact data is audited in full.** Names, document, birth date, phone, email and address are
+    personal but not sensitive data (art. 2), and a lawyer must be able to see who changed a
+    procedural address and what it was before, so they are not `@AuditRedacted`. The log is a second
+    copy that archiving does not touch: a suppression request (art. 16) follows the privileged
+    redaction procedure foreseen in ADR-0010 `[validar]`. A future sensitive field must be redacted.
+  - Archived persons can still become clients and archived clients can still be edited: archiving
+    hides a file from lists, it does not freeze it. Restore it first if the UI wants that to show.
+  - Only a race on the unique keys (`person_document_uk`, `client_person_uk`) answers `409
+    concurrent-change`; any other integrity violation is a bug and answers `500`.
+  - Intake and consent dates cannot be in the future.
