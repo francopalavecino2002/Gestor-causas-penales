@@ -105,6 +105,40 @@ class DemoDataSeederTests {
                 .isEqualTo(2);
     }
 
+    @Test
+    void shouldSeedHearingsAndMeasuresWithAClashAndKeepThemOnARerun() {
+        UUID tenantId = tenants.findActiveIdBySlug("estudio-demo").orElseThrow();
+
+        seeder.run(new DefaultApplicationArguments());
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM hearing WHERE tenant_id = ?", Integer.class, tenantId))
+                .isEqualTo(4);
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM hearing_lawyer WHERE tenant_id = ? AND archived_at IS NULL",
+                        Integer.class,
+                        tenantId))
+                .isEqualTo(4);
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM coercive_measure WHERE tenant_id = ?", Integer.class, tenantId))
+                .isEqualTo(2);
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM coercive_measure WHERE tenant_id = ? AND measure_code = 'prision-preventiva'"
+                                + " AND ends_on IS NOT NULL AND next_review_on IS NOT NULL",
+                        Integer.class,
+                        tenantId))
+                .isEqualTo(1);
+        // Two hearings of the same lawyer overlap: both start on the same day, half an hour apart.
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM hearing a JOIN hearing b ON a.tenant_id = b.tenant_id AND a.id < b.id"
+                                + " JOIN hearing_lawyer la ON la.hearing_id = a.id JOIN hearing_lawyer lb ON lb.hearing_id = b.id"
+                                + " WHERE a.tenant_id = ? AND la.user_id = lb.user_id"
+                                + " AND a.starts_at < b.starts_at + b.duration_minutes * interval '1 minute'"
+                                + " AND b.starts_at < a.starts_at + a.duration_minutes * interval '1 minute'",
+                        Integer.class,
+                        tenantId))
+                .isEqualTo(1);
+    }
+
     /** Simulates a run that failed after creating the firm; raw SQL because the app never deletes. */
     @Test
     void shouldCreateOnlyTheMissingUsersOfAPartiallySeededFirm() {

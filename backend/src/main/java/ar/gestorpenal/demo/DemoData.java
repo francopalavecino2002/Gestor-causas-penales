@@ -14,6 +14,8 @@ final class DemoData {
             new DemoUser("martin.prueba@example.com", "Martín Prueba", Role.LAWYER),
             new DemoUser("sofia.ficticia@example.com", "Sofía Ficticia", Role.PARALEGAL));
 
+    static final DemoUser OWNER = USERS.get(0);
+
     /** The lawyer who is the responsible of the demo cases. */
     static final DemoUser LAWYER = USERS.get(1);
 

@@ -20,8 +20,10 @@ The orchestrator (Claude Code) gives you one focused task at a time. Do that tas
   (`@Getter`, `@RequiredArgsConstructor`, `@Builder`); prefer records for DTOs.
 - Package by feature: `ar.gestorpenal.<feature>` with `web`, `application`, `domain`,
   `persistence` subpackages when useful.
-- Every table has `id uuid`, `tenant_id uuid not null`, `created_at`, `created_by`,
-  `updated_at`, `updated_by`, `archived_at` (nothing is deleted).
+- Every table has `id uuid`, `tenant_id uuid not null`, `created_at` and `archived_at`
+  (nothing is deleted). Who changed what and when lives in the audit log (`@Audited`,
+  ADR-0010), not in `created_by`/`updated_*` columns. Append-only history tables may omit
+  `archived_at`.
 - Migrations: Flyway, `src/main/resources/db/migration/V<n>__<snake_case>.sql`.
   Never edit a migration that already exists on `main`; add a new one.
 - Custom fields live in a `jsonb` column `custom_fields`.

@@ -27,6 +27,7 @@ class CaseViews {
     private final CaseCatalogs catalogs;
     private final Persons persons;
     private final UserRepository users;
+    private final CaseHearingSummaries hearingSummaries;
 
     CaseViews(
             CaseTeamMemberRepository team,
@@ -35,7 +36,8 @@ class CaseViews {
             DefendantChargeRepository charges,
             CaseCatalogs catalogs,
             Persons persons,
-            UserRepository users) {
+            UserRepository users,
+            CaseHearingSummaries hearingSummaries) {
         this.team = team;
         this.parties = parties;
         this.defendants = defendants;
@@ -43,35 +45,62 @@ class CaseViews {
         this.catalogs = catalogs;
         this.persons = persons;
         this.users = users;
+        this.hearingSummaries = hearingSummaries;
     }
 
-    /** The case heads for a list, with one query for all the defendants. */
+    /** The case heads for a list, with one query for all the defendants, detainees and next hearings. */
     List<CaseView> heads(List<CaseFile> cases) {
         if (cases.isEmpty()) {
             return List.of();
         }
+        List<UUID> caseIds = cases.stream().map(CaseFile::getId).toList();
         Map<UUID, List<Defendant>> defendantsByCase = defendants
-                .findByCaseIdInAndArchivedAtIsNull(cases.stream().map(CaseFile::getId).toList())
+                .findByCaseIdInAndArchivedAtIsNull(caseIds)
                 .stream()
                 .collect(Collectors.groupingBy(Defendant::getCaseId));
+        Map<UUID, Integer> detainees = hearingSummaries.detaineeCounts(caseIds);
+        Map<UUID, NextHearing> nextHearings = hearingSummaries.nextHearings(caseIds);
         Map<String, String> circumscriptions = catalogs.names(Catalog.CIRCUMSCRIPTIONS);
         List<String> stageOrder = catalogs.stageOrder();
         return cases.stream()
                 .map(caseFile -> CaseView.of(
                         caseFile,
                         nameOf(circumscriptions, caseFile.getCircumscriptionCode()),
-                        CaseSummary.of(defendantsByCase.getOrDefault(caseFile.getId(), List.of()), stageOrder)))
+                        summary(
+                                caseFile.getId(),
+                                defendantsByCase.getOrDefault(caseFile.getId(), List.of()),
+                                stageOrder,
+                                detainees,
+                                nextHearings)))
                 .toList();
     }
 
     CaseDetail detail(CaseFile caseFile) {
         List<Defendant> activeDefendants =
                 defendants.findByCaseIdAndArchivedAtIsNullOrderByCreatedAtAscIdAsc(caseFile.getId());
+        List<UUID> caseIds = List.of(caseFile.getId());
+        CaseSummary summary = summary(
+                caseFile.getId(),
+                activeDefendants,
+                catalogs.stageOrder(),
+                hearingSummaries.detaineeCounts(caseIds),
+                hearingSummaries.nextHearings(caseIds));
         CaseView head = CaseView.of(
                 caseFile,
                 nameOf(catalogs.names(Catalog.CIRCUMSCRIPTIONS), caseFile.getCircumscriptionCode()),
-                CaseSummary.of(activeDefendants, catalogs.stageOrder()));
+                summary);
         return CaseDetail.of(head, teamOf(caseFile.getId()), partiesOf(caseFile.getId()), defendantViews(activeDefendants));
+    }
+
+    /** The defendant-based summary of a case, enriched with its detainee count and next hearing. */
+    private static CaseSummary summary(
+            UUID caseId,
+            List<Defendant> caseDefendants,
+            List<String> stageOrder,
+            Map<UUID, Integer> detainees,
+            Map<UUID, NextHearing> nextHearings) {
+        return CaseSummary.of(caseDefendants, stageOrder)
+                .withHearingData(detainees.getOrDefault(caseId, 0), nextHearings.get(caseId));
     }
 
     DefendantView defendant(Defendant defendant) {
