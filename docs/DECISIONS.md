@@ -983,3 +983,64 @@ Superseded decisions are marked, never deleted.
     still the T03 placeholders and need a separate task.
   - The token values are written in three places (DESIGN.md, `scripts/contrast.mjs`,
     `index.css`); the Vitest test guards contrast on the one the app ships.
+
+## ADR-0022: App shell, session handling and firm switcher (T21)
+
+- **Date:** 2026-11-22
+- **Status:** accepted
+- **Context:** T21 adds the signed-in layout every screen will use, the two-step login of
+  ADR-0009 and a way to move between firms. The backend binds an account to exactly one firm
+  (tenant) and the session to that account, so there is no "switch tenant" endpoint.
+- **Decision:**
+  - **API client** (`src/lib/api.ts`): plain `fetch` with `credentials: "include"`. Every non-GET
+    sends the `XSRF-TOKEN` cookie in `X-XSRF-TOKEN`, read fresh before each request (it rotates
+    after login); if the cookie is missing it calls `GET /api/v1/auth/csrf` first. A 403 on a
+    write refreshes the token and retries once (token rotated in another tab). Errors become
+    `ApiError { status, type, retryAfter, detail }`, where `type` is the last segment of the
+    problem `type` (`invalid-credentials`...). Network failures are `status 0`,
+    `type "network-error"`. Queries do not retry 4xx.
+  - **Session state** is the TanStack Query `["me"]` query (`GET /api/v1/me`, 401 → `null`).
+    Route guards use `ensureQueryData`: the pathless `app` layout route redirects anonymous
+    users to `/ingresar?redirect=<path>`; `/ingresar` sends signed-in users to `/`.
+    `/design-system` stays public (ADR-0021) and is now lazy-loaded. A query/mutation cache
+    subscriber turns **any 401** into "session gone": it sets `me` to `null` and opens the
+    login keeping the current path. The `redirect` parameter only accepts same-origin paths
+    (`/x`, not `//x` or URLs) to avoid an open redirect.
+  - **Login** (`/ingresar`): React Hook Form + Zod (limits mirror the backend: 63/254/128/32).
+    Step 2 accepts the TOTP (`inputMode="numeric"`, `autocomplete="one-time-code"`) or a
+    recovery code (toggle "Usar un código de recuperación"). Wrong credentials get one generic
+    message that never says which field failed; `login-throttled` shows the wait from
+    `Retry-After` in words; `second-factor-expired` returns to the password step. Each failed
+    attempt remounts the form so the secret field is emptied, focused and the error announced.
+  - **Logout** clears the whole query cache. If the server cannot be reached the user stays
+    signed in and sees "No pudimos cerrar la sesión": the UI never pretends a session was closed.
+  - **Firm switcher**: switching firm = signing out + signing in to the other firm. The device
+    remembers firms that signed in successfully in `localStorage["rememberedFirms"]`
+    (`{slug, name, lastEmail}`, newest first, max 5, try/catch, validated on read). No
+    passwords, tokens or case data. The email is personal data and survives a normal logout
+    on purpose (convenience on the lawyer's own phone); "Olvidar" removes it. The switcher lists the current firm and the remembered
+    ones; picking one signs out and opens `/ingresar?estudio=<slug>` with the slug and the
+    remembered email filled in. The login also offers the remembered firms as shortcuts.
+    "Olvidar este estudio en este dispositivo" asks for confirmation, signs out and removes
+    the entry (meant for shared or borrowed devices).
+  - **Navigation**: bottom nav below 1024 px (`lg`) with the four sections of DESIGN.md
+    (Agenda, Causas, Plazos, Personas; 64 px items, safe-area inset), "Ajustes" in the account
+    menu; sidebar from 1024 px with the same sections, then Ajustes, firm switcher and account
+    menu at the foot. DESIGN.md said "Casos" and sidebar "≥ 1100 px"; we use **"Causas"**
+    (the product's own word) and **`lg` (1024 px)** so tablets in landscape get the sidebar.
+    Active section via `aria-current="page"`. Skip link "Saltar al contenido" to
+    `<main id="contenido">`.
+  - Account menu shows name, email, role in Spanish (Titular, Abogado/a, Procurador/a,
+    Administrativo/a), theme choice (same three options as `ThemeToggle`) and "Cerrar sesión".
+  - New tokens: `--spacing-sidebar`, `--spacing-top-bar`, `--spacing-bottom-nav`,
+    `--container-content`, utilities `pt-safe`, `pb-safe`, `pb-bottom-nav-safe`;
+    `viewport-fit=cover` in `index.html`. New base component: `DropdownMenu` (Radix).
+  - Dependencies: `react-hook-form` 7.92.0, `zod` 4.6.7, `@hookform/resolvers` 7.0.8 (latest
+    stable on npm at the time). Motion not added (no animation needed yet).
+  - Tests mock `fetch` (`src/test/mock-api.ts`), not modules; e2e mocks the API with
+    `page.route` (`e2e/mock-backend.ts`), so neither needs the backend running.
+- **Consequences:** Every new screen is a child of the `app` route and gets the guard and the
+  shell for free; pages render a `PageHeader` (one `h1`) and never their own `<main>`. A user
+  with accounts in two firms signs in twice; that matches the security model (one session,
+  one tenant). The main JS chunk is ~630 kB (≈199 kB gzip) and Vite warns above 500 kB;
+  splitting routes (or `zod/mini`) is a follow-up when real screens land.

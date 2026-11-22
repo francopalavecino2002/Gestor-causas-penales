@@ -99,3 +99,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   checkbox, switch, card, badge, alert, dialog, tooltip, separator, skeleton, tabs), a hearing-status
   badge and the "Cálculo asistido" note. Living style guide at `/design-system`, a token contrast
   test, and `docs/design/COMPONENTS.md` (ADR-0021).
+- App shell (T21): login at `/ingresar` with the optional second step (TOTP or recovery code),
+  CSRF-aware API client with problem+json errors, route guard and session-expiry handling,
+  bottom nav on phones and sidebar on desktop, account menu, and a firm switcher that remembers
+  firms used on the device and signs in again to switch (ADR-0022).
