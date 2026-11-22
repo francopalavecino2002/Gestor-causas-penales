@@ -586,3 +586,106 @@ Superseded decisions are marked, never deleted.
     catalog, detainees and next hearing in the summary (T13), and deadlines per defendant (T14).
   - The demo firm gets fictitious persons and two cases (one reserved, one with two defendants in
     different stages).
+
+## ADR-0016: Hearings, coercive measures and the agenda (T13)
+
+- **Date:** 2026-11-22
+- **Status:** accepted
+- **Context:** The hearing agenda is the core of the product: a lawyer opens it to know what is on
+  today and this week, whether two hearings collide, and which clients are detained. In the accusatory
+  procedure the hearing is the unit of work (the 2014 statistics in `docs/domain/neuquen-review.md`
+  §2.2 are counted per hearing type), and coercive measures (arts. 113 to 120) are decided in hearings
+  and carry the only deadlines that a lawyer cannot afford to miss: a detainee's.
+- **Decision:**
+  - **New feature package `hearing`** (hearings, measures, agenda, alerts), migration
+    `V9__hearing_and_coercive_measure.sql` with six tenant-scoped, `@Audited` tables archived
+    instead of deleted: `hearing`, `hearing_defendant`, `hearing_lawyer`, `hearing_reschedule`,
+    `coercive_measure` and `coercive_measure_risk`. There is no `DELETE` endpoint. Who changed what and
+    when lives in the audit log (ADR-0010), not in `created_by`/`updated_*` columns;
+    `hearing_reschedule` is append-only, so it has no `archived_at`. Catalog codes (type,
+    status, cancellation reason, measure, risk) are text validated against the firm's catalog exactly as
+    in ADR-0015: a new or changed value must be offered, an unchanged one is kept even if hidden.
+  - **Packages stay acyclic with two small seams.** `hearing` reaches cases through the public facade
+    `casefile.Cases` (visibility, responsible, defendants, archive permission), like `Persons` for
+    people; `casefile` gets the detainee count and next hearing of its summary through
+    `CaseHearingSummaries`, declared in `casefile` and implemented in `hearing`, like `PersonCaseRoles`.
+    The queries that must filter inside the database (agenda, alerts, detainee count) read `CaseFile`,
+    `CaseTeamMember` and `Defendant` by entity name in JPQL: the Hibernate tenant filter still applies
+    to every entity of the query, and reserved and archived cases are excluded in the query, never
+    after it.
+  - **Hearing.** Type, start (`timestamptz`), duration (5 to 1440 minutes, default 60), room, judge,
+    OFIJU reference (free text `[validar]`), who requested it, status (default `programada`),
+    cancellation reason, the type it was held as (only `reconvertida`), result summary, link to the
+    next hearing and notes. Defendants must belong to the hearing's case (`400`; another firm's id is
+    `404`). Lawyers are active members of the firm; if none is given the case's responsible attends. The
+    defendant and lawyer lists are replaced as a whole on update (removed rows are archived, as in the
+    case team); an omitted list, status or duration on update keeps the current value, and an empty
+    lawyer list is a `400`.
+  - **Status rules** live in a pure class (`HearingRules`) and are repeated as database checks: a
+    cancellation reason only for `cancelada`/`suspendida`; the held-as type only, and always, for
+    `reconvertida`; a result or next hearing only for `efectiva`, `reconvertida` and
+    `cuarto-intermedio`. The status catalog is rename-only (ADR-0013), which is why its codes are safe
+    to use in code and in checks. `reprogramada` is only reached by rescheduling, so a manual edit
+    cannot skip the history, and the date of an existing hearing only changes through the reschedule
+    endpoint (`400` otherwise).
+  - **Reschedule** appends a row to `hearing_reschedule` (previous and new start, reason, user) and
+    sets the status to `reprogramada`; history is shown newest first and is never edited. A cancelled
+    hearing cannot be rescheduled or get a result (`409`); a suspended one can, and so is a hearing that
+    already has a result (`efectiva`, `reconvertida`, `cuarto-intermedio`) refused with `409`.
+    Rescheduling to the same instant is a `400`. Editing a `cancelada` hearing back to `programada` is
+    allowed on purpose, to undo a mistaken cancellation.
+  - **Result** (`POST /hearings/{id}/result`) records `efectiva`, `reconvertida` or
+    `cuarto-intermedio`; a `nextHearing` creates a scheduled hearing in the same case and links it.
+    Cuarto intermedio does not require one. A hearing that already has a next hearing answers `409` to
+    a second one. The follow-up copies only the defendants that are not archived and the lawyers that
+    are still active (the case's responsible when none is). The response carries the clashes of the
+    hearing that got the result, not those of the follow-up (read the follow-up to see its own).
+    On edit, a defendant or lawyer already attached is kept even if archived since; only new ones are
+    checked.
+  - **Clashes are warnings, per lawyer.** Two hearings clash for a lawyer when both list them and
+    `[start, start + duration)` overlap (a hearing starting when another ends does not). Archived
+    hearings, hearings of archived cases and `cancelada`/`suspendida` hearings never clash. Create,
+    update, reschedule, result and detail answers carry `clashes`; for a reserved case the user cannot
+    see, `caseId` and `caseCaption` are hidden and `reserved: true` is set (same masking as the
+    conflict check, ADR-0015). The overlap decision is a pure class (`ClashDetector`); the database
+    only preselects hearings that start within 24 hours before (the maximum duration).
+  - **Agenda** (`GET /agenda?from&to&lawyerId`): local days, `to` inclusive, at most 31 days, `from`
+    defaults to today and `to` to `from`. The zone is the constant `America/Argentina/Salta`, which is
+    Neuquén's zone in the tz database (UTC-3, no daylight saving); a hearing at 23:30 local belongs to
+    that day. A property per firm is left for when another province is added. "Today" comes from the
+    injectable `Clock`. Items carry the catalog names and article, defendants, lawyers, `detainee` (a
+    listed defendant has an active `prision-preventiva` or `detencion-domiciliaria`) and `hasClash`.
+  - **Coercive measure** per defendant: catalog code, `conditions` (free text for the measure's own
+    data: who, how often, where, amount), detention place (only preventive prison and house arrest),
+    procedural risks (only preventive prison), start, fixed end (art. 116), next review, the ordering
+    hearing (of the same case) and the lifting day (cese). Risks are a child table (`@Audited`,
+    replaced as a whole) instead of an array column, because the audit log needs scalar fields. A
+    preventive prison is rejected in a case of private action (art. 115). Start dates may be in the
+    future (measures can be ordered ahead); the end, the review and the lifting day cannot precede the
+    start, and a lifting day cannot be in the future. Active means neither archived nor lifted; for the
+    detainee flag, the case's `detaineeCount` and the alerts it must also have started (start on or
+    before today in the firm's zone), so a measure ordered ahead is not yet a detainee. Restoring a
+    measure needs its case and defendant not archived (`409`), like restoring a hearing.
+  - **Detainee alerts are assisted, not the T14 engine.** For active custodial measures of visible,
+    not archived cases and defendants: `ENDS` (art. 116), `REVIEW` (art. 118), `MAX_DURATION` (one year
+    since the start of a preventive prison, art. 119, "salvo asuntos complejos") and `NO_DURATION` (a
+    preventive prison without a fixed end, art. 116). Calendar days (corridos), overdue first, each with
+    the text "Cálculo asistido: verificá con la norma." A pure class (`DetaineeAlerts`) computes them
+    from the dates loaded by the lawyer; the one-year count is `[validar]` (the Instrucción General
+    7/2015 dispute about when it runs).
+  - **Case summary** gains `detaineeCount` (active defendants with an active custodial measure) and
+    `nextHearing` (the earliest upcoming hearing that is not archived and not `cancelada`, `suspendida`,
+    `efectiva` or `reconvertida`).
+  - **Authorization:** whoever sees the case creates and edits its hearings and the measures of its
+    defendants; only the owner and lawyers archive or restore (`403` otherwise), reusing the rule of
+    cases. An archived case, defendant, hearing or measure answers `409 archived-record` on edits;
+    anything of a reserved case the user cannot see answers `404`, and so does another firm's record.
+- **Consequences:**
+  - The demo firm gets fictitious hearings this week and next (two of one lawyer overlap, one in the
+    reserved case), a preventive prison with end and review dates, and a periodic appearance.
+  - A measure's lifting day and a hearing's result are not tied: lifting a measure does not need a
+    hearing, and ordering one does not require it either. Linking them is up to the lawyer.
+  - Deferred: clashes that need travel time between cities, the hearing preparation checklist, the
+    audiovisual link, client notification, and the coercive-measure deadlines in the T14 deadline engine.
+  - Changing a status away from a result status through the edit endpoint drops the link to the next
+    hearing, which is kept on its own row.
