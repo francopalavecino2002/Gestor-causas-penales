@@ -1,5 +1,7 @@
 package ar.gestorpenal.casefile;
 
+import ar.gestorpenal.customfield.CustomFieldEntity;
+import ar.gestorpenal.customfield.CustomFields;
 import ar.gestorpenal.jurisdiction.Catalog;
 import ar.gestorpenal.person.PersonSummary;
 import ar.gestorpenal.person.Persons;
@@ -9,6 +11,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
@@ -28,6 +31,7 @@ class CaseViews {
     private final Persons persons;
     private final UserRepository users;
     private final CaseHearingSummaries hearingSummaries;
+    private final CustomFields customFields;
 
     CaseViews(
             CaseTeamMemberRepository team,
@@ -37,7 +41,8 @@ class CaseViews {
             CaseCatalogs catalogs,
             Persons persons,
             UserRepository users,
-            CaseHearingSummaries hearingSummaries) {
+            CaseHearingSummaries hearingSummaries,
+            CustomFields customFields) {
         this.team = team;
         this.parties = parties;
         this.defendants = defendants;
@@ -46,6 +51,7 @@ class CaseViews {
         this.persons = persons;
         this.users = users;
         this.hearingSummaries = hearingSummaries;
+        this.customFields = customFields;
     }
 
     /** The case heads for a list, with one query for all the defendants, detainees and next hearings. */
@@ -89,7 +95,12 @@ class CaseViews {
                 caseFile,
                 nameOf(catalogs.names(Catalog.CIRCUMSCRIPTIONS), caseFile.getCircumscriptionCode()),
                 summary);
-        return CaseDetail.of(head, teamOf(caseFile.getId()), partiesOf(caseFile.getId()), defendantViews(activeDefendants));
+        return CaseDetail.of(
+                head,
+                customFields.visibility(CustomFieldEntity.CASE_FILE).apply(caseFile.getCustomFields()),
+                teamOf(caseFile.getId()),
+                partiesOf(caseFile.getId()),
+                defendantViews(activeDefendants));
     }
 
     /** The defendant-based summary of a case, enriched with its detainee count and next hearing. */
@@ -156,6 +167,7 @@ class CaseViews {
                         Collectors.mapping(ChargeView::of, Collectors.toList())));
         Map<String, String> stages = catalogs.names(Catalog.STAGES);
         Map<String, String> outcomes = catalogs.names(Catalog.CLOSING_OUTCOMES);
+        UnaryOperator<Map<String, Object>> visibleFields = customFields.visibility(CustomFieldEntity.DEFENDANT);
         return rows.stream()
                 .map(defendant -> {
                     PersonSummary person = people.get(defendant.getPersonId());
@@ -177,7 +189,8 @@ class CaseViews {
                             defendant.getRebellionLiftedOn(),
                             defendant.getIndigenousPeople(),
                             defendant.getCreatedAt(),
-                            chargesByDefendant.getOrDefault(defendant.getId(), List.of()));
+                            chargesByDefendant.getOrDefault(defendant.getId(), List.of()),
+                            visibleFields.apply(defendant.getCustomFields()));
                 })
                 .toList();
     }

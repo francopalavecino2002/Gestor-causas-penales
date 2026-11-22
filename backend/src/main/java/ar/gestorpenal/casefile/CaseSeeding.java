@@ -55,7 +55,7 @@ public class CaseSeeding {
             UUID responsibleUserId, String caption, String internalNumber, String circumscriptionCode, boolean reserved) {
         CaseFile caseFile = cases.save(CaseFile.create(new CaseData(
                 caption, internalNumber, null, null, null, circumscriptionCode,
-                ActionType.PUBLIC, Representation.DEFENCE, reserved, null)));
+                ActionType.PUBLIC, Representation.DEFENCE, reserved, null, null)));
         team.save(CaseTeamMember.create(caseFile.getId(), responsibleUserId, TeamRole.RESPONSIBLE));
         return caseFile.getId();
     }
@@ -64,7 +64,7 @@ public class CaseSeeding {
     @Transactional
     public void addDefendant(UUID caseId, UUID personId, String stageCode, String offence, String legalReference) {
         DefendantData data = new DefendantData(
-                personId, stageCode, DefendantStatus.ACTIVE, null, null, true, null, null, null, null, null);
+                personId, stageCode, DefendantStatus.ACTIVE, null, null, true, null, null, null, null, null, null);
         Defendant defendant = defendants.save(Defendant.create(caseId, personId, data, PersonKind.HUMAN));
         charges.save(DefendantCharge.create(defendant.getId(), new ChargeData(offence, legalReference)));
     }

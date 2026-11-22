@@ -49,7 +49,7 @@ class CaseSummaryTests {
     @Test
     void aSuspendedDefendantStillCountsAsOpen() {
         Defendant suspended = Defendant.create(UUID.randomUUID(), UUID.randomUUID(),
-                new DefendantData(null, "juicio", DefendantStatus.SUSPENDED, null, null, null, null, null, null, null, null),
+                new DefendantData(null, "juicio", DefendantStatus.SUSPENDED, null, null, null, null, null, null, null, null, null),
                 PersonKind.HUMAN);
 
         assertThat(CaseSummary.of(List.of(suspended), STAGES)).isEqualTo(new CaseSummary(1, 1, "juicio", 0, null));
@@ -57,12 +57,12 @@ class CaseSummaryTests {
 
     private static Defendant open(String stage) {
         return Defendant.create(UUID.randomUUID(), UUID.randomUUID(),
-                new DefendantData(null, stage, null, null, null, null, null, null, null, null, null), PersonKind.HUMAN);
+                new DefendantData(null, stage, null, null, null, null, null, null, null, null, null, null), PersonKind.HUMAN);
     }
 
     private static Defendant closed() {
         return Defendant.create(UUID.randomUUID(), UUID.randomUUID(),
-                new DefendantData(null, "cerrada", DefendantStatus.CLOSED, "archivo", null, null, null, null, null, null, null),
+                new DefendantData(null, "cerrada", DefendantStatus.CLOSED, "archivo", null, null, null, null, null, null, null, null),
                 PersonKind.HUMAN);
     }
 }

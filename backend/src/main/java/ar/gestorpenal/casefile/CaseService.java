@@ -1,5 +1,7 @@
 package ar.gestorpenal.casefile;
 
+import ar.gestorpenal.customfield.CustomFieldEntity;
+import ar.gestorpenal.customfield.CustomFields;
 import ar.gestorpenal.jurisdiction.Catalog;
 import ar.gestorpenal.security.AuthenticatedUser;
 import ar.gestorpenal.user.AppUser;
@@ -7,6 +9,7 @@ import ar.gestorpenal.user.UserRepository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -30,6 +33,7 @@ class CaseService {
     private final CaseCatalogs catalogs;
     private final CaseViews views;
     private final UserRepository users;
+    private final CustomFields customFields;
 
     CaseService(
             CaseFileRepository cases,
@@ -37,13 +41,15 @@ class CaseService {
             CaseAccess access,
             CaseCatalogs catalogs,
             CaseViews views,
-            UserRepository users) {
+            UserRepository users,
+            CustomFields customFields) {
         this.cases = cases;
         this.team = team;
         this.access = access;
         this.catalogs = catalogs;
         this.views = views;
         this.users = users;
+        this.customFields = customFields;
     }
 
     /**
@@ -55,7 +61,9 @@ class CaseService {
         UUID responsibleId = data.responsibleUserId() == null ? user.userId() : data.responsibleUserId();
         requireResponsible(findUser(responsibleId));
         requireNumbersFree(user, data, null);
+        Map<String, Object> values = customFields.resolveNew(CustomFieldEntity.CASE_FILE, data.customFields());
         CaseFile caseFile = CaseFile.create(data);
+        caseFile.replaceCustomFields(values);
         catalogs.requireOffered(Catalog.CIRCUMSCRIPTIONS, caseFile.getCircumscriptionCode(), null);
         cases.saveAndFlush(caseFile);
         team.save(CaseTeamMember.create(caseFile.getId(), responsibleId, TeamRole.RESPONSIBLE));
@@ -82,7 +90,10 @@ class CaseService {
         if (circumscription != null) {
             catalogs.requireOffered(Catalog.CIRCUMSCRIPTIONS, circumscription, caseFile.getCircumscriptionCode());
         }
+        Map<String, Object> values =
+                customFields.resolve(CustomFieldEntity.CASE_FILE, data.customFields(), caseFile.getCustomFields());
         caseFile.apply(data);
+        caseFile.replaceCustomFields(values);
         return views.detail(caseFile);
     }
 

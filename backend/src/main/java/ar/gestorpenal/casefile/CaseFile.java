@@ -11,10 +11,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * A case file, the legajo (ADR-0015). It holds what is common to the case; the stage, status and
@@ -62,6 +66,11 @@ class CaseFile extends TenantScopedEntity {
     @Column(nullable = false)
     private boolean reserved;
 
+    /** The firm's custom field values by field key; validated by the service against the definitions. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "custom_fields", nullable = false)
+    private Map<String, Object> customFields = new LinkedHashMap<>();
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -93,6 +102,11 @@ class CaseFile extends TenantScopedEntity {
         this.actionType = data.actionType();
         this.represents = data.represents();
         this.reserved = data.reservedOr(this.reserved);
+    }
+
+    /** Stores values already validated by {@code CustomFields}. */
+    void replaceCustomFields(Map<String, Object> values) {
+        this.customFields = new LinkedHashMap<>(values);
     }
 
     boolean isArchived() {

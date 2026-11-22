@@ -51,7 +51,7 @@ class DefendantTests {
     void aDefendantDefendedByTheFirmCannotHaveAPublicDefender() {
         assertInvalid(data(null, null, null, null, null, null, CounselKind.PUBLIC));
         Defendant other = create(new DefendantData(null, null, null, null, null, false, CounselKind.PUBLIC,
-                "Defensor Ficticio", null, null, null));
+                "Defensor Ficticio", null, null, null, null));
 
         assertThat(other.isDefendedByFirm()).isFalse();
         assertThat(other.getDefenceCounselKind()).isEqualTo(CounselKind.PUBLIC);
@@ -69,6 +69,6 @@ class DefendantTests {
     private static DefendantData data(
             String stage, DefendantStatus status, String outcome, LocalDate declared, LocalDate lifted,
             Boolean indigenous, CounselKind counsel) {
-        return new DefendantData(null, stage, status, outcome, null, null, counsel, null, declared, lifted, indigenous);
+        return new DefendantData(null, stage, status, outcome, null, null, counsel, null, declared, lifted, indigenous, null);
     }
 }
