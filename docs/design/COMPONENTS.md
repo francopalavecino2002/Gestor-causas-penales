@@ -66,6 +66,16 @@ size scale is **removed**; only these exist, so nothing smaller than 15 px can b
 `<time>` gets tabular figures automatically; add `tabular-nums` to dates and legajo numbers.
 Keep legajo numbers on one line (`whitespace-nowrap`): they break at the hyphen otherwise.
 
+### Layout (app shell, T21)
+
+| Token | Tailwind | Value | Use |
+|---|---|---|---|
+| `--spacing-sidebar` | `w-sidebar`, `lg:pl-sidebar` | 248 px | Desktop sidebar width |
+| `--spacing-top-bar` | `h-top-bar` | 60 px | Mobile top bar, sidebar brand row |
+| `--spacing-bottom-nav` | `h-bottom-nav` | 64 px | Bottom nav items |
+| `--container-content` | `max-w-content` | 1180 px | Content column |
+| utilities | `pt-safe`, `pb-safe`, `pb-bottom-nav-safe` | `env(safe-area-inset-*)` | Notch, home bar, room under the bottom nav |
+
 ### Radius, elevation, motion
 
 - `rounded-md` 8 px (segments), `rounded-lg` 10 px (buttons, fields, alerts), `rounded-xl` 14 px
@@ -110,6 +120,8 @@ from `radix-ui`) and keep a 44 px touch target.
 | `Dialog` + `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription`, `DialogFooter`, `DialogClose`, `DialogTrigger` | | Always a `DialogTitle`. Close button is labeled "Cerrar". Footer stacks on phones. |
 | `Tooltip`, `TooltipTrigger`, `TooltipContent` | | `TooltipProvider` is in `App`. Extra context only, never the only copy (touch has no hover). |
 | `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` | | Segmented look; give `TabsList` an `aria-label`. |
+| `DropdownMenu` + `DropdownMenuTrigger`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuLabel`, `DropdownMenuRadioGroup`, `DropdownMenuRadioItem`, `DropdownMenuSeparator` | | Action menus (firm switcher, account). 44 px items; give a radio group an `aria-label`. |
+| Shell (`components/shell/`): `AppShell`, `Sidebar`, `TopBar`, `BottomNav`, `FirmSwitcher`, `UserMenu`, `PageHeader`, `BrandMark` | | Signed-in layout (T21). Pages render inside `<main id="contenido">`: start with `PageHeader` (the only `h1`), never another `<main>`. |
 | `Separator` | `orientation`, `decorative` | Decorative by default. |
 | `Skeleton` | | `aria-hidden`; wrap a group in `role="status" aria-busy="true" aria-label="Cargando …"`. |
 
