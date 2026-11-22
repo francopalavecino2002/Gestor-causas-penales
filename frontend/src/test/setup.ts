@@ -2,6 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
+import { clearCookies } from "@/test/mock-api";
+
 // jsdom does not implement scrolling; TanStack Router restores scroll on navigation.
 window.scrollTo = () => {};
 
@@ -15,6 +17,7 @@ globalThis.ResizeObserver ??= ResizeObserverStub;
 
 afterEach(() => {
   cleanup();
+  clearCookies();
   vi.unstubAllGlobals();
   window.localStorage.clear();
   document.documentElement.className = "";

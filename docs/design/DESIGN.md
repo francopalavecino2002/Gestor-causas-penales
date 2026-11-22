@@ -258,6 +258,8 @@ deadline**. Color is never the only signal: every status has its word, every ale
 - Gap between hearings: 14 px; between sections: 28 px (mobile), 40 px (desktop columns).
 - Inside a card: 10 px between blocks, 4 px between metadata rows.
 - Desktop layout: 248 px sidebar, content max 1180 px, right column 340 px from 1100 px.
+  In code (T21): `--spacing-sidebar`, `--container-content`, `--spacing-top-bar` (60 px) and
+  `--spacing-bottom-nav` (64 px); the sidebar replaces the bottom nav from 1024 px (`lg`).
 
 ### Radius
 

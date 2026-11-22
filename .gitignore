@@ -26,6 +26,7 @@ frontend/dev-dist/
 frontend/coverage/
 frontend/playwright-report/
 frontend/test-results/
+/test-results/
 
 # Agents
 .agent-logs/

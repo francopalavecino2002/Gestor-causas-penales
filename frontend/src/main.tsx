@@ -13,8 +13,11 @@ if (!rootElement) {
   throw new Error("Root element #root not found in index.html");
 }
 
+const queryClient = createQueryClient();
+const router = createAppRouter({ queryClient });
+
 createRoot(rootElement).render(
   <StrictMode>
-    <App queryClient={createQueryClient()} router={createAppRouter()} />
+    <App queryClient={queryClient} router={router} />
   </StrictMode>,
 );

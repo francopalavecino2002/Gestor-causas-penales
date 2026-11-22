@@ -156,6 +156,26 @@
   /* Motion explains a change: 120–200 ms, ease-out (duration-fast, duration-base, ease-out). */
   --transition-duration-fast: 120ms;
   --transition-duration-base: 200ms;
+
+  /* App shell (T21): desktop sidebar, mobile bars and the content column (DESIGN.md, Spacing). */
+  --spacing-sidebar: 15.5rem;
+  --spacing-bottom-nav: 4rem;
+  --spacing-top-bar: 3.75rem;
+  --container-content: 73.75rem;
+}
+
+/* Clear the phone's notch and home indicator (needs viewport-fit=cover in index.html). */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Room under the content for the fixed bottom navigation. */
+@utility pb-bottom-nav-safe {
+  padding-bottom: calc(var(--spacing-bottom-nav) + env(safe-area-inset-bottom) + 1.5rem);
 }
 
 /* Theme-dependent tokens, resolved at runtime from the variables above. */

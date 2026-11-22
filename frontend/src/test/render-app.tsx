@@ -8,6 +8,11 @@ import { createAppRouter } from "@/router";
 /** Renders the whole app (providers + router) at the given path. */
 export function renderApp(path = "/") {
   const history = createMemoryHistory({ initialEntries: [path] });
-  const router = createAppRouter({ history });
-  return { router, ...render(<App queryClient={createQueryClient()} router={router} />) };
+  const queryClient = createQueryClient();
+  const router = createAppRouter({ queryClient, history });
+  return {
+    router,
+    queryClient,
+    ...render(<App queryClient={queryClient} router={router} />),
+  };
 }
