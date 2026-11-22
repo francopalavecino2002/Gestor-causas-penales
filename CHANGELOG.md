@@ -108,3 +108,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   row layout on desktop, filter by lawyer, view/date/lawyer kept in the URL, detainee alerts
   with legal source and disclaimer, "Persona detenida" and "Superposición de horario" markers,
   times in the firm's time zone, skeleton, empty and error states (ADR-0023).
+- Case list and case detail (T23): `/causas` with search, archived toggle and pagination kept in
+  the URL, cards on phones and a table on desktop, detainee and reserved markers; read-only
+  `/causas/$caseId` with summary, case numbers, defendants (liberty situation, stage, counsel,
+  rebellion, charges), parties, team and hearings; agenda hearings link to their case (ADR-0024).
