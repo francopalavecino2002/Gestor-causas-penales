@@ -1,0 +1,248 @@
+# Deadline rules of the Neuquén package (ADR-0017). Source: docs/domain/neuquen-review.md §3, the
+# 13 rules marked "Sí" for the MVP plus one generic judicial deadline. Built in: a firm can only
+# disable a rule or change how many days ahead it is warned, never its computation.
+#
+# Every rule keeps its legal source and its review flags ("validar": to confirm with a lawyer;
+# "no-verificado": not read in the text of the code). Rules from arts. 156 to 272 always carry
+# "no-verificado": the public copies of Ley 2784 stop at art. 155.
+#
+# computation (art. 79): HOURS (continuous), BUSINESS_DAYS (court calendar), CALENDAR_DAYS
+# (corridos, precautionary measures), MONTHS and YEARS (calendar, date to date), SET_BY_COURT (the
+# lawyer loads the due date of a judicial deadline). Day-based terms end at 24 h of the last day.
+# Rules are listed detainee rules first: that is the order of the screen.
+#
+# Codes are stable identifiers stored on every deadline: never rename or remove one.
+# Case law is cited by the name courts and the press give each ruling, never by case number: links
+# point to press notes, not to court files (CLAUDE.md, rule 1).
+source: docs/domain/neuquen-review.md §3
+law: CPP de Neuquén (Ley 2784)
+rules:
+  - code: control-judicial-detencion
+    name: Detención sin control judicial
+    article: "112; 49 inc. 5"
+    trigger: Detención
+    kind: LEGAL
+    computation: HOURS
+    duration: 24
+    scope: DEFENDANT
+    detainee: true
+    consequence: Libertad
+    caseLaw:
+      status: Vigente. En 2025 se pidió llevarlo a 48 h en narcomenudeo.
+      reviewedOn: "2026-11-21"
+    alertDaysBefore: 0
+    flags: [validar]
+    note: Validar si se aprobó la ampliación a 48 h para narcomenudeo.
+
+  - code: audiencia-medidas-con-detenido
+    name: Audiencia de medidas de coerción con detenido
+    article: "113"
+    trigger: Detención
+    kind: LEGAL
+    computation: HOURS
+    duration: 24
+    scope: DEFENDANT
+    detainee: true
+    consequence: Libertad
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    alertDaysBefore: 0
+
+  - code: formulacion-cargos-con-detenido
+    name: Formulación de cargos con detenido
+    article: "133"
+    trigger: Detención
+    kind: LEGAL
+    computation: HOURS
+    duration: 24
+    scope: DEFENDANT
+    detainee: true
+    consequence: Libertad
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    alertDaysBefore: 0
+
+  - code: revision-prision-preventiva
+    name: Audiencia de revisión de prisión preventiva
+    article: "118"
+    trigger: Pedido de la defensa
+    kind: LEGAL
+    computation: CALENDAR_DAYS
+    duration: 5
+    scope: DEFENDANT
+    detainee: true
+    consequence: Pronto despacho y, a las 24 h, libertad (art. 120)
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    alertDaysBefore: 2
+    flags: [validar]
+    note: Se cuenta en días corridos por ser una medida cautelar; validar.
+
+  - code: duracion-fijada-prision-preventiva
+    name: Duración fijada en la resolución de prisión preventiva
+    article: "116"
+    trigger: Resolución que dicta la prisión preventiva
+    kind: JUDICIAL
+    computation: SET_BY_COURT
+    scope: DEFENDANT
+    detainee: true
+    consequence: Revisión o cese
+    caseLaw: {status: Plazo judicial; se carga a mano la fecha que fijó el juez., reviewedOn: "2026-11-21"}
+    alertDaysBefore: 7
+
+  - code: duracion-maxima-prision-preventiva
+    name: Duración máxima de la prisión preventiva
+    article: "119"
+    trigger: Inicio de la prisión preventiva
+    kind: LEGAL
+    computation: YEARS
+    duration: 1
+    scope: DEFENDANT
+    detainee: true
+    consequence: Cese; no se puede dictar otra medida privativa de la libertad
+    caseLaw:
+      status: >-
+        Vigente. En disputa si corre después de la condena no firme (Instrucción General 7/2015 del
+        MPF).
+      reviewedOn: "2026-11-21"
+    alertDaysBefore: 30
+    flags: [validar]
+    note: Salvo asuntos complejos. Calendario (cautelar, días corridos).
+
+  - code: audiencia-medidas-sin-detenido
+    name: Audiencia de medidas de coerción sin detenido
+    article: "113"
+    trigger: Pedido fiscal
+    kind: LEGAL
+    computation: HOURS
+    duration: 72
+    scope: DEFENDANT
+    detainee: false
+    consequence: Sin consecuencia expresa
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    alertDaysBefore: 1
+
+  - code: investigacion-preparatoria
+    name: Duración de la investigación preparatoria
+    article: "158; 160 inc. 7"
+    trigger: Apertura de la investigación o formulación de cargos (validar desde cuándo)
+    kind: LEGAL
+    computation: MONTHS
+    duration: 4
+    scope: DEFENDANT
+    detainee: false
+    consequence: Extinción de la acción y sobreseimiento
+    caseLaw:
+      status: >-
+        TSJ «Olave» (07/09/2024) declaró inconstitucional la consecuencia (arts. 158 y 160 inc. 7);
+        el plazo sigue vigente.
+      url: https://www.rionegro.com.ar/justicia/el-tsj-de-neuquen-demolio-otro-plazo-para-las-investigaciones-penales-3780038/
+      reviewedOn: "2026-11-21"
+    extensions:
+      - {grantedBy: Juez de garantías, maxAmount: 4}
+      - {grantedBy: Colegio de Jueces, maxAmount: 4}
+    suspendedBy: [REBELLION, MEDIATION]
+    alertDaysBefore: 15
+    flags: [validar, no-verificado]
+    note: >-
+      Validar si se cuenta desde la formulación de cargos o desde la apertura, y si la rebeldía y la
+      mediación lo suspenden.
+
+  - code: duracion-maxima-proceso
+    name: Duración máxima del proceso
+    article: "87"
+    trigger: Apertura de la investigación
+    kind: LEGAL
+    computation: YEARS
+    duration: 3
+    scope: DEFENDANT
+    detainee: false
+    consequence: Extinción de la acción y sobreseimiento
+    caseLaw:
+      status: >-
+        TSJ «Estarli» (Acuerdo 5/2023) y dos fallos más de 2023: inconstitucional la consecuencia en
+        el caso. El Tribunal de Impugnación está dividido («Garro» 2024 vs. «Monsalve» 2025).
+      url: https://www.rionegro.com.ar/?p=4062012
+      reviewedOn: "2026-11-21"
+    suspendedBy: [REBELLION, FEDERAL_EXTRAORDINARY_APPEAL, MEDIATION]
+    alertDaysBefore: 60
+    flags: [validar]
+    note: >-
+      Improrrogable. No cuenta el recurso extraordinario federal y la rebeldía lo suspende (art. 52).
+      Que la mediación también lo suspenda es una suposición: validar.
+
+  - code: impugnacion-ordinaria
+    name: Impugnación ordinaria
+    article: "242"
+    trigger: Notificación de la decisión
+    kind: LEGAL
+    computation: BUSINESS_DAYS
+    duration: 5
+    scope: CASE
+    detainee: false
+    consequence: Caduca el derecho a impugnar
+    caseLaw: {status: Validar plazo y vigencia., reviewedOn: "2026-11-21"}
+    extensions:
+      - {grantedBy: Asunto complejo (art. 224), maxAmount: 5}
+    alertDaysBefore: 2
+    flags: [validar, no-verificado]
+    note: El plazo se duplica en asuntos complejos (art. 224, no verificado); cargalo como prórroga.
+
+  - code: revision-desestimacion-victima
+    name: Revisión de la desestimación o del criterio de oportunidad (víctima)
+    article: "132"
+    trigger: Notificación de la decisión fiscal
+    kind: LEGAL
+    computation: BUSINESS_DAYS
+    duration: 5
+    scope: CASE
+    detainee: false
+    consequence: Caduca el derecho
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    alertDaysBefore: 2
+    note: Para la querella o la víctima.
+
+  - code: revision-rechazo-querellante
+    name: Revisión del rechazo como querellante
+    article: "64"
+    trigger: Rechazo fiscal
+    kind: LEGAL
+    computation: BUSINESS_DAYS
+    duration: 3
+    scope: CASE
+    detainee: false
+    consequence: Caduca el derecho
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    alertDaysBefore: 1
+    note: Para la querella.
+
+  - code: mediacion-penal
+    name: Mediación penal
+    law: Ley 2996
+    trigger: Derivación a mediación
+    kind: LEGAL
+    computation: CALENDAR_DAYS
+    duration: 60
+    scope: CASE
+    detainee: false
+    consequence: Suspende los plazos procesales mientras dura
+    caseLaw:
+      status: Ley aprobada en 2016 según la prensa; no se pudo leer el texto oficial.
+      reviewedOn: "2026-11-21"
+    extensions:
+      - {grantedBy: Prórroga de la mediación, maxAmount: 30}
+    alertDaysBefore: 10
+    flags: [validar]
+    note: >-
+      Para que suspenda los otros plazos, cargá también la suspensión por mediación en la causa.
+      Validar el número de ley, el cómputo en días corridos y qué plazos suspende.
+
+  - code: plazo-judicial
+    name: Plazo fijado por el juez o el fiscal
+    law: Resolución judicial o fiscal
+    trigger: Resolución que fija el plazo
+    kind: JUDICIAL
+    computation: SET_BY_COURT
+    scope: CASE
+    detainee: false
+    consequence: La que indique la resolución
+    caseLaw: {status: Plazo judicial; se carga a mano la fecha fijada., reviewedOn: "2026-11-21"}
+    alertDaysBefore: 3
+    note: Plazo genérico, fuera de las 13 reglas del MVP, para cargar cualquier plazo judicial a mano.

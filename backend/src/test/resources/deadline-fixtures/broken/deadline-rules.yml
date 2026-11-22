@@ -1,0 +1,63 @@
+# Every rule breaks something the loader must catch.
+source: test fixture
+law: Código ficticio
+rules:
+  - code: Mal-Codigo
+    name: Código inválido
+    article: "10"
+    trigger: Algo
+    kind: LEGAL
+    computation: CALENDAR_DAYS
+    duration: 5
+    scope: CASE
+    detainee: false
+    consequence: Ninguna
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    alertDaysBefore: 1
+  - code: judicial-con-duracion
+    name: Judicial con duración
+    article: "11"
+    trigger: Algo
+    kind: JUDICIAL
+    computation: SET_BY_COURT
+    duration: 5
+    scope: CASE
+    detainee: false
+    consequence: Ninguna
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    alertDaysBefore: 1
+  - code: horas-suspendidas
+    name: Horas con suspensión
+    article: "12"
+    trigger: Algo
+    kind: LEGAL
+    computation: HOURS
+    duration: 24
+    scope: DEFENDANT
+    detainee: true
+    consequence: Ninguna
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    suspendedBy: [REBELLION]
+    alertDaysBefore: 0
+  - code: articulo-sin-verificar
+    name: Artículo no verificado sin la marca
+    article: "200 inc. 3"
+    trigger: Algo
+    kind: LEGAL
+    computation: BUSINESS_DAYS
+    duration: 3
+    scope: CASE
+    detainee: false
+    consequence: Ninguna
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    alertDaysBefore: 120
+  - code: articulo-sin-verificar
+    name: Código repetido
+    article: "13"
+    trigger: Algo
+    kind: LEGAL
+    computation: MONTHS
+    scope: CASE
+    detainee: false
+    consequence: Ninguna
+    alertDaysBefore: 1
