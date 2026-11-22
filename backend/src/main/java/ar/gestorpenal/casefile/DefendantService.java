@@ -1,9 +1,12 @@
 package ar.gestorpenal.casefile;
 
+import ar.gestorpenal.customfield.CustomFieldEntity;
+import ar.gestorpenal.customfield.CustomFields;
 import ar.gestorpenal.jurisdiction.Catalog;
 import ar.gestorpenal.person.PersonSummary;
 import ar.gestorpenal.person.Persons;
 import ar.gestorpenal.security.AuthenticatedUser;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +24,7 @@ class DefendantService {
     private final CaseCatalogs catalogs;
     private final CaseViews views;
     private final Persons persons;
+    private final CustomFields customFields;
 
     DefendantService(
             DefendantRepository defendants,
@@ -28,13 +32,15 @@ class DefendantService {
             CaseAccess access,
             CaseCatalogs catalogs,
             CaseViews views,
-            Persons persons) {
+            Persons persons,
+            CustomFields customFields) {
         this.defendants = defendants;
         this.charges = charges;
         this.access = access;
         this.catalogs = catalogs;
         this.views = views;
         this.persons = persons;
+        this.customFields = customFields;
     }
 
     @Transactional
@@ -52,7 +58,9 @@ class DefendantService {
             throw new DuplicateRecordException("The person is already a defendant in the case");
         }
         requireCatalogCodes(data, null, null);
+        Map<String, Object> values = customFields.resolveNew(CustomFieldEntity.DEFENDANT, data.customFields());
         Defendant defendant = Defendant.create(caseFile.getId(), person.id(), data, person.kind());
+        defendant.replaceCustomFields(values);
         return views.defendant(defendants.saveAndFlush(defendant));
     }
 
@@ -69,7 +77,10 @@ class DefendantService {
         }
         PersonSummary person = persons.find(defendant.getPersonId()).orElseThrow();
         requireCatalogCodes(data, defendant.getStageCode(), defendant.getClosingOutcomeCode());
+        Map<String, Object> values =
+                customFields.resolve(CustomFieldEntity.DEFENDANT, data.customFields(), defendant.getCustomFields());
         defendant.apply(data, person.kind());
+        defendant.replaceCustomFields(values);
         return views.defendant(defendant);
     }
 

@@ -2,9 +2,13 @@ package ar.gestorpenal.casefile;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-/** A case with its active team, parties and defendants (each with its active charges). */
+/**
+ * A case with the values of the firm's active custom fields, its active team, parties and defendants
+ * (each with its active charges).
+ */
 record CaseDetail(
         UUID id,
         String caption,
@@ -21,12 +25,17 @@ record CaseDetail(
         boolean archived,
         Instant createdAt,
         CaseSummary summary,
+        Map<String, Object> customFields,
         List<TeamMemberView> team,
         List<PartyView> parties,
         List<DefendantView> defendants) {
 
     static CaseDetail of(
-            CaseView head, List<TeamMemberView> team, List<PartyView> parties, List<DefendantView> defendants) {
+            CaseView head,
+            Map<String, Object> customFields,
+            List<TeamMemberView> team,
+            List<PartyView> parties,
+            List<DefendantView> defendants) {
         return new CaseDetail(
                 head.id(),
                 head.caption(),
@@ -43,6 +52,7 @@ record CaseDetail(
                 head.archived(),
                 head.createdAt(),
                 head.summary(),
+                customFields,
                 team,
                 parties,
                 defendants);

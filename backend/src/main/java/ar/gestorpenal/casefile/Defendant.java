@@ -14,10 +14,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /**
  * A person accused in a case, with their own course: stage, status, outcome, defence counsel and
@@ -79,6 +83,11 @@ class Defendant extends TenantScopedEntity {
     @AuditRedacted
     @Column(name = "indigenous_people")
     private Boolean indigenousPeople;
+
+    /** The firm's custom field values by field key; validated by the service against the definitions. */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "custom_fields", nullable = false)
+    private Map<String, Object> customFields = new LinkedHashMap<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -144,6 +153,11 @@ class Defendant extends TenantScopedEntity {
         this.rebellionDeclaredOn = data.rebellionDeclaredOn();
         this.rebellionLiftedOn = data.rebellionLiftedOn();
         this.indigenousPeople = data.indigenousPeople();
+    }
+
+    /** Stores values already validated by {@code CustomFields}. */
+    void replaceCustomFields(Map<String, Object> values) {
+        this.customFields = new LinkedHashMap<>(values);
     }
 
     private static void requireValidRebellion(LocalDate declared, LocalDate lifted) {

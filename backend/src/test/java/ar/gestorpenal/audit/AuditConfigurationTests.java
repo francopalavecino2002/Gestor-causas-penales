@@ -41,4 +41,11 @@ class AuditConfigurationTests {
         assertThat(List.of(byte[].class, Map.class, List.class, Object.class))
                 .noneMatch(AuditRecorder::hasTextForm);
     }
+
+    @Test
+    void shouldAuditJsonMapsAndListsAsJsonText() {
+        assertThat(List.of(Map.class, java.util.LinkedHashMap.class, List.class, java.util.ArrayList.class))
+                .allMatch(AuditRecorder::hasJsonForm);
+        assertThat(List.of(String.class, byte[].class, Object.class)).noneMatch(AuditRecorder::hasJsonForm);
+    }
 }

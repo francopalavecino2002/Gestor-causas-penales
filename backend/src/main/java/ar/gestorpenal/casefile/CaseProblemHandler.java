@@ -1,5 +1,6 @@
 package ar.gestorpenal.casefile;
 
+import ar.gestorpenal.customfield.InvalidCustomFieldValueException;
 import java.net.URI;
 import java.util.Set;
 import org.hibernate.exception.ConstraintViolationException;
@@ -30,6 +31,12 @@ class CaseProblemHandler {
     @ExceptionHandler(InvalidCaseDataException.class)
     ProblemDetail invalid(InvalidCaseDataException exception) {
         return problem(HttpStatus.BAD_REQUEST, "invalid-case-data", "Invalid data", exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidCustomFieldValueException.class)
+    ProblemDetail invalidCustomFields(InvalidCustomFieldValueException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "invalid-custom-field-value", "Invalid custom field value",
+                exception.getMessage());
     }
 
     @ExceptionHandler(DuplicateCaseNumberException.class)

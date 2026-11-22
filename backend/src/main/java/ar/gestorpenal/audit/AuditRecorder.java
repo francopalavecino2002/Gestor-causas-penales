@@ -2,6 +2,7 @@ package ar.gestorpenal.audit;
 
 import ar.gestorpenal.tenancy.TenantScopedEntity;
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.time.Clock;
 import java.time.Instant;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
@@ -142,9 +144,15 @@ class AuditRecorder implements PostInsertEventListener, PostUpdateEventListener 
         Type type = persister.getPropertyTypes()[index];
         if (policy == FieldPolicy.REDACT) {
             changes.add(new FieldChange(field, redacted(oldValue), redacted(newValue)));
-        } else {
-            changes.add(new FieldChange(field, describe(oldValue, type, session), describe(newValue, type, session)));
+            return true;
         }
+        String oldText = describe(oldValue, type, session);
+        String newText = describe(newValue, type, session);
+        if (Objects.equals(oldText, newText) && (isJsonValue(oldValue) || isJsonValue(newValue))) {
+            // Hibernate can flag a JSON value as dirty without a change in its content.
+            return false;
+        }
+        changes.add(new FieldChange(field, oldText, newText));
         return true;
     }
 
@@ -170,7 +178,32 @@ class AuditRecorder implements PostInsertEventListener, PostUpdateEventListener 
     }
 
     private static boolean isDescribable(Type type) {
-        return type.isEntityType() || hasTextForm(type.getReturnedClass());
+        return type.isEntityType() || hasTextForm(type.getReturnedClass()) || hasJsonForm(type.getReturnedClass());
+    }
+
+    /** JSON columns mapped to a map or a list: audited as their JSON text. */
+    static boolean hasJsonForm(Class<?> javaType) {
+        return Map.class.isAssignableFrom(javaType) || List.class.isAssignableFrom(javaType);
+    }
+
+    private static boolean isJsonValue(Object value) {
+        return value instanceof Map || value instanceof List;
+    }
+
+    /**
+     * The map with sorted keys and every number as a plain decimal: a value written as a
+     * {@code BigDecimal} and read back as a {@code Double} gives the same text, so no change is
+     * invented.
+     */
+    private static Map<Object, Object> canonicalMap(Map<?, ?> map) {
+        Map<Object, Object> sorted = new TreeMap<>();
+        map.forEach((key, entry) -> sorted.put(key, entry instanceof Number number ? canonicalDecimal(number) : entry));
+        return sorted;
+    }
+
+    private static BigDecimal canonicalDecimal(Number number) {
+        BigDecimal decimal = new BigDecimal(number.toString()).stripTrailingZeros();
+        return decimal.scale() < 0 ? decimal.setScale(0) : decimal;
     }
 
     /** Values with a faithful plain-text form: scalars, enums, times and ids. */
@@ -188,10 +221,20 @@ class AuditRecorder implements PostInsertEventListener, PostUpdateEventListener 
         return value == null ? null : FieldChange.REDACTED;
     }
 
-    /** Plain text of a value; an associated entity is represented by its id. */
-    private static String describe(Object value, Type type, SharedSessionContractImplementor session) {
+    /**
+     * Plain text of a value; an associated entity is represented by its id and a JSON value by its
+     * JSON text, with the keys of a map sorted so equal maps give equal text. An empty map or list is
+     * "no value" ({@code null}).
+     */
+    private String describe(Object value, Type type, SharedSessionContractImplementor session) {
         if (value == null) {
             return null;
+        }
+        if (value instanceof Map<?, ?> map) {
+            return map.isEmpty() ? null : jsonMapper.writeValueAsString(canonicalMap(map));
+        }
+        if (value instanceof List<?> list) {
+            return list.isEmpty() ? null : jsonMapper.writeValueAsString(list);
         }
         if (value instanceof HibernateProxy proxy) {
             return String.valueOf(proxy.getHibernateLazyInitializer().getInternalIdentifier());
