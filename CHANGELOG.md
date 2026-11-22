@@ -49,3 +49,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   rights, art. 61; querellante institucional, art. 65). Archive and restore instead of delete,
   audited, tenant-isolated. No sensitive data, relations between persons or free-text notes
   (Ley 25.326). `/api/v1/persons`, `/api/v1/clients` (ADR-0014).
+- Case file and defendants (T12): cases with caption, normalized MPF legajo (unique per firm),
+  OFIJU and Pehuén numbers `[validar]`, circumscription, action type (arts. 99–101) and who the
+  firm represents; stage, status, outcome, charges date (art. 133), defence counsel and rebellion
+  (art. 52) on each defendant, with a computed summary on the case; simple charges; parties by
+  `party-roles`; case team with one responsible; reserved cases visible only to their team and the
+  owner; conflict check lists case roles and masks reserved cases; optional "pueblo indígena" field
+  redacted in the audit log `[validar]`; archived cases and defendants are read-only until restored.
+  No criminal-record field. `/api/v1/cases` (ADR-0015).

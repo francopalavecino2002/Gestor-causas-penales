@@ -2,6 +2,7 @@ package ar.gestorpenal.person;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -21,10 +22,12 @@ class PersonService {
 
     private final PersonRepository people;
     private final ClientRepository clients;
+    private final PersonCaseRoles caseRoles;
 
-    PersonService(PersonRepository people, ClientRepository clients) {
+    PersonService(PersonRepository people, ClientRepository clients, PersonCaseRoles caseRoles) {
         this.people = people;
         this.clients = clients;
+        this.caseRoles = caseRoles;
     }
 
     @Transactional
@@ -89,6 +92,9 @@ class PersonService {
                 : clients.findByPersonIdIn(matches.stream().map(Person::getId).toList()).stream()
                         .map(Client::getPersonId)
                         .collect(Collectors.toSet());
+        Map<UUID, List<CaseRole>> roles = matches.isEmpty()
+                ? Map.of()
+                : caseRoles.rolesOf(matches.stream().map(Person::getId).toList());
         return matches.stream()
                 .map(person -> new DocumentMatch(
                         person.getId(),
@@ -96,7 +102,8 @@ class PersonService {
                         person.getDocumentType(),
                         person.getDocumentNumber(),
                         person.isArchived(),
-                        clientPeople.contains(person.getId())))
+                        clientPeople.contains(person.getId()),
+                        roles.getOrDefault(person.getId(), List.of())))
                 .toList();
     }
 
