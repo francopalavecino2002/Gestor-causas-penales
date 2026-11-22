@@ -16,7 +16,7 @@ export default defineConfig({
       // Navigations to the backend must reach the network, never the SPA shell.
       workbox: { navigateFallbackDenylist: [/^\/api\//] },
       // Placeholder icons generated from public/favicon.svg with @vite-pwa/assets-generator
-      // (preset minimal-2023). They are replaced when the design system lands (T20).
+      // (preset minimal-2023). Brand icons are pending (see docs/DECISIONS.md, T20).
       includeAssets: ["favicon.ico", "favicon.svg", "apple-touch-icon-180x180.png"],
       manifest: {
         name: "Gestor de causas penales",
@@ -27,8 +27,9 @@ export default defineConfig({
         start_url: "/",
         scope: "/",
         display: "standalone",
-        theme_color: "#171717",
-        background_color: "#ffffff",
+        // Design tokens --primary and --background (docs/design/DESIGN.md).
+        theme_color: "#0b5267",
+        background_color: "#f4f7f8",
         icons: [
           { src: "pwa-64x64.png", sizes: "64x64", type: "image/png" },
           { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },

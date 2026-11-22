@@ -1,57 +1,170 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Design system "Limay" (docs/design/DESIGN.md, ADR-0020). Token reference: docs/design/COMPONENTS.md.
+ * Hex values are the source of truth and are checked for WCAG AA by src/design-tokens.test.ts.
+ * Dark mode is class-based (.dark on <html>) so the user can override the system preference.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
 
-/* shadcn/ui neutral base theme. The real design system arrives with T20 (docs/design/). */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+
+  --background: #f4f7f8;
+  --foreground: #13232b;
+  --card: #ffffff;
+  --card-foreground: #13232b;
+  --popover: #ffffff;
+  --popover-foreground: #13232b;
+  --primary: #0b5267;
+  --primary-hover: #08404f;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf0f2;
+  --secondary-foreground: #13232b;
+  --muted: #eaf0f2;
+  --muted-foreground: #475862;
+  --accent: #e0edf1;
+  --accent-foreground: #0b5267;
+  --destructive: #a3191e;
+  --destructive-foreground: #ffffff;
+  --border: #ccd7dc;
+  --input: #ccd7dc;
+  --border-strong: #7a8e98;
+  --ring: #0b5267;
+
+  --detained: #a3191e;
+  --detained-soft: #fbe9e8;
+  --detained-edge: #c4282d;
+  --deadline: #7a4600;
+  --deadline-soft: #fff2d9;
+  --deadline-edge: #b07612;
+
+  --status-programada: #0b5267;
+  --status-programada-soft: #e0edf1;
+  --status-reprogramada: #5b3a96;
+  --status-reprogramada-soft: #eee8f8;
+  --status-efectiva: #1b6436;
+  --status-efectiva-soft: #e2f2e7;
+  --status-suspendida: #4c4f55;
+  --status-suspendida-soft: #ecedef;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #13232b;
+  --sidebar-primary: #0b5267;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e0edf1;
+  --sidebar-accent-foreground: #0b5267;
+  --sidebar-border: #ccd7dc;
+  --sidebar-ring: #0b5267;
+
+  --chart-1: #0b5267;
+  --chart-2: #b07612;
+  --chart-3: #5b3a96;
+  --chart-4: #1b6436;
+  --chart-5: #7a8e98;
+
+  /* Scrim behind dialogs and sheets. */
+  --overlay: rgb(19 35 43 / 0.55);
+
+  color-scheme: light;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #0d171c;
+  --foreground: #e4ecef;
+  --card: #142229;
+  --card-foreground: #e4ecef;
+  --popover: #142229;
+  --popover-foreground: #e4ecef;
+  --primary: #7cc6da;
+  --primary-hover: #9ad5e5;
+  --primary-foreground: #08222b;
+  --secondary: #1b2c34;
+  --secondary-foreground: #e4ecef;
+  --muted: #1b2c34;
+  --muted-foreground: #a3b4bc;
+  --accent: #16343f;
+  --accent-foreground: #9ad5e5;
+  --destructive: #ff8a84;
+  --destructive-foreground: #2a0a0b;
+  --border: #2a3d46;
+  --input: #2a3d46;
+  --border-strong: #62808d;
+  --ring: #7cc6da;
+
+  --detained: #ffb3ae;
+  --detained-soft: #3a1517;
+  --detained-edge: #e5484d;
+  --deadline: #f5c979;
+  --deadline-soft: #33260f;
+  --deadline-edge: #c98a1b;
+
+  --status-programada: #9ad5e5;
+  --status-programada-soft: #16343f;
+  --status-reprogramada: #cdb8f5;
+  --status-reprogramada-soft: #2c2342;
+  --status-efectiva: #9fdcb2;
+  --status-efectiva-soft: #16301f;
+  --status-suspendida: #c5c9cf;
+  --status-suspendida-soft: #262b30;
+
+  --sidebar: #142229;
+  --sidebar-foreground: #e4ecef;
+  --sidebar-primary: #7cc6da;
+  --sidebar-primary-foreground: #08222b;
+  --sidebar-accent: #16343f;
+  --sidebar-accent-foreground: #9ad5e5;
+  --sidebar-border: #2a3d46;
+  --sidebar-ring: #7cc6da;
+
+  --chart-1: #7cc6da;
+  --chart-2: #f5c979;
+  --chart-3: #cdb8f5;
+  --chart-4: #9fdcb2;
+  --chart-5: #a3b4bc;
+
+  --overlay: rgb(0 0 0 / 0.65);
+
+  color-scheme: dark;
 }
 
+/* Static tokens: typography and motion. */
+@theme {
+  --font-sans:
+    "Atkinson Hyperlegible Next Variable", "Atkinson Hyperlegible Next", system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+
+  /* The product type scale replaces Tailwind's: nothing goes below text-small (15 px). */
+  --text-*: initial;
+  --text-small: 0.9375rem;
+  --text-small--line-height: 1.375rem;
+  --text-meta: 1rem;
+  --text-meta--line-height: 1.5rem;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.5625rem;
+  --text-card-title: 1.125rem;
+  --text-card-title--line-height: 1.5rem;
+  --text-time: 1.125rem;
+  --text-time--line-height: 1.2;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.625rem;
+  --text-display: 1.75rem;
+  --text-display--line-height: 2.125rem;
+  --text-display--letter-spacing: -0.01em;
+
+  /* Motion explains a change: 120–200 ms, ease-out (duration-fast, duration-base, ease-out). */
+  --transition-duration-fast: 120ms;
+  --transition-duration-base: 200ms;
+}
+
+/* Theme-dependent tokens, resolved at runtime from the variables above. */
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -59,6 +172,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -67,16 +181,100 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  --color-detained: var(--detained);
+  --color-detained-soft: var(--detained-soft);
+  --color-detained-edge: var(--detained-edge);
+  --color-deadline: var(--deadline);
+  --color-deadline-soft: var(--deadline-soft);
+  --color-deadline-edge: var(--deadline-edge);
+
+  --color-status-programada: var(--status-programada);
+  --color-status-programada-soft: var(--status-programada-soft);
+  --color-status-reprogramada: var(--status-reprogramada);
+  --color-status-reprogramada-soft: var(--status-reprogramada-soft);
+  --color-status-efectiva: var(--status-efectiva);
+  --color-status-efectiva-soft: var(--status-efectiva-soft);
+  --color-status-suspendida: var(--status-suspendida);
+  --color-status-suspendida-soft: var(--status-suspendida-soft);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-overlay: var(--overlay);
+
+  /* Only things that float get a shadow (DESIGN.md, Elevation). */
+  --shadow-fab: 0 6px 16px color-mix(in srgb, var(--primary) 32%, transparent);
+  --shadow-segment: 0 1px 2px color-mix(in srgb, var(--foreground) 12%, transparent);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
+
+  /* Desktop sizes of the responsive type tokens (>= 768 px). */
+  @media (width >= 48rem) {
+    :root {
+      --text-display: 2rem;
+      --text-display--line-height: 2.375rem;
+      --text-time: 1.3125rem;
+    }
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background font-sans text-body text-foreground antialiased;
+  }
+
+  /* One focus style for every interactive element: 3 px ring, 2 px offset. */
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* One family for everything, data included (DESIGN.md: no monospace for data). */
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: inherit;
+  }
+
+  /* Times align in columns; use the tabular-nums utility for dates and legajo numbers. */
+  time {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Near-zero rather than none so exit animations still fire animationend (Radix Presence). */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

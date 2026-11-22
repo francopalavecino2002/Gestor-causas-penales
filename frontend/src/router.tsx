@@ -6,6 +6,7 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 
+import { DesignSystemPage } from "@/pages/design-system-page";
 import { HomePage } from "@/pages/home-page";
 import { NotFoundPage } from "@/pages/not-found-page";
 
@@ -21,7 +22,13 @@ const indexRoute = createRoute({
   component: HomePage,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute]);
+const designSystemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/design-system",
+  component: DesignSystemPage,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, designSystemRoute]);
 
 /** Builds the router; tests pass a memory history, the app uses the browser one. */
 export function createAppRouter(options: { history?: RouterHistory } = {}) {
