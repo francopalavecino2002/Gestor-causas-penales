@@ -21,6 +21,10 @@ if ($env:ANTHROPIC_API_KEY) {
   exit 1
 }
 
+# Headless runs stop background subagents 10 minutes after the last turn; a long backend
+# task (e.g. T12) was killed mid-implementation. 0 = wait for them to finish.
+$env:CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS = "0"
+
 for ($i = 1; $i -le $MaxTasks; $i++) {
   $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
   $log = ".agent-logs\autopilot-$stamp.log"
