@@ -74,7 +74,7 @@ class CaseService {
     @Transactional
     CaseDetail update(AuthenticatedUser user, UUID id, CaseData data) {
         CaseFile caseFile = access.requireVisible(user, id);
-        if (data.reserved() != caseFile.isReserved()) {
+        if (data.isReservedCase() != caseFile.isReserved()) {
             CasePermissions.requireCanManageTeam(user, responsibleOf(id).orElse(null));
         }
         requireNumbersFree(user, data, id);

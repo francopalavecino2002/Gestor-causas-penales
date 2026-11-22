@@ -19,5 +19,11 @@ record CaseData(
         @NotBlank @Size(max = 60) String circumscriptionCode,
         @NotNull ActionType actionType,
         @NotNull Representation represents,
-        boolean reserved,
-        UUID responsibleUserId) {}
+        Boolean reserved,
+        UUID responsibleUserId) {
+
+    /** Omitted means not reserved. */
+    boolean isReservedCase() {
+        return Boolean.TRUE.equals(reserved);
+    }
+}

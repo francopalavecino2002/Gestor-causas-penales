@@ -497,3 +497,80 @@ Superseded decisions are marked, never deleted.
   - Only a race on the unique keys (`person_document_uk`, `client_person_uk`) answers `409
     concurrent-change`; any other integrity violation is a bug and answers `500`.
   - Intake and consent dates cannot be in the future.
+
+## ADR-0015: Case file, defendants, parties and team (T12)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** The case (legajo) is the backbone for hearings (T13) and deadlines (T14). In the CPP de
+  Neuquén each defendant goes through the process on their own: charges are formulated per person
+  (art. 133), rebellion suspends the proceedings only for the rebel (art. 52), and alternative
+  outcomes and closings (arts. 107, 108) end the case for one defendant while it goes on for the
+  others. A single "stage" or "status" on the case would therefore be wrong as soon as there are two
+  defendants.
+- **Decision:**
+  - **New feature package `casefile`** (entity `CaseFile`, since `case` is a Java keyword), migration
+    `V8__case_file.sql` with five tenant-scoped, `@Audited` tables archived instead of deleted:
+    `case_file`, `case_team_member`, `case_party`, `defendant` and `defendant_charge`. There is no
+    `DELETE` endpoint.
+  - **The case holds identification only:** caption (carátula), the firm's internal number, the MPF
+    legajo, the OFIJU and Pehuén numbers, circumscription (catalog), action type, who the firm
+    represents (defence or private prosecution / querella) and the reserved flag.
+  - **MPF legajo** is `MPF` + seat letters + number/year (`MPFNQ 123989/2018`). Input is normalized
+    (uppercase, trimmed, exactly one space between seat and number) and checked against
+    `^MPF[A-Z]{2,4} \d{1,7}/\d{4}$`, also as a database check. It is unique per firm; a duplicate
+    answers `409 case-duplicate-legajo` with `existingCaseId`, like the duplicate document of ADR-0014.
+    The list of seats is not validated `[validar]`. **OFIJU and Pehuén numbers are free text**: their
+    format is not confirmed `[validar]`.
+  - **Action type** is an enum that carries its article: public (art. 99), public on private
+    complaint (dependiente de instancia privada, art. 100) and private (art. 101).
+  - **State lives on each defendant:** stage (catalog `stages`, default `averiguacion-preliminar`),
+    status (`ACTIVE`, `SUSPENDED` e.g. on probation, `IN_MEDIATION`, `CLOSED`), closing outcome
+    (catalog `closing-outcomes`), charges-formulation date (art. 133), defence counsel (the firm, or a
+    private or public defender by name) and rebellion declared/lifted dates (art. 52). Database checks
+    tie `CLOSED` to stage `cerrada` and to an outcome; the service answers a clear `400` first. Dates
+    cannot be in the future and a lifted rebellion needs a declared one that is not later. A second
+    rebellion overwrites the dates: the audit log keeps the history, and T14 may move them to a
+    periods table if the deadline engine needs every period.
+  - **Computed summary on the case**, never stored: active defendants, open defendants and the most
+    delayed stage (the earliest stage, in catalog order, among open defendants; `cerrada` when all are
+    closed; none without defendants). Detainees and the next hearing need coercive measures and
+    hearings, so **T13 adds them** to the summary.
+  - **Charges kept simple:** each defendant has rows with an offence text and an optional legal
+    reference (`CP art. 166 inc. 2`). An offence catalog is left for later.
+  - **Parties vs defendants.** A defendant is its own table because it carries the procedural state; a
+    party (`case_party`) links a person to a case with a `party-roles` code (victim, plaintiff,
+    witness...). The role `imputado` is rejected as a party (`400`, use the defendants endpoint).
+    The same person cannot be an active defendant twice in a case, nor hold the same party role twice
+    (`409`).
+  - **Catalog codes** (circumscription, stage, outcome, party role) are stored as text and checked
+    against the firm's catalog (ADR-0013): a new or changed value must be visible; an unchanged value
+    is kept even if the firm hid that item later, so hiding an item never breaks old cases.
+  - **Team:** `RESPONSIBLE` (exactly one, owner or lawyer), `COLLABORATOR` and `PARALEGAL`. The creator
+    names the responsible (defaults to themselves). The team is replaced as a whole; removed rows and
+    changed roles are archived and new rows added, so the history stays in the table and the audit
+    log. Only the owner or the case's responsible change the team or the reserved flag (`403`).
+  - **Reserved cases** are visible only to their active team and the owner. For anyone else they do
+    not exist: `404` on every endpoint under the case and absent from the list, filtered in the query
+    so the `total` is right. A non-owner who creates a reserved case is added to its team, so they do
+    not lose it right away.
+  - **Authorization otherwise:** every member reads non-reserved cases and edits case data,
+    defendants, charges and parties of the cases they see; only the owner and lawyers archive and
+    restore the case (same rule as persons). The rules live in `CasePermissions` with unit tests.
+  - **Conflict check grows to case roles** (follows ADR-0014): each match now lists the person's
+    active roles in cases, defendants as `imputado`. For a reserved case the user cannot see, the
+    case id and caption are hidden and `reserved: true` is set, so the alert still fires without
+    revealing the case. To keep packages acyclic, `person` declares the `PersonCaseRoles` interface
+    and `casefile` implements it; `casefile` uses the public `Persons` facade.
+  - **Indigenous people** (pertenencia a pueblo indígena, art. 109 and ILO Convention 169) is an
+    optional yes/no on human defendants only, `[validar]`. Ethnic origin is sensitive data (Ley 25.326
+    art. 2), so the field is `@AuditRedacted`: the log records that it changed, not the value.
+  - **No criminal-record field** (antecedentes): Ley 25.326 art. 7 restricts that data to the
+    competent authorities.
+- **Consequences:**
+  - Every foreign key is loaded through a tenant-filtered repository or facade: a person or user of
+    another firm answers `404`, and a child id from another case too.
+  - Deferred to later tasks: fact narrative, key dates, connected cases, juvenile court, an offence
+    catalog, detainees and next hearing in the summary (T13), and deadlines per defendant (T14).
+  - The demo firm gets fictitious persons and two cases (one reserved, one with two defendants in
+    different stages).
