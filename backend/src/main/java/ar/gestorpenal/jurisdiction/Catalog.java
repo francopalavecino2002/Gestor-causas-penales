@@ -22,7 +22,8 @@ public enum Catalog {
     PROCEDURAL_RISKS("procedural-risks", true, false),
     LIBERTY_SITUATIONS("liberty-situations", false, false),
     ALTERNATIVE_OUTCOMES("alternative-outcomes", true, false),
-    CIRCUMSCRIPTIONS("circumscriptions", true, true);
+    CIRCUMSCRIPTIONS("circumscriptions", true, true),
+    PARTY_ROLES("party-roles", false, false);
 
     private final String id;
     private final boolean hideable;

@@ -1,0 +1,57 @@
+# Roles que una persona puede tener en una causa (neuquen-review.md §1).
+# Rename-only: persons (T11) and cases (T12) drive behavior from these codes, so a firm can rename a
+# role but not hide or add one. Attributes: "side" (defence, accusation or neutral) and, for the
+# victim, "notificationRights" (the CPP gives her the right to be informed and notified).
+catalog: party-roles
+source: CPP de Neuquén (Ley 2784)
+items:
+  - code: imputado
+    name: Imputado
+    attributes:
+      side: defence
+  - code: victima
+    name: Víctima
+    article: "61"
+    note: Tiene derecho a ser informada y notificada (art. 61).
+    attributes:
+      side: accusation
+      notificationRights: "true"
+  - code: querellante
+    name: Querellante particular
+    attributes:
+      side: accusation
+  - code: querellante-institucional
+    name: Querellante institucional
+    article: "65"
+    flags: [validar]
+    note: Por ejemplo, la Defensoría de los Derechos del Niño (art. 65).
+    attributes:
+      side: accusation
+  - code: testigo
+    name: Testigo
+    attributes:
+      side: neutral
+  - code: perito
+    name: Perito
+    attributes:
+      side: neutral
+  - code: fiscal
+    name: Fiscal
+    attributes:
+      side: accusation
+  - code: defensor
+    name: Defensor
+    attributes:
+      side: defence
+  - code: juez
+    name: Juez
+    attributes:
+      side: neutral
+  - code: familiar-de-contacto
+    name: Familiar de contacto
+    attributes:
+      side: neutral
+  - code: garante
+    name: Garante
+    attributes:
+      side: neutral
