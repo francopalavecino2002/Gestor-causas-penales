@@ -7,10 +7,12 @@ Source of truth for the autonomous work loop (`/next-task`). One task = one PR.
 **Needs:** task ids that must be `done`, or a gate:
 - `gate:domain` — the reviewed domain docs exist in `docs/domain/` with `status: reviewed`
   in their front matter (stage 0 research: catalogs, deadline rules).
-- `gate:design` — `docs/design/DESIGN.md` exists with `status: approved` (stage 2: visual
-  direction approved by Franco).
+- `gate:design` — `docs/design/DESIGN.md` exists with `status: approved`, written by T19.
 
-Gates are opened only by a human edit. The loop never opens a gate by itself.
+**Standing instruction from Franco (2026-11-22):** never stop to ask him for approval. A gate
+whose prerequisite is a task in this ROADMAP opens when that task is merged; the loop picks the
+best option itself and records it as an ADR. Only ask Franco for things that physically need him
+(a browser sign-in, a credential). `gate:design` is produced by T19.
 
 ## Milestone 0: Foundations
 
@@ -43,6 +45,7 @@ Gates are opened only by a human edit. The loop never opens a gate by itself.
 
 | ID  | Task | Owner | Needs | Status |
 |-----|------|-------|-------|--------|
+| T19 | Visual direction (stage 2): using the frontend-design skill, research references (Clio, MyCase, Filevine, Smokeball; serious, calm, fast; clear for a 70-year-old lawyer, appealing to a 30-year-old), produce 2–3 directions as static mockups of the hearing agenda (mobile 390x844 and desktop 1440x900, fictitious data, Rioplatense Spanish), pick the best with written reasons (legibility, AA contrast, density on mobile, brand seriousness) and write `docs/design/DESIGN.md` with `status: approved` (palette, typography, spacing, radius, iconography, motion, tone of voice, do/don't) plus the mockup screenshots under `docs/design/`. Record the choice as an ADR. | frontend | T03 | todo |
 | T20 | Design system in code: tokens, typography, color, shadcn theme, base components, light/dark, documented in `docs/design/`. | frontend | T03, gate:design | todo |
 | T21 | App shell: login + 2FA, navigation (mobile bottom nav, desktop sidebar), firm switcher. | frontend | T20, T06 | todo |
 | T22 | Agenda de audiencias (home): today / week, by lawyer, mobile-first. | frontend | T21, T13 | todo |
