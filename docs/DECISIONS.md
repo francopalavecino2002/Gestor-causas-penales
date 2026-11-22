@@ -942,3 +942,44 @@ Superseded decisions are marked, never deleted.
     pages for patterns only; no assets or layouts were copied.
   - Deadline citations follow `docs/domain/neuquen-review.md`: the mockup's ordinary appeal
     deadline cites CPP art. 242 with a visible "[no verificado]" marker, as the screens must.
+
+## ADR-0021: Design system in code (T20)
+
+- **Date:** 2026-11-22
+- **Status:** accepted
+- **Context:** ADR-0020 approved direction A "Limay" in `docs/design/DESIGN.md`. T20 turns it
+  into Tailwind v4 tokens, a shadcn/ui theme and base components every screen will use.
+- **Decision:**
+  - Tokens live in `frontend/src/index.css` as **hex** CSS variables (`:root` and `.dark`),
+    exactly as in DESIGN.md, exposed to Tailwind with `@theme inline` (`bg-detained-soft`,
+    `text-status-efectiva`, `border-border-strong`...). `src/design-tokens.test.ts` reads that
+    file and checks the same WCAG pairs as `scripts/contrast.mjs`, plus parity of light and dark.
+  - **Tailwind's font-size scale is replaced** (`--text-*: initial`) by the product scale
+    (`text-small` 15 px ... `text-display`), so nothing under 15 px can be written by accident.
+    `text-display` and `text-time` grow at 768 px by overriding their variables in a media
+    query. `cn()` uses `extendTailwindMerge` so these names are not mistaken for colors.
+  - Font: `@fontsource-variable/atkinson-hyperlegible-next` 5.3.0 (variable 200–800,
+    self-hosted, imported in `main.tsx`). Icons: `lucide-react` 1.77.0 (the shadcn default
+    named in DESIGN.md; it was not installed yet).
+  - Dark mode: `.dark` on `<html>` from `ThemeProvider` (choice "light" | "dark" | "system",
+    stored under localStorage key `theme` inside try/catch) and an inline script in
+    `index.html` that applies it before first paint. The toggle is a native radio group
+    ("Claro", "Oscuro", "Según el sistema") so arrow keys and screen readers work for free.
+  - Focus is one global `:focus-visible` rule (3 px `--ring`, 2 px offset); components do not
+    use `outline-none`. Reduced motion sets durations to 0.01 ms instead of `none` so Radix exit
+    animations still fire `animationend`. `MotionConfig` is left for when Motion is installed.
+  - Components follow shadcn's structure (cva, `data-slot`, Radix primitives from `radix-ui`)
+    and keep every target at 44 px or more. `Select` is the **native** `<select>`: the phone's
+    own picker is better for this audience than a custom listbox. New tokens beyond DESIGN.md:
+    `--overlay` (dialog scrim), `shadow-fab`, `shadow-segment`, `duration-fast`/`duration-base`.
+  - Living style guide at `/design-system`; screenshots come from `npm run screenshots`
+    (`playwright.screenshots.config.ts`, `e2e/*.capture.ts`), which is not part of the e2e run.
+    The route ships in production builds on purpose: it shows only fictitious data, it is a
+    portfolio showcase, and the e2e suite runs against the production preview. When auth
+    lands (T21) it can move behind login or `import.meta.env.DEV` if that proves better.
+- **Consequences:**
+  - `text-sm`, `text-lg` and the rest of Tailwind's sizes no longer exist; use the product scale.
+  - The PWA manifest `theme_color` is now `--primary`. Brand icons (favicon, PWA icons) are
+    still the T03 placeholders and need a separate task.
+  - The token values are written in three places (DESIGN.md, `scripts/contrast.mjs`,
+    `index.css`); the Vitest test guards contrast on the one the app ships.

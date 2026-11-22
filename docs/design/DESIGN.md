@@ -353,3 +353,6 @@ not like a marketing page or a court ruling.
   1440×900) and `direction-a-{mobile,desktop}-dark.png`.
 - Contrast check: `scripts/contrast.mjs` (`node scripts/contrast.mjs`).
 - Decision record: ADR-0020 in `docs/DECISIONS.md`.
+- Implementation (T20): [COMPONENTS.md](COMPONENTS.md) maps these tokens to CSS variables and
+  Tailwind classes and documents the base components; the living style guide is the app's
+  `/design-system` route (ADR-0021).
