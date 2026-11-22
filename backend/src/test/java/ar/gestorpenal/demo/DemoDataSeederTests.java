@@ -77,6 +77,34 @@ class DemoDataSeederTests {
         assertThat(demoUsers).hasSize(3);
     }
 
+    @Test
+    void shouldCreateTwoDemoCasesOneOfThemReservedWithoutDuplicatingOnARerun() {
+        UUID tenantId = tenants.findActiveIdBySlug("estudio-demo").orElseThrow();
+
+        seeder.run(new DefaultApplicationArguments());
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM case_file WHERE tenant_id = ?", Integer.class, tenantId))
+                .isEqualTo(2);
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM case_file WHERE tenant_id = ? AND reserved", Integer.class, tenantId))
+                .isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM defendant WHERE tenant_id = ?", Integer.class, tenantId))
+                .isEqualTo(3);
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(DISTINCT stage_code) FROM defendant d JOIN case_file c ON c.id = d.case_id"
+                                + " WHERE d.tenant_id = ? AND c.internal_number = 'DEMO-001'",
+                        Integer.class,
+                        tenantId))
+                .isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM person WHERE tenant_id = ?", Integer.class, tenantId))
+                .isEqualTo(3);
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM case_team_member WHERE tenant_id = ? AND team_role = 'RESPONSIBLE'",
+                        Integer.class,
+                        tenantId))
+                .isEqualTo(2);
+    }
+
     /** Simulates a run that failed after creating the firm; raw SQL because the app never deletes. */
     @Test
     void shouldCreateOnlyTheMissingUsersOfAPartiallySeededFirm() {
