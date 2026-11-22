@@ -14,26 +14,26 @@ class CaseSummaryTests {
 
     @Test
     void aCaseWithoutDefendantsHasNoStage() {
-        assertThat(CaseSummary.of(List.of(), STAGES)).isEqualTo(new CaseSummary(0, 0, null));
+        assertThat(CaseSummary.of(List.of(), STAGES)).isEqualTo(new CaseSummary(0, 0, null, 0, null));
     }
 
     @Test
     void shouldShowTheStageThatComesFirstInTheCatalogOrder() {
         List<Defendant> defendants = List.of(open("juicio"), open("investigacion-preparatoria"), open("etapa-intermedia"));
 
-        assertThat(CaseSummary.of(defendants, STAGES)).isEqualTo(new CaseSummary(3, 3, "investigacion-preparatoria"));
+        assertThat(CaseSummary.of(defendants, STAGES)).isEqualTo(new CaseSummary(3, 3, "investigacion-preparatoria", 0, null));
     }
 
     @Test
     void aClosedDefendantShouldNotHoldTheCaseBack() {
         List<Defendant> defendants = List.of(closed(), open("juicio"));
 
-        assertThat(CaseSummary.of(defendants, STAGES)).isEqualTo(new CaseSummary(2, 1, "juicio"));
+        assertThat(CaseSummary.of(defendants, STAGES)).isEqualTo(new CaseSummary(2, 1, "juicio", 0, null));
     }
 
     @Test
     void shouldBeClosedWhenEveryDefendantIsClosed() {
-        assertThat(CaseSummary.of(List.of(closed(), closed()), STAGES)).isEqualTo(new CaseSummary(2, 0, "cerrada"));
+        assertThat(CaseSummary.of(List.of(closed(), closed()), STAGES)).isEqualTo(new CaseSummary(2, 0, "cerrada", 0, null));
     }
 
     @Test
@@ -41,8 +41,9 @@ class CaseSummaryTests {
         Defendant archived = open("averiguacion-preliminar");
         archived.archive();
 
-        assertThat(CaseSummary.of(List.of(archived, open("juicio")), STAGES)).isEqualTo(new CaseSummary(1, 1, "juicio"));
-        assertThat(CaseSummary.of(List.of(archived), STAGES)).isEqualTo(new CaseSummary(0, 0, null));
+        assertThat(CaseSummary.of(List.of(archived, open("juicio")), STAGES))
+                .isEqualTo(new CaseSummary(1, 1, "juicio", 0, null));
+        assertThat(CaseSummary.of(List.of(archived), STAGES)).isEqualTo(new CaseSummary(0, 0, null, 0, null));
     }
 
     @Test
@@ -51,7 +52,7 @@ class CaseSummaryTests {
                 new DefendantData(null, "juicio", DefendantStatus.SUSPENDED, null, null, null, null, null, null, null, null),
                 PersonKind.HUMAN);
 
-        assertThat(CaseSummary.of(List.of(suspended), STAGES)).isEqualTo(new CaseSummary(1, 1, "juicio"));
+        assertThat(CaseSummary.of(List.of(suspended), STAGES)).isEqualTo(new CaseSummary(1, 1, "juicio", 0, null));
     }
 
     private static Defendant open(String stage) {

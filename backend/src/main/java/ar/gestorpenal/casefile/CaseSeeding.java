@@ -1,6 +1,8 @@
 package ar.gestorpenal.casefile;
 
 import ar.gestorpenal.person.PersonKind;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +34,19 @@ public class CaseSeeding {
     @Transactional(readOnly = true)
     public boolean caseExists(String internalNumber) {
         return cases.findByInternalNumber(internalNumber).isPresent();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<UUID> findCaseId(String internalNumber) {
+        return cases.findByInternalNumber(internalNumber).map(CaseFile::getId);
+    }
+
+    /** The ids of the case's active defendants, in the order they were added. */
+    @Transactional(readOnly = true)
+    public List<UUID> defendantIds(UUID caseId) {
+        return defendants.findByCaseIdAndArchivedAtIsNullOrderByCreatedAtAscIdAsc(caseId).stream()
+                .map(Defendant::getId)
+                .toList();
     }
 
     /** A public-action defence case with {@code responsibleUserId} as its responsible lawyer. */
