@@ -162,6 +162,13 @@
   --spacing-bottom-nav: 4rem;
   --spacing-top-bar: 3.75rem;
   --container-content: 73.75rem;
+  /* Right column of a two-column screen from 1100 px (DESIGN.md, Spacing; case detail, T23). */
+  --spacing-aside: 21.25rem;
+}
+
+/* Main column and the 340 px right column (case detail, T23). */
+@utility grid-cols-with-aside {
+  grid-template-columns: minmax(0, 1fr) var(--spacing-aside);
 }
 
 /* Clear the phone's notch and home indicator (needs viewport-fit=cover in index.html). */

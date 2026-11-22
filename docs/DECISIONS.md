@@ -1093,3 +1093,70 @@ Superseded decisions are marked, never deleted.
 - **Consequences:** The lawyer filter cannot offer a colleague with no hearing seen in the
   session until a users endpoint exists. The agenda never shows a date or time in the device's
   zone. No "Cargá una audiencia" button yet: the hearing form is a later task.
+
+## ADR-0024: Case list and case detail, read only (T23)
+
+- **Date:** 2026-11-22
+- **Status:** accepted
+- **Context:** T23 replaces the `/causas` placeholder with the case list and adds the case
+  detail, on top of `GET /api/v1/cases` (paged search by caption, internal number, MPF legajo
+  or OFIJU number, `includeArchived`), `GET /api/v1/cases/{id}`, `GET
+  /api/v1/cases/{id}/hearings`, `GET /api/v1/defendants/{id}/coercive-measures` and the
+  catalogs (ADR-0013, ADR-0015, ADR-0016). The backend already accepts writes for cases,
+  parties, team and defendants.
+- **Decision:**
+  - **Read only for now.** The screens show; they do not edit. Editing a case touches custom
+    fields, case templates and per-firm catalogs (T25) and needs forms that validate the MPF
+    legajo and the team rules the backend enforces; doing it piecemeal here would mean
+    rewriting the forms when those land. Creating and editing cases, defendants, parties and
+    measures arrive with later tasks, on these same screens. Custom field values are not shown
+    yet either: their labels come from the custom-field definitions screen (T25).
+  - **List state in the URL**: `?q` (trimmed, at most 100 characters), `?pagina` (from 1, as
+    people count; the API's `page` is from 0) and `?archivadas=si`; invalid values fall back to
+    the defaults, defaults are left out. The search box searches 300 ms after the last
+    keystroke (Enter right away) with `replace`, so typing does not fill the history; a new
+    search starts on page 1. The previous page stays on screen, dimmed, while the next loads.
+  - **Layout**: cards below 1024 px (one column, two from 768 px), a semantic `<table>` from
+    1024 px (the docket idea of direction B). Both are rendered and CSS shows one, so each
+    keeps its proper semantics (list of `article`s vs. table with row headers). TanStack Table
+    is not installed and not needed for a read-only, server-paged, unsorted list; it comes in
+    when a list gets client-side sorting or column choices.
+  - **Detainees first**: a case with detainees gets the red edge and a "N personas detenidas"
+    badge with the lock, in both layouts and in the detail summary. Reserved cases show a
+    "Reservada" badge (eye-off icon), archived ones "Archivada" and, in the detail, a banner.
+  - **Liberty situation** is computed in the frontend, since the backend does not expose it
+    yet [validar]. A measure counts when it is in force: not lifted, not archived and already
+    started (`startsOn` ≤ today in the firm's zone), the same rule as the backend's detainee
+    count (`countDetaineesByCase`, which looks at every non-archived defendant whatever its
+    status). Order: `prision-preventiva` or `detencion-domiciliaria` in force → those (red);
+    rebellion not lifted (CPP art. 52) → "Prófugo o rebelde"; any other measure in force →
+    "En libertad con medidas"; otherwise "En libertad sin medidas". So the defendant card and
+    the case summary always agree. A custodial measure still in force for a closed or
+    suspended process stays red (that is what the record says) with a note asking the lawyer
+    to check whether its lifting was loaded. "Aprehendido" and "Condenado cumpliendo pena"
+    cannot be told from the data and are never guessed. Names come from the firm's
+    `liberty-situations` catalog, with the CPP article, and the screen says it is calculated
+    from the loaded measures. When the backend computes it, the screen reads it from there.
+  - **Hearings of a case**: "Próximas" are the future ones still pending, the backend's rule
+    for the next hearing (`HearingRules.NOT_PENDING` excludes cancelada, suspendida, efectiva
+    and reconvertida); future ones that were suspended or cancelled go to "Suspendidas o
+    canceladas"; the rest to "Anteriores".
+  - **Search values**: TanStack Router JSON-parses search params, so `?q=123989` arrives as a
+    number; the parser accepts strings and finite numbers, rejects arrays and objects, and
+    caps `?pagina` at 100000.
+  - **Catalog names**: stage and hearing-type codes are resolved with the firm's catalogs
+    (hidden items included, cached for the session). Screens wait until the catalogs answer
+    (or fail) so a raw code never flashes; on failure they fall back to the record's own name
+    or code. Catalog queries use `retryOnMount: false`: in TanStack Query v5 a failed query
+    without data goes back to `pending` when a new observer mounts, which made the waiting
+    screen flip between skeleton and content forever.
+  - **Not found**: a 404 (missing case or a reserved one the user cannot see; the backend does
+    not tell them apart on purpose) and an id that is not a UUID show "No encontramos esta
+    causa" inside the shell, with a way back. Other errors say what happened and offer a retry.
+  - The case numbers carry a visible "[validar]" note for the OFIJU and Pehuén formats, the
+    ones `neuquen-review.md` §1 leaves to validate (the MPF legajo format is verified there).
+  - Agenda cards, week rows and detainee alerts link their case caption to the case.
+- **Consequences:** New layout token `--spacing-aside` (340 px) and utility
+  `grid-cols-with-aside` for the detail's right column from 1280 px. Each defendant costs one
+  request for its measures. Vitest and Playwright share fictitious cases in
+  `src/test/case-fixtures.ts`, tied to the agenda fixtures' hearings.

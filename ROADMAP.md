@@ -49,7 +49,7 @@ best option itself and records it as an ADR. Only ask Franco for things that phy
 | T20 | Design system in code: tokens, typography, color, shadcn theme, base components, light/dark, documented in `docs/design/`. | frontend | T03, gate:design | done (#28) |
 | T21 | App shell: login + 2FA, navigation (mobile bottom nav, desktop sidebar), firm switcher. | frontend | T20, T06 | done (#29) |
 | T22 | Agenda de audiencias (home): today / week, by lawyer, mobile-first. | frontend | T21, T13 | done (#30) |
-| T23 | Case list and case detail. | frontend | T21, T12 | todo |
+| T23 | Case list and case detail. | frontend | T21, T12 | done (#31) |
 | T24 | Deadlines view with source and disclaimer. | frontend | T21, T14 | todo |
 | T25 | Settings: catalogs, custom fields, templates, users and roles. | frontend | T21, T15 | todo |
 | T26 | Import wizard. | frontend | T21, T16 | todo |

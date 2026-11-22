@@ -2,6 +2,7 @@
 import { test, type Page } from "@playwright/test";
 
 import { DETAINEE_ALERTS, FIXTURE_NOW, WEEK_HEARINGS } from "../src/test/agenda-fixtures";
+import { CASE_EJEMPLAR, CASE_MODELO } from "../src/test/case-fixtures";
 import { DEMO_ME, mockBackend } from "./mock-backend";
 
 /*
@@ -64,6 +65,10 @@ const agendaWeek =
   };
 
 const waitForHearings = (page: Page) => page.getByRole("article").first().waitFor();
+
+/** Cards on phones, the table on desktops: wait for whichever this viewport shows. */
+const waitForArticleOrTable = (page: Page) =>
+  page.locator("article:visible, table:visible").first().waitFor();
 
 const SCREENS: Record<string, Screen[]> = {
   t20: [{ path: "/design-system", name: "design-system" }],
@@ -173,6 +178,53 @@ const SCREENS: Record<string, Screen[]> = {
       themes: ["light"],
       prepare: agendaWeek({ fails: true, alerts: false }),
       act: (page) => page.getByText("No pudimos cargar la agenda").waitFor({ timeout: 15_000 }),
+    },
+  ],
+  t23: [
+    {
+      path: "/causas",
+      name: "case-list",
+      prepare: agendaWeek(),
+      act: waitForArticleOrTable,
+    },
+    {
+      path: "/causas?q=inexistente",
+      name: "case-list-empty-search",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: (page) => page.getByRole("heading", { name: /No encontramos causas/ }).waitFor(),
+    },
+    {
+      path: "/causas",
+      name: "case-list-error",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: async (page) => {
+        await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+        await mockBackend(page, { signedIn: true, casesFail: true });
+      },
+      act: (page) => page.getByText("No pudimos cargar las causas").waitFor({ timeout: 15_000 }),
+    },
+    {
+      path: `/causas/${CASE_MODELO.id}`,
+      name: "case-detail",
+      prepare: agendaWeek(),
+      act: (page) => page.getByText("En prisión preventiva").first().waitFor(),
+    },
+    {
+      path: `/causas/${CASE_EJEMPLAR.id}`,
+      name: "case-detail-reserved",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: (page) => page.getByText("Prófugo o rebelde").first().waitFor(),
+    },
+    {
+      path: "/causas/00000000-0000-4000-a000-999999999999",
+      name: "case-not-found",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: agendaWeek(),
+      fullPage: false,
     },
   ],
 };

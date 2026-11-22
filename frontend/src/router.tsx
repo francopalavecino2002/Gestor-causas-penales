@@ -8,10 +8,14 @@ import {
   redirect,
   type RouterHistory,
 } from "@tanstack/react-router";
-import { Folder, Hourglass, Settings, Users } from "lucide-react";
+import { Hourglass, Settings, Users } from "lucide-react";
 
 import { AppShell } from "@/components/shell/app-shell";
 import { parseAgendaSearch } from "@/features/agenda/agenda-search";
+import { CaseDetailPage } from "@/features/cases/case-detail-page";
+import { CaseListPage } from "@/features/cases/case-list-page";
+import { isCaseId, parseCaseListSearch } from "@/features/cases/case-search";
+import { CaseNotFound } from "@/features/cases/case-states";
 import { LoginPage, type LoginSearch } from "@/features/auth/login-page";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { LOGIN_PATH, loginSearchFor } from "@/features/auth/redirect";
@@ -82,16 +86,25 @@ const agendaRoute = createRoute({
   component: HomePage,
 });
 
+/** Case list. `?q`, `?pagina` and `?archivadas` keep a search linkable (T23). */
 const casesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/causas",
-  component: () => (
-    <PlaceholderPage
-      title="Causas"
-      icon={Folder}
-      description="Acá vas a encontrar las causas del estudio, con sus imputados, el legajo y las próximas audiencias."
-    />
-  ),
+  validateSearch: parseCaseListSearch,
+  component: function CasesRoute() {
+    const search = casesRoute.useSearch();
+    return <CaseListPage search={search} />;
+  },
+});
+
+/** Case detail, read only (ADR-0024). An id that cannot be a case is not found without asking. */
+const caseRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/causas/$caseId",
+  component: function CaseRoute() {
+    const { caseId } = caseRoute.useParams();
+    return isCaseId(caseId) ? <CaseDetailPage key={caseId} caseId={caseId} /> : <CaseNotFound />;
+  },
 });
 
 const deadlinesRoute = createRoute({
@@ -133,7 +146,14 @@ const settingsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   loginRoute,
   designSystemRoute,
-  appRoute.addChildren([agendaRoute, casesRoute, deadlinesRoute, personsRoute, settingsRoute]),
+  appRoute.addChildren([
+    agendaRoute,
+    casesRoute,
+    caseRoute,
+    deadlinesRoute,
+    personsRoute,
+    settingsRoute,
+  ]),
 ]);
 
 /** Builds the router; tests pass a memory history, the app uses the browser one. */

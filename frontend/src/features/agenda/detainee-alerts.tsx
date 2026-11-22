@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { CircleAlert, Info, Lock } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,7 +19,14 @@ function AlertItem({ alert }: { alert: DetaineeAlert }) {
         {detaineeAlertSentence(alert)}
       </p>
       <p className="text-meta text-muted-foreground">
-        {alert.caseCaption}. {cppArticle(alert.article)}.
+        <Link
+          to="/causas/$caseId"
+          params={{ caseId: alert.caseId }}
+          className="text-primary underline underline-offset-4 hover:decoration-2"
+        >
+          {alert.caseCaption}
+        </Link>
+        . {cppArticle(alert.article)}.
       </p>
     </li>
   );

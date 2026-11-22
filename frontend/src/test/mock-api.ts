@@ -2,6 +2,15 @@ import { vi } from "vitest";
 
 import { FIRM_TIME_ZONE } from "@/features/agenda/agenda-dates";
 import type { Me } from "@/features/auth/auth-api";
+import type { CaseDetail, CaseView } from "@/features/cases/case-types";
+import {
+  CASES,
+  CATALOGS,
+  casePageFor,
+  DETAILS,
+  HEARINGS_BY_CASE,
+  MEASURES,
+} from "@/test/case-fixtures";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
@@ -105,8 +114,54 @@ export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {})
         items: [],
       }),
     "GET /api/v1/detainee-alerts": () => json(200, []),
+    "GET /api/v1/cases": ({ query }) =>
+      json(200, { items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
+    ...catalogRoutes(),
     ...routes,
   });
+}
+
+/** The catalogs the screens read, answered from the fictitious fixtures. */
+export function catalogRoutes(): Record<string, Handler> {
+  return Object.fromEntries(
+    Object.values(CATALOGS).map((view) => [
+      `GET /api/v1/catalogs/${view.catalog}`,
+      () => json(200, view),
+    ]),
+  );
+}
+
+/**
+ * The case endpoints over the fictitious fixtures: the paged search, each detail, its hearings
+ * and its defendants' coercive measures. Anything else answers 404, like the real backend.
+ */
+export function caseRoutes(
+  options: { cases?: CaseView[]; details?: CaseDetail[] } = {},
+): Record<string, Handler> {
+  const cases = options.cases ?? CASES;
+  const details = options.details ?? DETAILS;
+  const routes: Record<string, Handler> = {
+    "GET /api/v1/cases": ({ query }) =>
+      json(
+        200,
+        casePageFor(cases, {
+          q: query.q,
+          includeArchived: query.includeArchived === "true",
+          page: Number(query.page ?? 0),
+          size: Number(query.size ?? 20),
+        }),
+      ),
+  };
+  for (const detail of details) {
+    routes[`GET /api/v1/cases/${detail.id}`] = () => json(200, detail);
+    routes[`GET /api/v1/cases/${detail.id}/hearings`] = () =>
+      json(200, HEARINGS_BY_CASE[detail.id] ?? []);
+    for (const defendant of detail.defendants) {
+      routes[`GET /api/v1/defendants/${defendant.id}/coercive-measures`] = () =>
+        json(200, MEASURES[defendant.id] ?? []);
+    }
+  }
+  return routes;
 }
 
 /** Anonymous session: /me answers 401. */
