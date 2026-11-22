@@ -87,3 +87,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   validation report; a commit is all or nothing. Rows go through the regular services, so catalogs,
   duplicates, tenant isolation, reserved cases and the audit log apply as in the API. Nothing of the
   file is stored. `POST /api/v1/imports/{kind}` and a downloadable template per kind (ADR-0019).
+- Visual direction (T19): three static mockups of the hearing agenda at mobile and desktop sizes,
+  with direction A "Limay" approved in `docs/design/DESIGN.md`. It specifies light and dark tokens
+  under shadcn names, Atkinson Hyperlegible Next with a 15 px floor, spacing, radius, lucide icons,
+  reduced motion, and the Rioplatense tone of voice. `scripts/contrast.mjs` checks every token pair
+  against WCAG AA (ADR-0020).
