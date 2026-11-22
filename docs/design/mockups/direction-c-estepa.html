@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dirección C: Estepa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Direction C "Estepa": sage stone, olive green, Figtree, big friendly cards and a "next hearing" focus. */
+:root {
+  --background: #ECEEE8;
+  --surface: #FFFFFF;
+  --foreground: #1F261E;
+  --muted-foreground: #535D51;
+  --border: #D3D8CD;
+  --primary: #3E5B36;
+  --primary-foreground: #FFFFFF;
+  --primary-soft: #DCE6D5;
+  --ring: #3E5B36;
+  --detained: #A02C1E;
+  --detained-soft: #F9E4DF;
+  --deadline: #6E4B00;
+  --deadline-soft: #FBEFD2;
+  --font-sans: "Figtree", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font-sans); font-size: 18px; line-height: 1.5; }
+h1, h2, h3, p, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+:focus-visible { outline: 3px solid var(--ring); outline-offset: 3px; }
+.icon { width: 22px; height: 22px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 40px; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+.avatar { flex: none; }
+.hello { font-size: 18px; color: var(--muted-foreground); }
+.hello strong { display: block; color: var(--foreground); font-size: 30px; line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; }
+.avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); display: grid; place-items: center; font-weight: 700; }
+.week { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; }
+.day { flex: none; width: 60px; min-height: 72px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); display: grid; place-items: center; align-content: center; text-decoration: none; color: var(--foreground); font-size: 15px; }
+.day b { font-size: 22px; }
+.day[aria-current="date"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+
+.next { background: var(--primary); color: var(--primary-foreground); border-radius: 24px; padding: 22px; display: grid; gap: 10px; margin-bottom: 24px; }
+.next .label { font-size: 16px; font-weight: 600; opacity: 0.92; }
+.next .time { font-size: 44px; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+.next h2 { font-size: 22px; line-height: 1.3; }
+.next p { font-size: 17px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 15px; font-weight: 700; }
+.chip-detained { background: var(--detained-soft); color: var(--detained); }
+.next .btn { justify-self: start; margin-top: 6px; background: var(--primary-foreground); color: var(--primary); }
+.btn { display: inline-flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 22px; border-radius: 999px; font: inherit; font-weight: 700; text-decoration: none; border: 0; }
+
+.grid { display: grid; gap: 24px; }
+h3.section { font-size: 22px; font-weight: 800; margin-bottom: 12px; }
+.cards { display: grid; gap: 14px; }
+.card { background: var(--surface); border-radius: 20px; padding: 18px 20px; display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; border: 1px solid var(--border); }
+.card .t { grid-row: span 3; font-size: 24px; font-weight: 800; }
+.card h4 { margin: 0; font-size: 19px; }
+.card p { color: var(--muted-foreground); font-size: 17px; }
+.st { justify-self: start; font-size: 15px; font-weight: 700; padding: 2px 12px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); }
+.st.done { background: #E6E8E3; color: #4A5248; }
+.deadline { background: var(--deadline-soft); border-radius: 20px; padding: 18px 20px; display: grid; gap: 4px; }
+.deadline + .deadline { margin-top: 12px; }
+.deadline .when { color: var(--deadline); font-weight: 800; }
+.deadline p { font-size: 17px; }
+.note { margin-top: 12px; font-size: 16px; color: var(--muted-foreground); }
+
+@media (min-width: 900px) {
+  .wrap { padding: 32px 40px; }
+  .hello strong { font-size: 36px; }
+  .grid { grid-template-columns: minmax(0, 1fr) 360px; gap: 32px; }
+  .next { grid-template-columns: auto 1fr auto; align-items: center; column-gap: 28px; padding: 28px 32px; }
+  .next .time { grid-column: 1; grid-row: 1 / span 3; font-size: 56px; }
+  .next .label, .next h2, .next p:not(.time) { grid-column: 2; }
+  .next .btn { grid-column: 3; grid-row: 1 / span 3; margin: 0; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <p class="hello">Buen día, Paula <strong>Hoy tenés 5 audiencias</strong></p>
+    <span class="avatar" aria-label="Dra. Paula Demo">PD</span>
+  </header>
+  <nav class="week" aria-label="Semana">
+    <a class="day" href="#" aria-current="date">Lun<b>23</b></a>
+    <a class="day" href="#">Mar<b>24</b></a>
+    <a class="day" href="#">Mié<b>25</b></a>
+    <a class="day" href="#">Jue<b>26</b></a>
+    <a class="day" href="#">Vie<b>27</b></a>
+  </nav>
+  <section class="next" aria-label="Tu próxima audiencia">
+    <p class="time">11:00</p>
+    <p class="label">Tu próxima audiencia, en 40 minutos</p>
+    <h2>Revisión de prisión preventiva (art. 118)</h2>
+    <p>Carla Modelo <span class="chip chip-detained">En prisión preventiva</span><br>Sala 5, Ciudad Judicial. Dra. Silvia Muestra.</p>
+    <a class="btn" href="#">Abrí el caso</a>
+  </section>
+  <div class="grid">
+    <section>
+      <h3 class="section">El resto del día</h3>
+      <ul class="cards">
+        <li class="card"><span class="t">12:30</span><h4>Control de acusación</h4><p>Diego Ejemplar y Nora Ficticia</p><span class="st">Reprogramada</span></li>
+        <li class="card"><span class="t">15:00</span><h4>Ejecución (art. 262)</h4><p>Roberto Prueba, OFIJU Zapala</p><span class="st">Programada</span></li>
+        <li class="card"><span class="t">08:30</span><h4>Formulación de cargos</h4><p>Martín Ficticio</p><span class="st done">Efectiva</span></li>
+        <li class="card"><span class="t">09:45</span><h4>Suspensión de juicio a prueba</h4><p>Julián Muestra</p><span class="st done">Suspendida</span></li>
+      </ul>
+    </section>
+    <section>
+      <h3 class="section">Plazos</h3>
+      <div class="deadline"><p class="when">Vence el miércoles</p><p>Impugnación ordinaria de Martín Ficticio (art. 242, <strong>no verificado</strong>)</p></div>
+      <div class="deadline"><p class="when">Vence el 14 de diciembre</p><p>Fin de la prisión preventiva de Carla Modelo</p></div>
+      <p class="note">Cálculo asistido: verificá con la norma.</p>
+    </section>
+  </div>
+</div>
+</body>
+</html>

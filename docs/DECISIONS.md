@@ -898,3 +898,47 @@ Superseded decisions are marked, never deleted.
     the expected headers).
   - A file with 1000 rows is validated twice (preview and commit). That is accepted: it keeps the
     server free of stored uploads.
+
+## ADR-0020: Visual direction (T19)
+
+- **Date:** 2026-11-22
+- **Status:** accepted
+- **Context:** The frontend still has the shadcn/ui neutral theme. Before building screens we
+  need one visual direction that works for lawyers from 25 to 75, mostly on the phone between
+  hearings, for a product that handles people's liberty: serious, calm, fast, AA contrast and
+  large type. The hearing agenda is the core screen, so the direction is judged on it.
+- **Decision:**
+  - Three directions were mocked as static HTML pages of "Audiencias de hoy" with the same
+    fictitious data (`docs/design/mockups/`), captured at 390×844 and 1440×900
+    (`docs/design/screenshots/`): **A "Limay"** (deep river blue on cool paper, Atkinson
+    Hyperlegible Next, a vertical day rail with a "now" line), **B "Toga"** (navy chrome and
+    oxblood, IBM Plex Sans and Serif, a dense docket table) and **C "Estepa"** (olive on sage
+    stone, Figtree, a large "next hearing" panel and big cards).
+  - **A is chosen.** A typeface designed for low-vision readers with a 17 px body and a 15 px
+    floor that has no exceptions (navigation labels included); every text pair above 6:1 in
+    light and dark (measured with `node scripts/contrast.mjs`; muted text 7.39:1 on cards);
+    on a phone it shows the count, the detainee alert and two hearings in the first screen,
+    collapsing past ones; and its single cool accent reads serious without the traditional-firm
+    look of B or the consumer-app look of C. B's table survives as the pattern for desktop list
+    screens; C's "next hearing" panel is a possible later addition.
+  - `docs/design/DESIGN.md` (`status: approved`) is the spec for T20: light and dark tokens in
+    shadcn names (including `sidebar-*` and `chart-*`) plus product tokens (`detained`,
+    `deadline`, four `status-*` pairs), dark mode wiring with a `.dark` class
+    (`@custom-variant dark`), type scale, spacing, radius, elevation, lucide icon meanings,
+    motion rules and tone of voice.
+  - `scripts/contrast.mjs` (plain Node, no dependencies) measures every token pair of both
+    themes with WCAG 2.x relative luminance and fails if one is below 4.5:1 (text) or 3:1 (UI).
+    T20 adds a Vitest token-contrast test over `frontend/src/index.css` with the same pairs.
+  - Red is reserved for a client deprived of liberty, amber for deadlines; color is never the
+    only signal (word and icon always). Motion respects `prefers-reduced-motion`
+    (`MotionConfig reducedMotion="user"` plus a CSS guard).
+- **Consequences:**
+  - T20 adds the Atkinson Hyperlegible Next font (self-hosted, Fontsource) and replaces the
+    neutral shadcn theme in `frontend/src/index.css` with these tokens; the existing login and
+    2FA screens change color and type with it.
+  - Mockups load the font from Google Fonts; the app must not, so it works offline as a PWA and
+    sends no request to a third party.
+  - The references (Clio, MyCase, Filevine, Smokeball) were reviewed from their public product
+    pages for patterns only; no assets or layouts were copied.
+  - Deadline citations follow `docs/domain/neuquen-review.md`: the mockup's ordinary appeal
+    deadline cites CPP art. 242 with a visible "[no verificado]" marker, as the screens must.
