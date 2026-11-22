@@ -103,3 +103,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   CSRF-aware API client with problem+json errors, route guard and session-expiry handling,
   bottom nav on phones and sidebar on desktop, account menu, and a firm switcher that remembers
   firms used on the device and signs in again to switch (ADR-0022).
+- Hearing agenda as the home (T22): day view on a rail with the "Ahora" line and finished
+  hearings collapsed, week view grouped by day with sticky day headers on phones and a denser
+  row layout on desktop, filter by lawyer, view/date/lawyer kept in the URL, detainee alerts
+  with legal source and disclaimer, "Persona detenida" and "Superposición de horario" markers,
+  times in the firm's time zone, skeleton, empty and error states (ADR-0023).
