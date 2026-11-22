@@ -1,4 +1,5 @@
 import { useId, useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   CalendarClock,
   ChevronDown,
@@ -25,8 +26,17 @@ function isKnownStatus(code: string): code is HearingStatus {
   return (HEARING_STATUSES as readonly string[]).includes(code);
 }
 
-/** The OFIJU status; a status a firm added to its catalog shows its own name, in neutral. */
-export function AgendaStatusBadge({ item, className }: { item: AgendaItem; className?: string }) {
+/**
+ * The OFIJU status; a status a firm added to its catalog shows its own name, in neutral. Takes
+ * any hearing that carries its status code and name (agenda items, a case's hearings).
+ */
+export function AgendaStatusBadge({
+  item,
+  className,
+}: {
+  item: Pick<AgendaItem, "statusCode" | "statusName">;
+  className?: string;
+}) {
   return isKnownStatus(item.statusCode) ? (
     <HearingStatusBadge status={item.statusCode} className={className} />
   ) : (
@@ -68,6 +78,19 @@ function HearingPeople({ item }: { item: AgendaItem }) {
   );
 }
 
+/** The case caption, linked to the case. */
+function CaseLink({ item }: { item: Pick<AgendaItem, "caseId" | "caseCaption"> }) {
+  return (
+    <Link
+      to="/causas/$caseId"
+      params={{ caseId: item.caseId }}
+      className="text-primary underline underline-offset-4 hover:decoration-2"
+    >
+      {item.caseCaption}
+    </Link>
+  );
+}
+
 interface MetaRow {
   icon: LucideIcon;
   term: string;
@@ -90,7 +113,7 @@ function metaRows(item: AgendaItem, timeZone: string): MetaRow[] {
   ];
   if (item.room) rows.push({ icon: MapPin, term: "Sala", value: item.room });
   if (item.judge) rows.push({ icon: Gavel, term: "Juez o jueza", value: item.judge });
-  rows.push({ icon: FileText, term: "Causa", value: item.caseCaption });
+  rows.push({ icon: FileText, term: "Causa", value: <CaseLink item={item} /> });
   if (item.lawyers.length > 0) {
     rows.push({ icon: User, term: "Abogados del estudio", value: joinNames(item.lawyers) });
   }
@@ -220,7 +243,7 @@ export function HearingRow({ item, timeZone }: { item: AgendaItem; timeZone: str
           <HearingPeople item={item} />
           <p className="text-meta text-muted-foreground">
             <span className="sr-only">Causa: </span>
-            {item.caseCaption}
+            <CaseLink item={item} />
           </p>
         </div>
         {place.length > 0 && (

@@ -1,7 +1,16 @@
 import type { Page, Route } from "@playwright/test";
 
 import type { AgendaItem, DetaineeAlert } from "../src/features/agenda/agenda-types";
+import type { CaseView } from "../src/features/cases/case-types";
 import { agendaFor } from "../src/test/agenda-fixtures";
+import {
+  CASES,
+  CATALOGS,
+  casePageFor,
+  DETAILS,
+  HEARINGS_BY_CASE,
+  MEASURES,
+} from "../src/test/case-fixtures";
 
 /** Fictitious user of the fictitious demo firm (same as the Vitest fixtures). */
 export const DEMO_ME = {
@@ -30,6 +39,30 @@ interface MockBackendOptions {
   detaineeAlerts?: DetaineeAlert[];
   /** The agenda answers 500, to show its error state. */
   agendaFails?: boolean;
+  /** Cases the search serves (filtered and paged); the fictitious fixtures by default. */
+  cases?: CaseView[];
+  /** The case search answers 500, to show its error state. */
+  casesFail?: boolean;
+}
+
+/**
+ * A case detail, its hearings, a defendant's coercive measures or a catalog, from the
+ * fixtures; undefined when there is no such resource (the caller answers 404).
+ */
+function caseResource(path: string): unknown {
+  const catalog = /^\/api\/v1\/catalogs\/([a-z-]+)$/.exec(path)?.[1];
+  if (catalog) return Object.values(CATALOGS).find((view) => view.catalog === catalog);
+  const hearings = /^\/api\/v1\/cases\/([^/]+)\/hearings$/.exec(path)?.[1];
+  if (hearings) {
+    return DETAILS.some((detail) => detail.id === hearings)
+      ? (HEARINGS_BY_CASE[hearings] ?? [])
+      : undefined;
+  }
+  const caseId = /^\/api\/v1\/cases\/([^/]+)$/.exec(path)?.[1];
+  if (caseId) return DETAILS.find((detail) => detail.id === caseId);
+  const defendantId = /^\/api\/v1\/defendants\/([^/]+)\/coercive-measures$/.exec(path)?.[1];
+  if (defendantId) return MEASURES[defendantId] ?? [];
+  return undefined;
 }
 
 /**
@@ -109,7 +142,25 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
       case "GET /api/v1/detainee-alerts":
         if (!state.signedIn) return problem(route, 401, "authentication-required");
         return route.fulfill({ status: 200, json: options.detaineeAlerts ?? [] });
+      case "GET /api/v1/cases": {
+        if (!state.signedIn) return problem(route, 401, "authentication-required");
+        if (options.casesFail) return problem(route, 500, "internal");
+        const query = url.searchParams;
+        return route.fulfill({
+          status: 200,
+          json: casePageFor(options.cases ?? CASES, {
+            q: query.get("q"),
+            includeArchived: query.get("includeArchived") === "true",
+            page: Number(query.get("page") ?? 0),
+            size: Number(query.get("size") ?? 20),
+          }),
+        });
+      }
       default:
+        if (method === "GET" && state.signedIn) {
+          const found = caseResource(path);
+          if (found !== undefined) return route.fulfill({ status: 200, json: found });
+        }
         return problem(route, 404, "not-found");
     }
   });

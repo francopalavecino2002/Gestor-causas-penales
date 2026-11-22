@@ -58,7 +58,7 @@ describe("app shell", () => {
     fireEvent.click(within(nav).getByRole("link", { name: "Causas" }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Causas" })).toBeInTheDocument();
-    expect(screen.getByText("Próximamente")).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Buscá una causa" })).toBeInTheDocument();
     expect(router.state.location.pathname).toBe("/causas");
     expect(within(nav).getByRole("link", { name: "Causas" })).toHaveAttribute(
       "aria-current",
