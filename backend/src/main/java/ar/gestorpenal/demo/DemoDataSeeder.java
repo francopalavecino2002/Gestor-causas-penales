@@ -1,6 +1,7 @@
 package ar.gestorpenal.demo;
 
 import ar.gestorpenal.casefile.CaseSeeding;
+import ar.gestorpenal.deadline.DeadlineSeeding;
 import ar.gestorpenal.demo.DemoData.DemoPerson;
 import ar.gestorpenal.demo.DemoData.DemoUser;
 import ar.gestorpenal.hearing.HearingSeeding;
@@ -43,6 +44,7 @@ class DemoDataSeeder implements ApplicationRunner {
     private final Persons persons;
     private final CaseSeeding caseSeeding;
     private final HearingSeeding hearingSeeding;
+    private final DeadlineSeeding deadlineSeeding;
     private final DemoProperties properties;
 
     DemoDataSeeder(
@@ -52,6 +54,7 @@ class DemoDataSeeder implements ApplicationRunner {
             Persons persons,
             CaseSeeding caseSeeding,
             HearingSeeding hearingSeeding,
+            DeadlineSeeding deadlineSeeding,
             DemoProperties properties) {
         this.tenants = tenants;
         this.userService = userService;
@@ -59,6 +62,7 @@ class DemoDataSeeder implements ApplicationRunner {
         this.persons = persons;
         this.caseSeeding = caseSeeding;
         this.hearingSeeding = hearingSeeding;
+        this.deadlineSeeding = deadlineSeeding;
         this.properties = properties;
     }
 
@@ -165,6 +169,26 @@ class DemoDataSeeder implements ApplicationRunner {
             hearingSeeding.createMeasure(openDefendants.get(1), "presentacion-periodica",
                     null, List.of(), today.minusDays(5), null, null);
         }
+        createMissingDeadlines(openCaseId, openDefendants.get(0), today);
+    }
+
+    /**
+     * Deadlines of the open case, relative to today: the detained defendant's preventive prison (the
+     * duration the judge set and the one-year maximum), an investigation about to expire and an
+     * ordinary appeal counted in business days.
+     */
+    private void createMissingDeadlines(UUID caseId, UUID detainedDefendantId, LocalDate today) {
+        if (deadlineSeeding.hasDeadlines(caseId)) {
+            return;
+        }
+        deadlineSeeding.createDeadline(caseId, detainedDefendantId, "duracion-fijada-prision-preventiva",
+                today.minusDays(20), today.plusDays(40));
+        deadlineSeeding.createDeadline(caseId, detainedDefendantId, "duracion-maxima-prision-preventiva",
+                today.minusDays(20), null);
+        deadlineSeeding.createDeadline(caseId, detainedDefendantId, "investigacion-preparatoria",
+                today.minusMonths(4).plusDays(10), null);
+        deadlineSeeding.createDeadline(caseId, null, "impugnacion-ordinaria", today.minusDays(1), null);
+        log.info("Demo deadlines created for {}", DemoData.OPEN_CASE_NUMBER);
     }
 
     private UUID personId(DemoPerson person) {

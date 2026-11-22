@@ -139,6 +139,24 @@ class DemoDataSeederTests {
                 .isEqualTo(1);
     }
 
+    @Test
+    void shouldSeedDeadlinesOfTheDetainedDefendantAndTheCaseAndKeepThemOnARerun() {
+        UUID tenantId = tenants.findActiveIdBySlug("estudio-demo").orElseThrow();
+
+        seeder.run(new DefaultApplicationArguments());
+
+        assertThat(jdbc.queryForList(
+                        "SELECT rule_code FROM deadline WHERE tenant_id = ? ORDER BY rule_code", String.class, tenantId))
+                .containsExactly(
+                        "duracion-fijada-prision-preventiva",
+                        "duracion-maxima-prision-preventiva",
+                        "impugnacion-ordinaria",
+                        "investigacion-preparatoria");
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM deadline WHERE tenant_id = ? AND defendant_id IS NULL", Integer.class, tenantId))
+                .isEqualTo(1);
+    }
+
     /** Simulates a run that failed after creating the firm; raw SQL because the app never deletes. */
     @Test
     void shouldCreateOnlyTheMissingUsersOfAPartiallySeededFirm() {

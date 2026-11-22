@@ -689,3 +689,87 @@ Superseded decisions are marked, never deleted.
     audiovisual link, client notification, and the coercive-measure deadlines in the T14 deadline engine.
   - Changing a status away from a result status through the edit endpoint drops the link to the next
     hearing, which is kept on its own row.
+
+## ADR-0017: Deadline rule engine (T14)
+
+- **Date:** 2026-11-22
+- **Status:** accepted
+- **Context:** Deadlines are the product's differential against Lex-Doctor, and the riskiest part: a
+  wrong date has legal consequences. The stage 0 review (`docs/domain/neuquen-review.md` §3) lists 13
+  rules for the MVP, each with an article, a trigger, an art. 79 computation type, a consequence that
+  courts have sometimes declared unconstitutional ("Estarli", "Olave"), chained extensions and
+  suspending events. It also argues against a user-editable rule engine for the MVP.
+- **Decision:**
+  - **Rules are configuration of the jurisdiction package, not data.** `deadline-rules.yml` and
+    `court-calendar.yml` live next to the catalogs in `resources/jurisdictions/neuquen/` and are read
+    by their own loader in the new `deadline` package (strict mapping, every problem reported at once,
+    any problem stops the startup), like ADR-0013. A rule carries code, name, article and law, trigger,
+    kind (legal or judicial), computation, duration, scope (defendant or case), `detainee`,
+    consequence, case-law status (text, link, review date), extension steps (who grants each and its
+    maximum), suspending events, default warning, review flags and a note. The loader enforces the
+    invariants: a judicial rule and only a judicial rule is `SET_BY_COURT` and has no duration; a term
+    in hours cannot be suspended; a rule citing arts. 156 to 272 must carry `no-verificado` (the public
+    copies of Ley 2784 stop at art. 155).
+  - **14 rules:** the 13 marked "Sí" plus `plazo-judicial`, a generic judicial deadline for any term a
+    judge or prosecutor sets, since the roadmap asks for judicial deadlines entered by hand. The
+    ordinary appeal's doubling in complex cases (art. 224) is modelled as its one extension step. The
+    mediation (Ley 2996) is both a rule (60 days + 30) and a suspension kind.
+  - **Firms change only two things:** `deadline_rule_setting` stores `enabled` and `alert_days_before`
+    per rule (owner only, audited). A disabled rule accepts no new deadline (`409`) and its deadlines
+    leave the firm-wide list but stay on the case, flagged.
+  - **Computation (`DeadlineCalculator`, pure and unit-tested per type):** hours run continuously from
+    an instant; day terms count from the day after the trigger, business days skip weekends and the
+    court calendar, calendar days (corridos) do not; months and years go date to date (a missing day is
+    the month's last, Código Civil y Comercial art. 6); a judicial deadline starts from the date the
+    lawyer loaded. Day-based terms end at 24 h of the last day (`dueAt` = start of the next local day,
+    zone `America/Argentina/Salta` as in ADR-0016). Suspended days never count: day terms skip them,
+    month, year and judicial terms move forward by the suspended calendar days inside the term, until
+    the end stops moving. An open suspension that starts before the end leaves the deadline
+    `SUSPENDED` without a date. A last day that falls on a holiday is not moved forward `[validar]`.
+  - **Court calendar:** national holidays (Ley 27.399, movable ones already moved), bridge days and
+    the January and winter judicial recesses for 2025–2027, all tagged `[validar]` where they depend on
+    a yearly decree or TSJ resolution. A business-day term that reaches a year not loaded is
+    `NOT_CALCULABLE` with the missing year: the engine never guesses. A test fails when the current year
+    is missing, so a new year cannot start unnoticed. Provincial and local non-business days (asuetos,
+    a city's founding day) are not listed yet `[validar]`: a business-day deadline can come out one day
+    early, the unsafe direction, and the file says so.
+  - **Case law is cited by the ruling's name** ("Estarli", "Olave"), as courts and the press do, and
+    linked to press notes, never to a court file whose name carries a case number (CLAUDE.md, rule 1).
+  - **Concrete deadline (`deadline`):** case, optional defendant (required by scope), rule code, the
+    trigger day (and instant for hours), the date the court set (judicial only), the hearing where it
+    started, the day it was met and notes. **The due date is computed on read**, never stored: a
+    corrected rebellion, suspension or extension changes it at once, and a fixed rule in a new package
+    version applies to every deadline. A small firm has hundreds of deadlines; the firm-wide list loads
+    them with a handful of queries and computes in memory.
+  - **Extensions (`deadline_extension`)** are append-only rows (amount in the rule's unit, day granted,
+    granting hearing); their step is their position by day granted. The count and each step's maximum
+    come from the rule (`409` past the count, `400` over the maximum). A step cannot be granted before
+    the previous one, the deadline's start cannot move after a granted extension, and only the last
+    extension can be archived (`409` otherwise), so no extension ever moves to a step it was not checked
+    against.
+  - **Supported dates:** every date a deadline or suspension takes is between 1990-01-01 and
+    2100-12-31 (`400` otherwise), and suspended days are added by interval arithmetic, so a typo cannot
+    make a read loop for millions of days or overflow `LocalDate`.
+  - **Suspensions:** rebellion is read from the defendant's own dates (art. 52) and applies only to
+    that defendant's deadlines. Mediation and the federal extraordinary appeal are loaded on the case
+    (`deadline_suspension`), for every defendant or one; open while they have no end. Each applies
+    only to the rules that list its kind. Which rules list mediation is `[validar]`.
+  - **Status** at read time: `MET`, `SUSPENDED`, `NOT_CALCULABLE`, `OVERDUE`, `DUE_SOON` (within the
+    firm's warning, and always in the last 24 hours) or `RUNNING`. Lists put met deadlines last,
+    detainee deadlines first, then the soonest end. `GET /api/v1/deadlines?withinDays` (1–365, default
+    30) shows overdue, due-soon, not-calculable and running deadlines ending within the window, of
+    visible, not archived cases and defendants (filtered inside the query, as in ADR-0016).
+  - **Every due date travels with its source** (article and law), consequence, case-law status, flags
+    and the text "Cálculo asistido: verificá con la norma."
+  - **Access:** whoever sees the case loads and edits its deadlines and suspensions; only the owner and
+    lawyers archive or restore them or archive an extension; reserved and other firms' records are
+    `404`. `hearing` gains a public `Hearings.caseOf` and `DefendantRef` gains the rebellion dates.
+- **Consequences:**
+  - The detainee alerts of ADR-0016 stay as they are (they read the measure's own dates); the
+    preventive-prison rules here are loaded as deadlines. Creating deadlines automatically from
+    measures, hearings or the charges date is deferred: the lawyer loads the trigger.
+  - Deferred: firm-specific non-business days (asuetos), a court calendar per circumscription, the
+    six rules marked "Después", deadlines that only count during business hours, and notifications.
+  - Adding 2028 means adding its days to `court-calendar.yml` before the year starts.
+  - The demo firm gets a preventive prison's fixed and maximum duration, an investigation about to
+    expire and an ordinary appeal.

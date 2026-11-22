@@ -1,0 +1,5 @@
+source: test fixture
+years: [2026]
+days:
+  - {from: "2026-05-10", to: "2026-05-01", name: Al revés}
+  - {from: "2027-01-01", name: Año no cargado}

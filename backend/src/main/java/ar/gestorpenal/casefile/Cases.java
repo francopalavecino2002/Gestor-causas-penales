@@ -83,7 +83,9 @@ public class Cases {
                                 defendant.getCaseId(),
                                 defendant.getPersonId(),
                                 people.get(defendant.getPersonId()).displayName(),
-                                defendant.isArchived())));
+                                defendant.isArchived(),
+                                defendant.getRebellionDeclaredOn(),
+                                defendant.getRebellionLiftedOn())));
     }
 
     /** The owner sees every case, reserved ones included. */

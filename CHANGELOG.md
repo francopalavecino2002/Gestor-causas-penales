@@ -65,3 +65,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   duration and review, rejected on private action (art. 115); detainee alerts (arts. 116, 118, 119)
   marked "Cálculo asistido: verificá con la norma"; detainees and next hearing in the case summary.
   `/api/v1/agenda`, `/api/v1/hearings`, `/api/v1/detainee-alerts` (ADR-0016).
+- Deadline rule engine (T14): the 13 MVP deadline rules of Neuquén plus a generic judicial deadline,
+  built into the jurisdiction package (`deadline-rules.yml`, validated at startup) with article,
+  trigger, art. 79 computation (continuous hours, business days on a Neuquén court calendar for
+  2025–2027 `[validar]`, calendar days, calendar months and years, dates set by the court), legal
+  consequence, case-law status with link and review date, chained extensions, suspending events
+  (rebellion from the defendant, penal mediation and the federal extraordinary appeal loaded on the
+  case), scope (defendant or case) and review flags (`[no verificado]` for arts. 156–272). Firms can
+  only disable a rule or change its warning. Due dates are computed on read, detainee deadlines first,
+  each with its source and "Cálculo asistido: verificá con la norma". `/api/v1/deadline-rules`,
+  `/api/v1/court-calendar`, `/api/v1/cases/{id}/deadlines`, `/api/v1/deadlines`,
+  `/api/v1/cases/{id}/deadline-suspensions` (ADR-0017).

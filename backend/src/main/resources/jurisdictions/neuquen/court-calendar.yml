@@ -1,0 +1,69 @@
+# Court calendar of Neuquén (ADR-0017): the non-business days used by deadlines counted in business
+# days (art. 79). Saturdays and Sundays are never business days and are not listed.
+#
+# Only the years listed under "years" are loaded: a business-day deadline that reaches another year
+# is shown as "not calculable" instead of guessing. Add a year before it starts.
+#
+# National holidays follow Ley 27.399 (movable ones already moved). The bridge days (feriados
+# puente) are decreed every year, and the judicial recesses (ferias) are set by the TSJ every year:
+# both are tagged "validar", as is whether the criminal courts treat Holy Thursday and the recesses
+# as non-business days.
+#
+# Known gap [validar]: provincial and local non-business days (for example a court holiday on the
+# founding day of a city, or an asueto decreed by the TSJ) are not listed. Until they are, a
+# business-day deadline can come out one day early: the lawyer controls.
+source: Ley 27.399 (feriados nacionales) y acordadas del TSJ de Neuquén (ferias judiciales)
+flags: [validar]
+years: [2025, 2026, 2027]
+days:
+  # 2025
+  - {from: "2025-01-01", to: "2025-01-31", name: Feria judicial de enero, flags: [validar]}
+  - {from: "2025-03-03", to: "2025-03-04", name: Carnaval}
+  - {from: "2025-03-24", name: Día Nacional de la Memoria por la Verdad y la Justicia}
+  - {from: "2025-04-02", name: Día del Veterano y de los Caídos en la Guerra de Malvinas}
+  - {from: "2025-04-17", name: Jueves Santo, flags: [validar]}
+  - {from: "2025-04-18", name: Viernes Santo}
+  - {from: "2025-05-01", name: Día del Trabajador}
+  - {from: "2025-05-02", name: Feriado puente, flags: [validar]}
+  - {from: "2025-06-16", name: Paso a la Inmortalidad del General Güemes}
+  - {from: "2025-06-20", name: Paso a la Inmortalidad del General Belgrano}
+  - {from: "2025-07-09", name: Día de la Independencia}
+  - {from: "2025-07-14", to: "2025-07-25", name: Feria judicial de invierno, flags: [validar]}
+  - {from: "2025-08-15", name: Feriado puente, flags: [validar]}
+  - {from: "2025-11-21", name: Feriado puente, flags: [validar]}
+  - {from: "2025-11-24", name: Día de la Soberanía Nacional}
+  - {from: "2025-12-08", name: Inmaculada Concepción de María}
+  - {from: "2025-12-25", name: Navidad}
+  # 2026
+  - {from: "2026-01-01", to: "2026-01-31", name: Feria judicial de enero, flags: [validar]}
+  - {from: "2026-02-16", to: "2026-02-17", name: Carnaval}
+  - {from: "2026-03-23", name: Feriado puente, flags: [validar]}
+  - {from: "2026-03-24", name: Día Nacional de la Memoria por la Verdad y la Justicia}
+  - {from: "2026-04-02", name: Día del Veterano y de los Caídos en la Guerra de Malvinas (y Jueves Santo)}
+  - {from: "2026-04-03", name: Viernes Santo}
+  - {from: "2026-05-01", name: Día del Trabajador}
+  - {from: "2026-05-25", name: Día de la Revolución de Mayo}
+  - {from: "2026-06-15", name: Paso a la Inmortalidad del General Güemes}
+  - {from: "2026-07-09", name: Día de la Independencia}
+  - {from: "2026-07-10", name: Feriado puente, flags: [validar]}
+  - {from: "2026-07-13", to: "2026-07-24", name: Feria judicial de invierno, flags: [validar]}
+  - {from: "2026-08-17", name: Paso a la Inmortalidad del General San Martín}
+  - {from: "2026-10-12", name: Día del Respeto a la Diversidad Cultural}
+  - {from: "2026-11-23", name: Día de la Soberanía Nacional}
+  - {from: "2026-12-07", name: Feriado puente, flags: [validar]}
+  - {from: "2026-12-08", name: Inmaculada Concepción de María}
+  - {from: "2026-12-25", name: Navidad}
+  # 2027 (bridge days not decreed yet)
+  - {from: "2027-01-01", to: "2027-01-31", name: Feria judicial de enero, flags: [validar]}
+  - {from: "2027-02-08", to: "2027-02-09", name: Carnaval}
+  - {from: "2027-03-24", name: Día Nacional de la Memoria por la Verdad y la Justicia}
+  - {from: "2027-03-25", name: Jueves Santo, flags: [validar]}
+  - {from: "2027-03-26", name: Viernes Santo}
+  - {from: "2027-04-02", name: Día del Veterano y de los Caídos en la Guerra de Malvinas}
+  - {from: "2027-05-25", name: Día de la Revolución de Mayo}
+  - {from: "2027-06-21", name: Paso a la Inmortalidad del General Güemes}
+  - {from: "2027-07-09", name: Día de la Independencia}
+  - {from: "2027-07-12", to: "2027-07-23", name: Feria judicial de invierno, flags: [validar]}
+  - {from: "2027-08-16", name: Paso a la Inmortalidad del General San Martín}
+  - {from: "2027-10-11", name: Día del Respeto a la Diversidad Cultural}
+  - {from: "2027-12-08", name: Inmaculada Concepción de María}

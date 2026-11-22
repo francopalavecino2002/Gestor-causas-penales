@@ -1,0 +1,15 @@
+source: test fixture
+law: Código ficticio
+rules:
+  - code: regla-ficticia
+    name: Regla ficticia
+    article: "10"
+    trigger: Algo
+    kind: LEGAL
+    computation: CALENDAR_DAYS
+    duration: 5
+    scope: CASE
+    detainee: false
+    consequence: Ninguna
+    caseLaw: {status: Vigente, reviewedOn: "2026-11-21"}
+    alertDaysBefore: 1

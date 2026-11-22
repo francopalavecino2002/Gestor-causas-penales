@@ -1,0 +1,54 @@
+package ar.gestorpenal.deadline;
+
+import ar.gestorpenal.tenancy.TenantService;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+/** The rules of the current firm: its jurisdiction's package plus the firm's settings (ADR-0017). */
+@Component
+class FirmRules {
+
+    private final DeadlinePackages packages;
+    private final TenantService tenants;
+    private final DeadlineRuleSettingRepository settings;
+
+    FirmRules(DeadlinePackages packages, TenantService tenants, DeadlineRuleSettingRepository settings) {
+        this.packages = packages;
+        this.tenants = tenants;
+        this.settings = settings;
+    }
+
+    /** The package and the firm's settings, read together once per request. */
+    record Snapshot(DeadlinePackage deadlinePackage, Map<String, DeadlineRuleSetting> settings) {
+
+        DeadlineRule rule(String code) {
+            return deadlinePackage.rule(code)
+                    .orElseThrow(() -> new IllegalStateException("The package has no rule " + code));
+        }
+
+        boolean enabled(DeadlineRule rule) {
+            DeadlineRuleSetting setting = settings.get(rule.code());
+            return setting == null || setting.isEnabled();
+        }
+
+        int alertDaysBefore(DeadlineRule rule) {
+            DeadlineRuleSetting setting = settings.get(rule.code());
+            return setting == null ? rule.alertDaysBefore() : setting.getAlertDaysBefore();
+        }
+    }
+
+    @Transactional(readOnly = true)
+    Snapshot current() {
+        return new Snapshot(
+                currentPackage(),
+                settings.findAll().stream()
+                        .collect(Collectors.toMap(DeadlineRuleSetting::getRuleCode, Function.identity())));
+    }
+
+    DeadlinePackage currentPackage() {
+        return packages.get(tenants.currentJurisdictionCode());
+    }
+}
