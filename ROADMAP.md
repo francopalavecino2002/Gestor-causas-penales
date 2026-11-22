@@ -46,7 +46,7 @@ best option itself and records it as an ADR. Only ask Franco for things that phy
 | ID  | Task | Owner | Needs | Status |
 |-----|------|-------|-------|--------|
 | T19 | Visual direction (stage 2): using the frontend-design skill, research references (Clio, MyCase, Filevine, Smokeball; serious, calm, fast; clear for a 70-year-old lawyer, appealing to a 30-year-old), produce 2–3 directions as static mockups of the hearing agenda (mobile 390x844 and desktop 1440x900, fictitious data, Rioplatense Spanish), pick the best with written reasons (legibility, AA contrast, density on mobile, brand seriousness) and write `docs/design/DESIGN.md` with `status: approved` (palette, typography, spacing, radius, iconography, motion, tone of voice, do/don't) plus the mockup screenshots under `docs/design/`. Record the choice as an ADR. | frontend | T03 | done (#27) |
-| T20 | Design system in code: tokens, typography, color, shadcn theme, base components, light/dark, documented in `docs/design/`. | frontend | T03, gate:design | todo |
+| T20 | Design system in code: tokens, typography, color, shadcn theme, base components, light/dark, documented in `docs/design/`. | frontend | T03, gate:design | done (#28) |
 | T21 | App shell: login + 2FA, navigation (mobile bottom nav, desktop sidebar), firm switcher. | frontend | T20, T06 | todo |
 | T22 | Agenda de audiencias (home): today / week, by lawyer, mobile-first. | frontend | T21, T13 | todo |
 | T23 | Case list and case detail. | frontend | T21, T12 | todo |

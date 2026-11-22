@@ -5,6 +5,7 @@ import { App } from "@/app";
 import { createQueryClient } from "@/lib/query-client";
 import { createAppRouter } from "@/router";
 
+import "@fontsource-variable/atkinson-hyperlegible-next";
 import "./index.css";
 
 const rootElement = document.getElementById("root");

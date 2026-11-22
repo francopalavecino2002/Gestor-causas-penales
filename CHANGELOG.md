@@ -92,3 +92,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   under shadcn names, Atkinson Hyperlegible Next with a 15 px floor, spacing, radius, lucide icons,
   reduced motion, and the Rioplatense tone of voice. `scripts/contrast.mjs` checks every token pair
   against WCAG AA (ADR-0020).
+- Design system in code (T20): Limay tokens for light and dark in `index.css`, mapped to the shadcn
+  theme, with a product type scale that cannot go below 15 px. Self-hosted Atkinson Hyperlegible Next
+  and lucide icons. Theme provider with system default, live system changes and a saved choice,
+  applied before first paint. Base components (button, input, textarea, native select, label, field,
+  checkbox, switch, card, badge, alert, dialog, tooltip, separator, skeleton, tabs), a hearing-status
+  badge and the "Cálculo asistido" note. Living style guide at `/design-system`, a token contrast
+  test, and `docs/design/COMPONENTS.md` (ADR-0021).
