@@ -57,3 +57,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   owner; conflict check lists case roles and masks reserved cases; optional "pueblo indígena" field
   redacted in the audit log `[validar]`; archived cases and defendants are read-only until restored.
   No criminal-record field. `/api/v1/cases` (ADR-0015).
+- Hearings and coercive measures (T13): hearings on a case with type (catalog, with CPP article),
+  date, duration, room, judge, OFIJU reference, who requested it, defendants and attending lawyers;
+  OFIJU status and cancellation reason; result with an optional linked next hearing; rescheduling
+  history; schedule-clash warnings per lawyer (reserved cases masked); agenda by day, range and
+  lawyer in Neuquén local time; coercive measures per defendant (art. 113) with preventive detention
+  duration and review, rejected on private action (art. 115); detainee alerts (arts. 116, 118, 119)
+  marked "Cálculo asistido: verificá con la norma"; detainees and next hearing in the case summary.
+  `/api/v1/agenda`, `/api/v1/hearings`, `/api/v1/detainee-alerts` (ADR-0016).
