@@ -31,6 +31,10 @@ class DuplicateCaseNumberException extends RuntimeException {
         this.existingCaseId = existingCaseId;
     }
 
+    Kind kind() {
+        return kind;
+    }
+
     String problemType() {
         return kind.problemType;
     }

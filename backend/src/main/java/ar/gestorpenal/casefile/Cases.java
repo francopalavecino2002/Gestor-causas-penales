@@ -46,6 +46,35 @@ public class Cases {
         return cases.findById(caseId).filter(caseFile -> access.canSee(user, caseFile)).map(caseFile -> ref(user, caseFile));
     }
 
+    /**
+     * The case with this MPF legajo (any case or spacing), or with this internal number when no
+     * legajo is given; empty when there is none or it is a reserved case the user cannot see. A
+     * legajo that does not have the legajo format cannot belong to any case.
+     */
+    @Transactional(readOnly = true)
+    public Optional<CaseRef> findVisibleByNumber(AuthenticatedUser user, String mpfLegajo, String internalNumber) {
+        Optional<CaseFile> found;
+        try {
+            String legajo = MpfLegajo.normalize(mpfLegajo);
+            String internal = Text.clean(internalNumber);
+            found = legajo != null
+                    ? cases.findByMpfLegajo(legajo)
+                    : internal == null ? Optional.empty() : cases.findByInternalNumber(internal);
+        } catch (InvalidCaseDataException e) {
+            return Optional.empty();
+        }
+        return found.filter(caseFile -> access.canSee(user, caseFile)).map(caseFile -> ref(user, caseFile));
+    }
+
+    /** The defendants of the case that are not archived. */
+    @Transactional(readOnly = true)
+    public List<DefendantRef> activeDefendantsOf(UUID caseId) {
+        List<UUID> ids = defendants.findByCaseIdAndArchivedAtIsNullOrderByCreatedAtAscIdAsc(caseId).stream()
+                .map(Defendant::getId)
+                .toList();
+        return List.copyOf(findDefendants(ids).values());
+    }
+
     /** Every case that exists in the firm, each flagged with whether {@code user} may see it. */
     @Transactional(readOnly = true)
     public Map<UUID, CaseRef> findAll(AuthenticatedUser user, Collection<UUID> caseIds) {

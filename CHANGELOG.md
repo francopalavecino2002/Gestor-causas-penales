@@ -82,3 +82,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   on each record, are validated against the firm's definitions, survive archiving a definition and
   appear in the audit history. `/api/v1/custom-fields`, `customFields` on cases and defendants
   (ADR-0018).
+- CSV/Excel import (T16): owners and lawyers load persons, cases with their defendants, and hearings
+  from `.csv` (`;` or `,`, UTF-8) or `.xlsx` files with Spanish headers. A dry run returns a per-row
+  validation report; a commit is all or nothing. Rows go through the regular services, so catalogs,
+  duplicates, tenant isolation, reserved cases and the audit log apply as in the API. Nothing of the
+  file is stored. `POST /api/v1/imports/{kind}` and a downloadable template per kind (ADR-0019).

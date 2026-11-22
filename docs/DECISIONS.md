@@ -835,3 +835,66 @@ Superseded decisions are marked, never deleted.
   - Deferred: case templates per case type that preselect fields, custom fields on other records
     (persons, hearings, deadlines), the other types of §16 (long text, currency, multiple list,
     person), help text, sections, per-role visibility and search by custom field.
+
+## ADR-0019: CSV/Excel import through the regular services, all or nothing (T16)
+
+- **Date:** 2026-11-22
+- **Status:** accepted
+- **Context:** A firm that adopts the product already has its cases in a spreadsheet or in another
+  system's export. Typing them one by one is the main barrier to start. The import must give a
+  preview with a validation report, never leave half a file loaded, and apply exactly the rules of
+  the regular endpoints (tenant, catalogs, duplicates, audit), not a second copy of them.
+- **Decision:**
+  - **Three kinds, one row per record:** `persons`, `cases` (one row per case and defendant: rows
+    that share the MPF legajo or internal number are one case with several defendants; the case
+    columns of a later row must be blank or equal to the first one) and `hearings` (each row names
+    its case by legajo or internal number). Persons first, then cases, then hearings. A defendant is
+    found by document; if no person has it and the row gives names, a human person is created. The
+    file headers are Spanish, accent-free and case-insensitive (`legajo_mpf`, `numero_documento`...);
+    an unknown, duplicated or missing required header rejects the file (`400 import-invalid-file`), so
+    a typo never drops a column silently. `GET /api/v1/imports/{kind}/template` downloads a CSV with
+    the headers and one fictitious example row.
+  - **Formats:** CSV in UTF-8 (BOM tolerated, `;` or `,` detected from the header line, since Excel in
+    Spanish saves with `;`) read with Apache Commons CSV, and `.xlsx` (first sheet) read with Apache
+    POI, whose zip-bomb and entity-expansion guards stay at their defaults. Dates `dd/mm/aaaa` or ISO,
+    or a date cell; times `hh:mm` in the firm's zone (`America/Argentina/Salta`, ADR-0016). Catalog
+    columns take the code or the visible name, case- and accent-insensitive. Limits: 2 MB and 1000
+    data rows (`400`), so a bad file cannot hold a transaction for long. Legacy `.xls` is not read.
+  - **Stateless preview and commit with the same code path.** `POST /api/v1/imports/{kind}` with the
+    file (multipart) and `dryRun` (default `true`). The rows run, in order and in one transaction,
+    through the regular services of each feature; a row error is recorded and the next row runs. A dry
+    run always rolls back; a commit rolls back if any row failed (`422 import-has-errors` with the
+    report) and commits otherwise. Nothing of the file is stored: no upload table, no token, no copy
+    of personal data waiting on the server; the client sends the file again to commit. Because the
+    rows really run, the preview sees duplicates inside the file and references to rows above.
+  - **The report** has total, valid and error rows, what would be (or was) created per record type,
+    and each row with its number in the sheet (the header is row 1), a short label and its errors
+    (`column`, Spanish `message`, optional technical `detail`). Values are not echoed back in errors,
+    and the import logs no cell values.
+  - **Packages stay acyclic with one seam.** `dataimport` owns the endpoint, parsing, limits, the
+    transaction and the report, and declares `RowImporter`; `person`, `casefile` and `hearing` each
+    implement it with their package-private services, translating their own exceptions into row
+    errors. Bean Validation runs on the same request records as the API.
+  - **Access:** only the owner and lawyers import (`403` otherwise): a bulk load creates many records
+    at once. Imported records are audited like any other, under the importing user. Imported cases
+    are not reserved, their responsible is the `abogado_responsable` email (a lawyer or owner of the
+    firm) or the importing user; hearings default to the case's responsible as lawyer.
+  - A race on a unique key while the import runs (another user saves the same document) aborts the
+    whole import with the usual `409 concurrent-change`.
+  - **Details settled while building it:** a document number without a type is a DNI for a human and
+    a CUIT for a legal entity; a type without a number, or a defendant column without the defendant's
+    document, is a row error. A required column means the header must exist: a continuation row of a
+    case leaves the case columns blank. A hearing whose case is missing, belongs to another firm or is
+    a reserved case the user cannot see gets the same "No existe un caso con ese número", and an
+    archived case its own message; a legajo and an internal number that name different cases are an
+    error. A case number already used by a reserved case the user cannot see is reported as taken,
+    without anything else, like the `409` of ADR-0015. Records count in the report only when their
+    row succeeds. The `.xlsx` sheet is read in streaming (SAX), so the row limit stops the reading
+    early; a file with more than 100 columns is rejected.
+- **Consequences:**
+  - Deferred: charges, parties other than defendants, coercive measures and deadlines; custom-field
+    columns; updating existing records (a row that matches one is an error, not an update); `.xls`
+    and `.ods`; mapping arbitrary column names in the wizard (T26 can map them on the client and send
+    the expected headers).
+  - A file with 1000 rows is validated twice (preview and commit). That is accepted: it keeps the
+    server free of stored uploads.
