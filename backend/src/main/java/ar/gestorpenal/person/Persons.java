@@ -1,6 +1,7 @@
 package ar.gestorpenal.person;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,9 +19,38 @@ import org.springframework.transaction.annotation.Transactional;
 public class Persons {
 
     private final PersonRepository people;
+    private final PersonService service;
 
-    Persons(PersonRepository people) {
+    Persons(PersonRepository people, PersonService service) {
         this.people = people;
+        this.service = service;
+    }
+
+    /**
+     * The person with this document number, archived or not. The number may carry separators. A
+     * DNI also matches the CUIT or CUIL that contains it (ADR-0014); an exact match is preferred.
+     */
+    @Transactional(readOnly = true)
+    public Optional<PersonSummary> findByDocument(String documentNumber) {
+        DocumentLookup lookup = DocumentLookup.of(documentNumber);
+        List<Person> matches = people.findByDocument(lookup.numbers(), lookup.embeddedDni());
+        String exact = DocumentLookup.normalize(documentNumber);
+        return matches.stream()
+                .filter(person -> exact.equals(person.getDocumentNumber()))
+                .findFirst()
+                .or(() -> matches.stream().findFirst())
+                .map(PersonSummary::of);
+    }
+
+    /**
+     * Registers a human with a document, like {@code POST /persons}.
+     *
+     * @throws InvalidPersonDataException when the names or the document break a rule of persons
+     */
+    @Transactional
+    public PersonSummary registerHuman(String firstNames, String lastNames, DocumentType type, String documentNumber) {
+        return PersonSummary.of(service.create(new PersonData(
+                PersonKind.HUMAN, firstNames, lastNames, null, null, type, documentNumber, null, null, null, null, null)));
     }
 
     /** The person, archived or not. */
