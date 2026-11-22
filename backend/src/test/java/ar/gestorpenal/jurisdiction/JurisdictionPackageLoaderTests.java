@@ -22,22 +22,23 @@ class JurisdictionPackageLoaderTests {
     @Test
     void neuquenShouldProvideEveryCatalogWithTheReviewedItems() {
         assertThat(neuquen.code()).isEqualTo("neuquen");
-        assertThat(neuquen.version()).isEqualTo(1);
+        assertThat(neuquen.version()).isEqualTo(2);
         assertThat(neuquen.law()).contains("Ley 2784");
         assertThat(neuquen.reviewedOn()).isEqualTo(LocalDate.of(2026, 11, 21));
         assertThat(neuquen.catalogs()).containsOnlyKeys(Catalog.values());
 
-        Map<Catalog, Integer> expectedCounts = Map.of(
-                Catalog.STAGES, 10,
-                Catalog.CLOSING_OUTCOMES, 13,
-                Catalog.HEARING_TYPES, 28,
-                Catalog.HEARING_STATUSES, 8,
-                Catalog.CANCELLATION_REASONS, 8,
-                Catalog.COERCIVE_MEASURES, 9,
-                Catalog.PROCEDURAL_RISKS, 4,
-                Catalog.LIBERTY_SITUATIONS, 7,
-                Catalog.ALTERNATIVE_OUTCOMES, 9,
-                Catalog.CIRCUMSCRIPTIONS, 6);
+        Map<Catalog, Integer> expectedCounts = Map.ofEntries(
+                Map.entry(Catalog.STAGES, 10),
+                Map.entry(Catalog.CLOSING_OUTCOMES, 13),
+                Map.entry(Catalog.HEARING_TYPES, 28),
+                Map.entry(Catalog.HEARING_STATUSES, 8),
+                Map.entry(Catalog.CANCELLATION_REASONS, 8),
+                Map.entry(Catalog.COERCIVE_MEASURES, 9),
+                Map.entry(Catalog.PROCEDURAL_RISKS, 4),
+                Map.entry(Catalog.LIBERTY_SITUATIONS, 7),
+                Map.entry(Catalog.ALTERNATIVE_OUTCOMES, 9),
+                Map.entry(Catalog.CIRCUMSCRIPTIONS, 6),
+                Map.entry(Catalog.PARTY_ROLES, 11));
         expectedCounts.forEach((catalog, count) ->
                 assertThat(neuquen.catalog(catalog).items()).as(catalog.id()).hasSize(count));
     }

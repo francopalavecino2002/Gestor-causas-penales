@@ -94,6 +94,23 @@ class CatalogApiTests {
     }
 
     @Test
+    void partyRolesShouldBeARenameOnlyCatalogWithTheVictimsRights() throws Exception {
+        mockMvc.perform(get("/api/v1/catalogs/party-roles").with(lawyer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(11)))
+                .andExpect(jsonPath("$.hideable").value(false))
+                .andExpect(jsonPath("$.extensible").value(false))
+                .andExpect(jsonPath("$.items[?(@.code == 'victima')].article").value("61"))
+                .andExpect(jsonPath("$.items[?(@.code == 'victima')].attributes.notificationRights").value("true"));
+
+        mockMvc.perform(put("/api/v1/catalogs/party-roles/items/testigo").with(owner).with(CSRF)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": null, \"hidden\": true}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("/problems/catalog-change-not-allowed"));
+    }
+
+    @Test
     void anonymousRequestsShouldBeRejected() throws Exception {
         mockMvc.perform(get("/api/v1/catalogs"))
                 .andExpect(status().isUnauthorized())

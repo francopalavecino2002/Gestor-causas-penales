@@ -42,3 +42,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   flag. Firms rename, hide or add items per catalog policy without losing the original name and
   article; changes are audited. `GET /api/v1/catalogs`, `GET /api/v1/catalogs/{catalog}`,
   `POST /api/v1/catalogs/{catalog}/items`, `PUT /api/v1/catalogs/{catalog}/items/{code}` (ADR-0013).
+- Persons and clients (T11): one record per person (human or legal entity) and normalized document,
+  searchable by name, alias or document; clients with intake data and consent to data processing;
+  authorized contacts with what the firm may tell them; a conflict-of-interest alert by document
+  number that matches a DNI against a CUIT/CUIL; the `party-roles` catalog (víctima with notification
+  rights, art. 61; querellante institucional, art. 65). Archive and restore instead of delete,
+  audited, tenant-isolated. No sensitive data, relations between persons or free-text notes
+  (Ley 25.326). `/api/v1/persons`, `/api/v1/clients` (ADR-0014).

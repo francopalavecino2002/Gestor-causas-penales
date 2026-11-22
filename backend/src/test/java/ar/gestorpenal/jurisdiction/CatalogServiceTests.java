@@ -49,7 +49,7 @@ class CatalogServiceTests {
         CatalogView hearingTypes = TenantContext.callAs(tenantA, () -> catalogs.view(Catalog.HEARING_TYPES, false));
 
         assertThat(hearingTypes.jurisdiction()).isEqualTo("neuquen");
-        assertThat(hearingTypes.packageVersion()).isEqualTo(1);
+        assertThat(hearingTypes.packageVersion()).isEqualTo(2);
         assertThat(hearingTypes.flags()).containsExactly(ReviewFlag.VALIDAR);
         assertThat(hearingTypes.items()).hasSize(28);
         assertThat(hearingTypes.items().getFirst()).satisfies(item -> {

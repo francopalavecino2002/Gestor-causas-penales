@@ -10,7 +10,7 @@
 # one. A new version may add items, fix names and articles, or update flags.
 code: neuquen
 name: Neuquén
-version: 1
+version: 2
 law: CPP de Neuquén (Ley 2784)
 # Quoted: an unquoted YAML date would be read as a timestamp.
 reviewedOn: "2026-11-21"
