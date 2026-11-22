@@ -55,4 +55,5 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (art. 52) on each defendant, with a computed summary on the case; simple charges; parties by
   `party-roles`; case team with one responsible; reserved cases visible only to their team and the
   owner; conflict check lists case roles and masks reserved cases; optional "pueblo indígena" field
-  redacted in the audit log `[validar]`. No criminal-record field. `/api/v1/cases` (ADR-0015).
+  redacted in the audit log `[validar]`; archived cases and defendants are read-only until restored.
+  No criminal-record field. `/api/v1/cases` (ADR-0015).
