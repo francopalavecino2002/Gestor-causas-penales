@@ -223,3 +223,7 @@ Equipo y vínculos
   desactivar un campo no borra sus valores.
 - Catálogos en una estructura genérica, con ítems por jurisdicción y
   por estudio.
+- MVP implementado (ADR-0018): campos de la causa y del imputado, de tipo
+  texto, número, fecha, sí o no y lista; valores en la columna `custom_fields`
+  de `case_file` y `defendant`. El resto del diseño (ayuda, secciones, roles,
+  plantillas, otros tipos y búsqueda) queda para más adelante.

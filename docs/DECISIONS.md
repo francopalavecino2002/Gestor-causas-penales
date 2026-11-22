@@ -773,3 +773,65 @@ Superseded decisions are marked, never deleted.
   - Adding 2028 means adding its days to `court-calendar.yml` before the year starts.
   - The demo firm gets a preventive prison's fixed and maximum duration, an investigation about to
     expire and an ordinary appeal.
+
+## ADR-0018: Custom fields as per-firm definitions and JSONB values (T15)
+
+- **Date:** 2026-11-22
+- **Status:** accepted
+- **Context:** Everything that is not core must be configurable per firm without code (CLAUDE.md). The
+  first piece is custom fields on cases and defendants: a firm adds, for example, "Honorarios
+  pactados" to its cases or "Unidad de detención" to its defendants. `docs/domain/data-model.md` §16
+  sketches a much larger design (twelve types, sections, roles, versioned definitions, indexed search);
+  the MVP needs the part every firm uses.
+- **Decision:**
+  - **Values live in a `jsonb` column `custom_fields` on the record itself** (`case_file`,
+    `defendant`), keyed by the definition's key, not in an EAV table. One read returns a record with
+    all its values and the code stays small. The trade-off is that the database knows neither the
+    types nor the keys (it only checks the column is a JSON object), so `CustomFieldValues` validates
+    in the service: every key must be an active definition of that record, and each value must fit its
+    type. Searching or filtering by a custom field is deferred (a GIN index or a generated column can
+    be added when a use case needs it).
+  - **Definitions (`custom_field_definition`)** have a record (`CASE_FILE` or `DEFENDANT`), key, label,
+    type (`TEXT`, `NUMBER`, `DATE`, `BOOLEAN`, `LIST`), options, required flag and position. At most
+    50 active definitions per record and firm, and 100 options per list. The 50 limit is a
+    best-effort cap (count, then insert, no lock): two simultaneous creates can end at 51, which is
+    harmless.
+  - **The key is generated from the label** (lowercase, accents stripped, hyphens, `-2`, `-3`... on a
+    collision) **and never changes**, like the record, the key and the type: stored values point at
+    the key, so a rename never orphans data. Keys are unique per firm and record **including archived
+    definitions**, so a key is never reused for something else.
+  - **Options of a list are `{code, label, hidden}`**, with the code generated like the key and
+    immutable. They are added, renamed and hidden, never removed: a hidden option is not offered for
+    new values but the records that hold it keep it and can save it unchanged. A list needs at least
+    one visible option.
+  - **Archiving a definition keeps its values**: they are not shown, not validated and not touched by
+    later edits (a request cannot name an archived key, but the stored value is carried over), so
+    restoring the definition brings the data back. Nothing is deleted.
+  - **Value rules:** text is trimmed, at most 1000 characters, and blank means no value; a number is a
+    JSON number stored as a plain decimal (`5.50` and `5.5` are the same) with at most 15 significant
+    digits, because Hibernate reads `jsonb` numbers back as doubles and 15 digits survive that exactly;
+    a date is an ISO day; a
+    boolean is `true` or `false`; a list is the code of an option. A `null` or missing value clears
+    the field, and a required active field without a value is `400`.
+  - **Replace and keep semantics:** `customFields` sent on a case or defendant replaces the values of
+    the active fields (the rest of the record is a full replace too); **omitted, the stored values stay
+    untouched and are not validated**, so a field made required later never breaks an unrelated edit.
+    A new record with no values has an empty map, so required fields apply.
+  - **Access:** every member reads the definitions (they all fill them in), only the owner creates,
+    changes, archives or restores them, like catalogs (ADR-0013); another firm's id is `404`.
+  - **Audit (ADR-0010):** `AuditRecorder` now audits a map or list property as its JSON text (map
+    keys sorted and numbers in one canonical decimal form, so equal maps give equal text) and records
+    no change when the old and new text are equal. Values of custom fields therefore appear in the
+    change history in clear. This applies to every JSON property of an `@Audited` entity: whoever adds
+    one that may hold sensitive data must mark it `@AuditRedacted`.
+  - The public `customfield.CustomFields` is the only thing `casefile` uses: `resolve` and
+    `resolveNew` validate what a request brings, `visibility` filters the values shown to those of
+    active fields. `InvalidCustomFieldValueException` is answered `400` by the case and defendant
+    controllers.
+- **Consequences:**
+  - A firm must not create fields for sensitive data (Ley 25.326, arts. 2 and 7: criminal records,
+    health, ethnic origin...): the audit log stores the values, unlike the redacted
+    `indigenousPeople` flag. The configuration screen (T25) must warn the owner.
+  - Deferred: case templates per case type that preselect fields, custom fields on other records
+    (persons, hearings, deadlines), the other types of §16 (long text, currency, multiple list,
+    person), help text, sections, per-role visibility and search by custom field.

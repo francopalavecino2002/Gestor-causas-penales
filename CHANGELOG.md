@@ -76,3 +76,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   each with its source and "Cálculo asistido: verificá con la norma". `/api/v1/deadline-rules`,
   `/api/v1/court-calendar`, `/api/v1/cases/{id}/deadlines`, `/api/v1/deadlines`,
   `/api/v1/cases/{id}/deadline-suspensions` (ADR-0017).
+- Custom fields (T15): the firm owner defines fields for cases and defendants of five types (text,
+  number, date, yes/no, list) with an immutable key generated from the label, list options that are
+  renamed or hidden but never removed, a required flag and an order. Values live in a `jsonb` column
+  on each record, are validated against the firm's definitions, survive archiving a definition and
+  appear in the audit history. `/api/v1/custom-fields`, `customFields` on cases and defendants
+  (ADR-0018).

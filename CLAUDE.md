@@ -122,3 +122,5 @@ task end to end. The loop for one task:
 - In MockMvc tests do not use Spring Security's `csrf()` post-processor: it swaps the CSRF repository
   of the shared test context and breaks the cookie-based login tests. Send the same random value as
   the `XSRF-TOKEN` cookie and the `X-XSRF-TOKEN` header instead (see `CatalogApiTests`).
+- Jackson 3 fails a request whose JSON omits a primitive (`boolean`, `int`) record component ("Failed to
+  read request", 400): use wrapper types (`Boolean`) in request records and decide what `null` means.
