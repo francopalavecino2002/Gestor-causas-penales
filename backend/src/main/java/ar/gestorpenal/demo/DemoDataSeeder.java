@@ -3,11 +3,15 @@ package ar.gestorpenal.demo;
 import ar.gestorpenal.casefile.CaseSeeding;
 import ar.gestorpenal.demo.DemoData.DemoPerson;
 import ar.gestorpenal.demo.DemoData.DemoUser;
+import ar.gestorpenal.hearing.HearingSeeding;
 import ar.gestorpenal.person.Persons;
 import ar.gestorpenal.tenancy.TenantContext;
 import ar.gestorpenal.tenancy.TenantService;
 import ar.gestorpenal.user.UserRepository;
 import ar.gestorpenal.user.UserService;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -38,6 +42,7 @@ class DemoDataSeeder implements ApplicationRunner {
     private final UserRepository users;
     private final Persons persons;
     private final CaseSeeding caseSeeding;
+    private final HearingSeeding hearingSeeding;
     private final DemoProperties properties;
 
     DemoDataSeeder(
@@ -46,12 +51,14 @@ class DemoDataSeeder implements ApplicationRunner {
             UserRepository users,
             Persons persons,
             CaseSeeding caseSeeding,
+            HearingSeeding hearingSeeding,
             DemoProperties properties) {
         this.tenants = tenants;
         this.userService = userService;
         this.users = users;
         this.persons = persons;
         this.caseSeeding = caseSeeding;
+        this.hearingSeeding = hearingSeeding;
         this.properties = properties;
     }
 
@@ -60,6 +67,7 @@ class DemoDataSeeder implements ApplicationRunner {
         findOrCreateFirm().ifPresent(tenantId -> TenantContext.runAs(tenantId, () -> {
             createMissingUsers();
             createMissingCases();
+            createMissingAgenda();
         }));
     }
 
@@ -113,6 +121,49 @@ class DemoDataSeeder implements ApplicationRunner {
             caseSeeding.addDefendant(caseId, personId(DemoData.NICOLAS), "averiguacion-preliminar",
                     "Lesiones leves", "CP art. 89");
             log.info("Demo case created: {} (reserved)", DemoData.RESERVED_CASE_NUMBER);
+        }
+    }
+
+    /**
+     * Hearings this week and next, relative to today so the agenda is never empty: two of the
+     * lawyer's hearings overlap (one is in the reserved case, to show the masked clash), plus a
+     * preventive prison with a fixed end and a next review, and a periodic appearance.
+     */
+    private void createMissingAgenda() {
+        UUID lawyerId = users.findByEmail(DemoData.LAWYER.email()).orElseThrow().getId();
+        UUID ownerId = users.findByEmail(DemoData.OWNER.email()).orElseThrow().getId();
+        UUID openCaseId = caseSeeding.findCaseId(DemoData.OPEN_CASE_NUMBER).orElseThrow();
+        UUID reservedCaseId = caseSeeding.findCaseId(DemoData.RESERVED_CASE_NUMBER).orElseThrow();
+        List<UUID> openDefendants = caseSeeding.defendantIds(openCaseId);
+        List<UUID> reservedDefendants = caseSeeding.defendantIds(reservedCaseId);
+        LocalDate today = hearingSeeding.today();
+
+        if (!hearingSeeding.hasHearings(openCaseId)) {
+            hearingSeeding.createHearing(openCaseId, "formulacion-de-cargos",
+                    hearingSeeding.at(today.plusDays(1), LocalTime.of(9, 0)), 60, "Sala 4",
+                    List.of(openDefendants.get(0)), List.of(lawyerId));
+            hearingSeeding.createHearing(openCaseId, "control-de-acusacion",
+                    hearingSeeding.at(today.plusDays(3), LocalTime.of(11, 0)), 90, "Sala 2",
+                    List.of(openDefendants.get(1)), List.of(ownerId));
+            hearingSeeding.createHearing(openCaseId, "preparacion-del-juicio",
+                    hearingSeeding.at(today.plusDays(8), LocalTime.of(10, 0)), 60, "Sala 1",
+                    openDefendants, List.of(lawyerId));
+            log.info("Demo hearings created for {}", DemoData.OPEN_CASE_NUMBER);
+        }
+        if (!hearingSeeding.hasHearings(reservedCaseId)) {
+            hearingSeeding.createHearing(reservedCaseId, "control-de-la-investigacion",
+                    hearingSeeding.at(today.plusDays(1), LocalTime.of(9, 30)), 60, "Sala 3",
+                    reservedDefendants, List.of(lawyerId));
+            log.info("Demo hearing created for {} (clashes with the lawyer's other hearing)", DemoData.RESERVED_CASE_NUMBER);
+        }
+        if (!hearingSeeding.hasMeasures(openDefendants.get(0))) {
+            hearingSeeding.createMeasure(openDefendants.get(0), "prision-preventiva",
+                    "Unidad de detención ficticia", List.of("peligro-de-fuga"),
+                    today.minusDays(20), today.plusDays(40), today.plusDays(10));
+        }
+        if (!hearingSeeding.hasMeasures(openDefendants.get(1))) {
+            hearingSeeding.createMeasure(openDefendants.get(1), "presentacion-periodica",
+                    null, List.of(), today.minusDays(5), null, null);
         }
     }
 
