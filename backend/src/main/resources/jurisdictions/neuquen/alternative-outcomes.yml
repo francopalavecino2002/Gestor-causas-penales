@@ -1,0 +1,79 @@
+# Salidas alternativas y procedimientos abreviados (neuquen-review.md §2.4).
+# Attributes: group, appliesWhen (summary of when it proceeds) and recordedData.
+catalog: alternative-outcomes
+source: CPP de Neuquén (Ley 2784)
+note: >-
+  Ninguna salida aplica a delitos dolosos de funcionarios públicos en ejercicio del cargo
+  (arts. 106 y 108). Con imputados de pueblos indígenas se aplica el art. 9.2 del Convenio 169 OIT
+  (art. 109).
+items:
+  - code: oportunidad-hecho-insignificante
+    name: "Criterio de oportunidad: hecho insignificante"
+    article: "106 inc. 1"
+    attributes:
+      group: Criterio de oportunidad
+      appliesWhen: No afecta gravemente el interés público.
+      recordedData: Decisión fiscal, revisión de la víctima (5 días, art. 132).
+  - code: oportunidad-participacion-menor
+    name: "Criterio de oportunidad: participación menor"
+    article: "106 inc. 2"
+    attributes:
+      group: Criterio de oportunidad
+      appliesWhen: Salvo pena mayor a 6 años.
+      recordedData: Decisión fiscal, revisión de la víctima (5 días, art. 132).
+  - code: oportunidad-pena-natural
+    name: "Criterio de oportunidad: pena natural"
+    article: "106 inc. 3"
+    attributes:
+      group: Criterio de oportunidad
+      appliesWhen: El imputado sufrió un daño grave que hace innecesaria la pena.
+      recordedData: Decisión fiscal, revisión de la víctima (5 días, art. 132).
+  - code: oportunidad-pena-irrelevante
+    name: "Criterio de oportunidad: pena irrelevante"
+    article: "106 inc. 4"
+    attributes:
+      group: Criterio de oportunidad
+      appliesWhen: La pena no importa frente a otra ya impuesta o esperable.
+      recordedData: Decisión fiscal, revisión de la víctima (5 días, art. 132).
+  - code: conciliacion-o-mediacion
+    name: Conciliación o mediación penal
+    article: "106 inc. 5 y 131 inc. 3; Ley 2879"
+    attributes:
+      group: Conciliación o mediación
+      appliesWhen: >-
+        Sin interés público prevalente o con reparación; excluye violencia doméstica o de género y
+        delitos de funcionarios (Ley 2879, art. 3).
+      recordedData: Fecha de derivación, acuerdo, cumplimiento.
+  - code: suspension-de-juicio-a-prueba
+    name: Suspensión de juicio a prueba
+    article: "108"
+    attributes:
+      group: Suspensión de juicio a prueba
+      appliesWhen: >-
+        Si cabe condena condicional; se pide hasta la apertura a juicio; requiere conformidad
+        fiscal.
+      recordedData: Reglas de conducta, plazo de prueba, control del juez de Ejecución.
+  - code: acuerdo-pleno
+    name: Acuerdo pleno
+    article: "217 a 220"
+    flags: [no-verificado]
+    note: Límites de pena no verificados.
+    attributes:
+      group: Procedimiento abreviado
+      appliesWhen: Acuerdo sobre hechos y pena; lo homologa el juez de garantías (art. 36 inc. 2).
+      recordedData: Pena acordada.
+  - code: acuerdo-parcial
+    name: Acuerdo parcial
+    article: "221"
+    flags: [no-verificado]
+    attributes:
+      group: Procedimiento abreviado
+      appliesWhen: Acuerdo sobre los hechos; se discute la pena.
+  - code: juicio-directo
+    name: Juicio directo
+    article: "222"
+    flags: [validar]
+    note: Confirmar si se sancionó la reforma de 2023 para pedirlo sin acuerdo de la defensa.
+    attributes:
+      group: Procedimiento abreviado
+      appliesWhen: Flagrancia.

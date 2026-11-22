@@ -42,6 +42,18 @@ public class TenantService {
         return tenants.findById(tenantId).map(TenantSummary::of);
     }
 
+    /**
+     * The jurisdiction package of the firm in scope (the authenticated user's, or an explicit
+     * {@link TenantContext}). Fails closed when no firm is in scope.
+     */
+    @Transactional(readOnly = true)
+    public String currentJurisdictionCode() {
+        UUID current = new CurrentTenantResolver().resolveCurrentTenantIdentifier();
+        return tenants.findById(current)
+                .map(Tenant::getJurisdictionCode)
+                .orElseThrow(() -> new IllegalStateException("No firm in scope"));
+    }
+
     public record TenantSummary(UUID id, String name, String slug) {
 
         static TenantSummary of(Tenant tenant) {

@@ -376,3 +376,59 @@ Superseded decisions are marked, never deleted.
   their ADR instead of repeating it.
 - **Consequences:** An English-only reader still gets the stack table, the Mermaid diagram and the
   commands, and can follow the links into the English ADRs.
+
+## ADR-0013: Jurisdiction packages as versioned YAML, firm changes as overlay rows (T10)
+
+- **Date:** 2026-11-21
+- **Status:** accepted
+- **Context:** A jurisdiction must be configuration, not code: Neuquén ships by default and other
+  provinces are added without code. Each firm must be able to rename, hide or add catalog items while
+  the legal source (CPP article) and the review flags (`[validar]`, `[no verificado]`) of
+  `docs/domain/neuquen-review.md` §2 stay visible. Options: seed the catalogs into per-tenant tables
+  (a copy per firm, which drifts when the package is corrected), keep them in global tables (breaks
+  the "`tenant_id` on every table" rule of ADR-0007), or keep them as read-only files and store only
+  each firm's differences.
+- **Decision:**
+  - **One folder per jurisdiction** under `backend/src/main/resources/jurisdictions/<code>/`: a
+    `jurisdiction.yml` manifest (code, name, `version`, law, review date, source) and one file per
+    catalog. The catalogs are a fixed set (`Catalog` enum: stages, closing outcomes, hearing types,
+    hearing statuses, cancellation reasons, coercive measures, procedural risks, liberty situations,
+    alternative outcomes, circumscriptions), because later features attach behavior to them. Each
+    item has a stable `code`, a `name`, an `article` (CPP article unless another law is named), its
+    review `flags`, an optional `note` and free `attributes` for catalog-specific data (a hearing
+    type's group and 2014 count, a circumscription's Colegio de Jueces and seat). File order is
+    display order; hearing types are ordered by 2014 frequency.
+  - **Validated at startup, all problems at once.** SnakeYAML (already shipped with Spring Boot)
+    parses with its safe constructor and rejects duplicate keys; Jackson maps onto records with
+    unknown keys rejected. Codes are unique and kebab-case, names and articles have length limits,
+    every catalog file must exist, and the default package `neuquen` must be present. Any problem
+    stops the application instead of showing a wrong catalog to a lawyer. `jackson-dataformat-yaml`
+    was rejected because Spring MVC would then also accept and produce YAML on every endpoint.
+  - **Firm changes are an overlay**: table `catalog_item_customization` (tenant-scoped, `@Audited`)
+    with one row per changed item. A row on a built-in item stores only a new name and/or the hidden
+    flag; the article cannot be overridden (database check). A firm item has a generated
+    `custom-<12 hex>` code (a prefix packages may not use), a name and an optional article. Nothing is
+    deleted: hiding replaces removal and clearing the name restores the package's. Responses carry
+    both `name` and `sourceName`, the `article`, the `flags` and the `origin` (`JURISDICTION`/`FIRM`).
+  - **Catalog policy.** Every catalog allows renames. Hiding and adding depend on the catalog:
+    stages, hearing statuses and liberty situations drive behavior (summary of the most delayed stage,
+    the OFIJU status flow, the computed liberty situation), so they are rename-only; coercive
+    measures, procedural risks and alternative outcomes mirror closed legal lists, so they can be
+    hidden but not extended; the rest allow all three. A violation answers `409`.
+  - **Only the owner (titular) changes catalogs**, since a change applies to the whole firm; every
+    member reads them, hidden items included (`includeHidden=true`), so existing records that use a
+    hidden item still resolve. The article of a firm item is set when it is added; it can be renamed
+    or hidden afterwards, like any item. Two simultaneous first changes of the same item answer
+    `409` for the loser (unique key) instead of a `500`.
+  - **Item codes are stable**: a new package version may add items and correct names, articles or
+    flags, but never renames or removes a code. Overlay rows are keyed by code, so corrections reach
+    every firm automatically and a firm's rename survives them.
+- **Consequences:**
+  - The data of `neuquen-review.md` §2 is now in two places; the YAML is what the application uses,
+    and changes to the domain doc must be carried to it (bump `version`).
+  - A firm cannot switch jurisdiction; overlay rows are not tagged with the package code yet. That is
+    enough while every firm uses Neuquén.
+  - Item references in later tasks (T12, T13) store the code as text, validated against the firm's
+    catalog by the service, not by a foreign key.
+  - The articles of arts. 156 to 272 come from secondary sources; only the items the domain review
+    tagged carry `[no verificado]`, exactly as in the review.

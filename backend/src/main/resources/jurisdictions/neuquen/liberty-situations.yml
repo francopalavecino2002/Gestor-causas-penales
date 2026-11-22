@@ -1,0 +1,24 @@
+# Situación de libertad de un imputado (neuquen-review.md §2.3). Computed from the defendant's
+# coercive measures and status, so firms can rename these items but not hide or add any.
+catalog: liberty-situations
+source: CPP de Neuquén (Ley 2784)
+items:
+  - code: en-libertad-sin-medidas
+    name: En libertad sin medidas
+  - code: en-libertad-con-medidas
+    name: En libertad con medidas
+    article: "113"
+  - code: aprehendido
+    name: Aprehendido (menos de 24 h)
+    article: "112"
+  - code: detencion-domiciliaria
+    name: Detenido en domiciliaria
+    article: "113"
+  - code: prision-preventiva
+    name: En prisión preventiva
+    article: "113 y 119"
+  - code: condenado
+    name: Condenado cumpliendo pena
+  - code: profugo-o-rebelde
+    name: Prófugo o rebelde
+    article: "52"

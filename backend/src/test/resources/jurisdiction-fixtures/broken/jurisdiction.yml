@@ -1,0 +1,5 @@
+# Fixture: a package that breaks several rules at once (JurisdictionPackageLoaderTests).
+code: provincia-ficticia
+name: Provincia Ficticia
+version: 0
+law: Código ficticio

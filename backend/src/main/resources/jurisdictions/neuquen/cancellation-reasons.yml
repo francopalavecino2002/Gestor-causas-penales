@@ -1,0 +1,20 @@
+# Motivos de cancelación de una audiencia (neuquen-review.md §2.2).
+catalog: cancellation-reasons
+source: Informe de gestión de audiencias, Oficina Judicial de Zapala, 2018
+items:
+  - code: pedido-de-la-defensa
+    name: Pedido de la defensa
+  - code: pedido-del-fiscal
+    name: Pedido del fiscal
+  - code: terminacion-anticipada
+    name: Terminación anticipada
+  - code: ausencia-del-imputado
+    name: Ausencia del imputado en libertad
+  - code: domicilio-inexacto
+    name: Domicilio inexacto
+  - code: notificacion-incorrecta
+    name: Notificación incorrecta
+  - code: medidas-de-fuerza
+    name: Medidas de fuerza
+  - code: fallas-tecnicas
+    name: Fallas técnicas

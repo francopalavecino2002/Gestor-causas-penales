@@ -1,0 +1,6 @@
+# Fixture: "name" appears twice; the loader must reject it instead of keeping the last value.
+code: provincia-ficticia
+name: Provincia Ficticia
+name: Otra Provincia Ficticia
+version: 1
+law: Código ficticio

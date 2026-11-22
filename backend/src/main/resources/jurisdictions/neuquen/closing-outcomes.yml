@@ -1,0 +1,45 @@
+# Resultados de cierre de un imputado (neuquen-review.md §2.1).
+catalog: closing-outcomes
+source: CPP de Neuquén (Ley 2784)
+items:
+  - code: desestimacion
+    name: Desestimación
+    article: "131"
+  - code: archivo
+    name: Archivo
+    article: "131"
+  - code: criterio-de-oportunidad
+    name: Criterio de oportunidad
+    article: "106 y 107"
+  - code: conciliacion-o-mediacion-cumplida
+    name: Conciliación o mediación cumplida
+    article: "106 inc. 5; Ley 2879"
+  - code: suspension-de-juicio-a-prueba-cumplida
+    name: Suspensión de juicio a prueba cumplida
+    article: "108"
+  - code: sobreseimiento
+    name: Sobreseimiento
+    article: "160 y 161"
+    flags: [no-verificado]
+    note: Registrá la causal.
+  - code: extincion-por-vencimiento-de-plazo
+    name: Extinción por vencimiento de plazo
+    article: "87 y 158"
+    note: >-
+      El TSJ declaró inconstitucional esta consecuencia en casos concretos ("Estarli", 2023;
+      "Olave", 2024). El plazo sigue vigente.
+  - code: acuerdo-pleno
+    name: Acuerdo pleno
+    article: "217 a 220"
+    flags: [no-verificado]
+  - code: absolucion
+    name: Absolución
+  - code: condena
+    name: Condena
+  - code: prescripcion
+    name: Prescripción
+  - code: rebeldia-sin-captura
+    name: Rebeldía sin captura (suspendido)
+    article: "52"
+  - code: otro
+    name: Otro

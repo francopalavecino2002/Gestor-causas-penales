@@ -1,0 +1,18 @@
+# Riesgos procesales que justifican la prisión preventiva (neuquen-review.md §2.3).
+catalog: procedural-risks
+source: CPP de Neuquén (Ley 2784), arts. 114 a 114 quater según la Ley 3021
+items:
+  - code: peligro-de-fuga
+    name: Peligro de fuga
+    article: "114 a 114 quater"
+  - code: entorpecimiento-de-la-investigacion
+    name: Entorpecimiento de la investigación
+    article: "114 a 114 quater"
+  - code: riesgo-para-la-victima
+    name: Riesgo para la víctima o su familia
+    article: "114 a 114 quater"
+  - code: reiterancia
+    name: Reiterancia con otras causas con cargos formulados
+    article: "114 (reforma de 2025)"
+    flags: [validar]
+    note: Reforma aprobada el 11/06/2025; confirmar número de ley y texto.

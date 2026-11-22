@@ -1,0 +1,48 @@
+# Etapas del proceso, por imputado (neuquen-review.md §2.1). In procedural order.
+catalog: stages
+source: CPP de Neuquén (Ley 2784)
+items:
+  - code: averiguacion-preliminar
+    name: Averiguación preliminar y valoración inicial
+    article: "129 a 132"
+    note: >-
+      El fiscal tiene 60 días para decidir: desestimar, aplicar un criterio de oportunidad,
+      derivar a mediación, archivar o abrir la investigación.
+  - code: investigacion-preparatoria
+    name: Investigación preparatoria
+    article: "133 a 158"
+    note: >-
+      Empieza con la formulación de cargos. Sin imputado identificado es investigación genérica
+      (art. 134), sin medidas de coerción.
+  - code: conclusion-de-la-investigacion
+    name: Conclusión de la investigación
+    article: "159 a 163"
+    flags: [no-verificado]
+    note: Acusación, sobreseimiento o salida alternativa.
+  - code: etapa-intermedia
+    name: Etapa intermedia o control de acusación
+    article: "164 a 173"
+  - code: preparacion-del-juicio
+    name: Preparación del juicio
+    article: "174"
+    note: La hace el director de la Oficina Judicial, sin juez.
+  - code: juicio
+    name: Juicio
+    article: "34, 35 y 181 a 212"
+    note: Técnico unipersonal, técnico colegiado o por jurados.
+  - code: determinacion-de-la-pena
+    name: Determinación de la pena (cesura)
+    article: "178, 179 y 196; con jurados, 202 y 211"
+  - code: impugnacion
+    name: Impugnación
+    article: "245 y 248 a 258"
+    note: >-
+      Ordinaria ante el Tribunal de Impugnación (art. 245), extraordinaria ante el TSJ (arts. 248
+      y 249), queja (arts. 250 a 253) y revisión de condena (arts. 254 a 258).
+  - code: ejecucion
+    name: Ejecución
+    article: "259 a 266"
+    note: Ante el juez de Ejecución.
+  - code: cerrada
+    name: Cerrada
+    note: Con su resultado de cierre.
