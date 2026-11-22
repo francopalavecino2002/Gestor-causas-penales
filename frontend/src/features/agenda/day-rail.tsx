@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils";
  * centered on it. The column is 52 px (60 px from 768 px) and the gap 28 px, so the line sits
  * at 65 px (73 px) and the dot at 60 px (68 px).
  */
-const SLOT = "relative grid grid-cols-[3.25rem_1fr] gap-x-7 md:grid-cols-[3.75rem_1fr]";
+const SLOT =
+  "relative grid grid-cols-[3.25rem_minmax(0,1fr)] gap-x-7 md:grid-cols-[3.75rem_minmax(0,1fr)]";
 
 function RailSlot({
   item,

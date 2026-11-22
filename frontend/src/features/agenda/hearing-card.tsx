@@ -42,13 +42,13 @@ function HearingMarkers({ item }: { item: AgendaItem }) {
   return (
     <>
       {item.detainee && (
-        <Badge variant="detained">
+        <Badge variant="detained" className="whitespace-normal">
           <Lock aria-hidden="true" />
           Persona detenida
         </Badge>
       )}
       {item.hasClash && (
-        <Badge variant="outline">
+        <Badge variant="outline" className="whitespace-normal">
           <CalendarClock aria-hidden="true" />
           Superposición de horario
         </Badge>
