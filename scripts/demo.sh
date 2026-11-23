@@ -19,10 +19,19 @@ LOG_DIR="$ROOT/.demo-logs"
 DEMO_DB=gestor_demo
 LAN=true
 
+usage() {
+  cat <<'EOF'
+Demo local en un comando (docs/DEMO.md).
+
+  bash scripts/demo.sh           también publica la app en la IP de la red local (celular)
+  bash scripts/demo.sh --local   solo en esta compu, con cookies Secure como en producción
+EOF
+}
+
 for arg in "$@"; do
   case "$arg" in
     --local) LAN=false ;;
-    -h | --help) sed -n '2,10p' "$0"; exit 0 ;;
+    -h | --help) usage; exit 0 ;;
     *) echo "Opción desconocida: $arg (usá --local o --help)" >&2; exit 2 ;;
   esac
 done
@@ -79,8 +88,9 @@ lan_ip() {
 
 open_browser() {
   case "$(uname -s)" in
-    Darwin) open "$1" ;;
-    MINGW* | MSYS* | CYGWIN*) start "" "$1" ;;
+    # Never fatal: the app is already up and the URL is printed below.
+    Darwin) open "$1" || true ;;
+    MINGW* | MSYS* | CYGWIN*) cmd.exe //c start "" "$1" >/dev/null 2>&1 || true ;;
     *) if command -v xdg-open >/dev/null 2>&1; then xdg-open "$1" >/dev/null 2>&1 || true; fi ;;
   esac
 }
@@ -103,13 +113,12 @@ stop_tree() {
 BACKEND_PID=""
 FRONTEND_PID=""
 cleanup() {
+  if [ -z "$BACKEND_PID$FRONTEND_PID" ]; then return; fi
   echo
   info "Deteniendo backend y frontend (Postgres sigue corriendo: docker compose down)"
   if [ -n "$FRONTEND_PID" ]; then stop_tree "$FRONTEND_PID"; fi
   if [ -n "$BACKEND_PID" ]; then stop_tree "$BACKEND_PID"; fi
 }
-trap cleanup EXIT
-trap 'exit 130' INT TERM
 
 wait_for() {
   local name="$1" url="$2" pid="$3" seconds="$4" body="${5:-}" response
@@ -152,12 +161,17 @@ if $LAN; then
   export SERVER_SERVLET_SESSION_COOKIE_SECURE=false
   VITE_HOST_ARGS=(--host 0.0.0.0)
 else
+  # An inherited value must not weaken the "as in production" promise of --local.
+  unset SERVER_SERVLET_SESSION_COOKIE_SECURE
   VITE_HOST_ARGS=()
 fi
 
 mkdir -p "$LOG_DIR"
 
 # --- Start --------------------------------------------------------------------------------------
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
 info "Levantando PostgreSQL en localhost:5434"
 docker compose up -d --wait postgres
 
@@ -201,6 +215,8 @@ if $LAN; then
   if [ -n "$ip" ]; then
     echo "  En el celular:   http://$ip:$FRONTEND_PORT$LOGIN_PATH"
     echo "                   (misma red Wi-Fi; si no carga, permití Node en el firewall)"
+    echo "  Ojo: cualquiera en esta red puede abrir la app. Usala solo en una red de confianza;"
+    echo "       en un Wi-Fi público o con proyector, corré con --local."
   else
     echo "  En el celular:   no pude detectar la IP de la red; buscala en la configuración de red."
   fi

@@ -57,6 +57,7 @@ function Get-DemoPassword {
   $alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
   $bytes = New-Object byte[] 20
   [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+  # The modulo has a tiny bias; irrelevant for a local demo password of 20 characters.
   $generated = -join ($bytes | ForEach-Object { $alphabet[$_ % $alphabet.Length] })
   Add-Content -Path $envFile -Value "", "DEMO_PASSWORD=$generated" -Encoding ASCII
   return $generated
@@ -87,9 +88,19 @@ function Wait-Http([string]$Name, [string]$Url, $Process, [int]$Seconds, [string
   Stop-Demo "$Name no respondio en $Seconds s. Mira $LogDir\$Name.log"
 }
 
+# Runs a native command silently and returns its exit code. Under "Stop", Windows PowerShell 5.1
+# turns redirected stderr lines into terminating errors, so it is relaxed for this call only.
+function Invoke-Quiet([scriptblock]$Command) {
+  $previous = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try { & $Command *> $null } finally { $ErrorActionPreference = $previous }
+  return $LASTEXITCODE
+}
+
 function Stop-Tree($Process) {
   if ($Process -and -not $Process.HasExited) {
-    taskkill /T /F /PID $Process.Id 2>&1 | Out-Null
+    $id = $Process.Id
+    try { Invoke-Quiet { taskkill /T /F /PID $id } | Out-Null } catch { }
   }
 }
 
@@ -97,8 +108,7 @@ function Stop-Tree($Process) {
 Assert-Command docker "Instala Docker Desktop."
 Assert-Command node "Instala Node 22.12 o superior."
 Assert-Command java "Instala un JDK 21 o superior."
-docker info 2>&1 | Out-Null
-if ($LASTEXITCODE -ne 0) { Stop-Demo "Docker no esta corriendo. Abri Docker Desktop y proba de nuevo." }
+if ((Invoke-Quiet { docker info }) -ne 0) { Stop-Demo "Docker no esta corriendo. Abri Docker Desktop y proba de nuevo." }
 if (Test-PortInUse $BackendPort) { Stop-Demo "el puerto $BackendPort esta ocupado (quedo un backend corriendo?)." }
 if (Test-PortInUse $FrontendPort) { Stop-Demo "el puerto $FrontendPort esta ocupado (quedo un frontend corriendo?)." }
 
@@ -124,6 +134,9 @@ try {
     # Phones reach the app over plain HTTP on the LAN IP, where browsers drop Secure cookies.
     # Demo only, with fictitious data (ADR-0029); -Local keeps them Secure.
     $env:SERVER_SERVLET_SESSION_COOKIE_SECURE = "false"
+  } else {
+    # An inherited value must not weaken the "as in production" promise of -Local.
+    Remove-Item Env:SERVER_SERVLET_SESSION_COOKIE_SECURE -ErrorAction SilentlyContinue
   }
 
   # --- Start ------------------------------------------------------------------------------------
@@ -172,6 +185,8 @@ try {
     if ($ip) {
       Write-Host "  En el celular:   http://${ip}:$FrontendPort$LoginPath"
       Write-Host "                   (misma red Wi-Fi; si no carga, permiti Node en el firewall)"
+      Write-Host "  Ojo: cualquiera en esta red puede abrir la app. Usala solo en una red de confianza;" -ForegroundColor Yellow
+      Write-Host "       en un Wi-Fi publico o con proyector, corre con -Local." -ForegroundColor Yellow
     } else {
       Write-Host "  En el celular:   no pude detectar la IP de la red (ipconfig)."
     }
