@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useMe } from "@/features/auth/me-query";
@@ -20,6 +22,13 @@ import { DayRail } from "@/features/agenda/day-rail";
 import { DetaineeAlerts } from "@/features/agenda/detainee-alerts";
 import { useNow } from "@/features/agenda/use-now";
 import { WeekList } from "@/features/agenda/week-list";
+import { localDay } from "@/features/agenda/agenda-dates";
+import type { HearingDetail } from "@/features/hearings/hearing-api";
+import { HearingEditContext } from "@/features/hearings/hearing-edit-context";
+import { HearingFormDialog } from "@/features/hearings/hearing-form-dialog";
+
+/** Which hearing form is open: a new one, or the edit of one hearing. */
+type HearingDialog = { mode: "new" } | { mode: "edit"; hearingId: string } | null;
 
 function scopeOf(view: AgendaViewMode, from: IsoDate, to: IsoDate, today: IsoDate): AgendaScope {
   if (view === "semana") return from <= today && today <= to ? "esta semana" : "esa semana";
@@ -79,8 +88,22 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
     ? undefined
     : cache.lawyers.find((lawyer) => lawyer.id === search.abogado);
 
+  const [dialog, setDialog] = useState<HearingDialog>(null);
+  // After a new hearing, show its day (or its week) so the lawyer sees it in place.
+  const showSaved = (hearing: HearingDetail) => {
+    const day = localDay(hearing.startsAt, timeZone);
+    const shown = view === "semana" ? range.from <= day && day <= range.to : day === anchor;
+    if (!shown) go({ ...current, fecha: day });
+  };
+  const newHearingButton = (
+    <Button onClick={() => setDialog({ mode: "new" })}>
+      <Plus aria-hidden="true" />
+      Cargá una audiencia
+    </Button>
+  );
+
   return (
-    <>
+    <HearingEditContext.Provider value={(hearingId) => setDialog({ mode: "edit", hearingId })}>
       <div className="grid gap-5 lg:flex lg:items-end lg:justify-between lg:gap-8">
         <header className="grid gap-1">
           <p className="text-meta text-muted-foreground">
@@ -102,18 +125,21 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
               : null}
           </p>
         </header>
-        <AgendaToolbar
-          view={view}
-          onViewChange={(vista) =>
-            go({ ...current, vista: vista === "semana" ? "semana" : undefined })
-          }
-          onPrevious={() => go({ ...current, fecha: addDays(anchor, -step) })}
-          onToday={() => go({ ...current, fecha: undefined })}
-          onNext={() => go({ ...current, fecha: addDays(anchor, step) })}
-          lawyer={search.abogado ?? ""}
-          lawyerOptions={lawyerOptions(meId, cache.lawyers, search.abogado)}
-          onLawyerChange={(abogado) => go({ ...current, abogado: abogado || undefined })}
-        />
+        <div className="grid gap-4 lg:justify-items-end">
+          <div className="hidden lg:block">{newHearingButton}</div>
+          <AgendaToolbar
+            view={view}
+            onViewChange={(vista) =>
+              go({ ...current, vista: vista === "semana" ? "semana" : undefined })
+            }
+            onPrevious={() => go({ ...current, fecha: addDays(anchor, -step) })}
+            onToday={() => go({ ...current, fecha: undefined })}
+            onNext={() => go({ ...current, fecha: addDays(anchor, step) })}
+            lawyer={search.abogado ?? ""}
+            lawyerOptions={lawyerOptions(meId, cache.lawyers, search.abogado)}
+            onLawyerChange={(abogado) => go({ ...current, abogado: abogado || undefined })}
+          />
+        </div>
       </div>
 
       <DetaineeAlerts />
@@ -131,6 +157,10 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
               : "Cuando cargues una audiencia o la Oficina Judicial fije una fecha, la vas a ver acá, en orden."
           }
         >
+          <Button onClick={() => setDialog({ mode: "new" })}>
+            <Plus aria-hidden="true" />
+            Cargá una audiencia
+          </Button>
           {view === "semana" ? (
             <Button variant="outline" onClick={() => go({ ...current, fecha: addDays(anchor, 7) })}>
               Mirá la semana siguiente
@@ -160,6 +190,31 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
           <DayRail items={items} timeZone={timeZone} now={now} isToday={anchor === today} />
         </div>
       )}
-    </>
+
+      {/* Phones and tablets: the labeled floating button above the bottom navigation, with room
+          below the list so the last hearing can scroll clear of it. */}
+      <div aria-hidden="true" className="h-16 lg:hidden" />
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--spacing-bottom-nav)+env(safe-area-inset-bottom)+0.75rem)] z-30 flex justify-end px-4 sm:px-8 lg:hidden">
+        <Button
+          size="fab"
+          className="pointer-events-auto"
+          onClick={() => setDialog({ mode: "new" })}
+        >
+          <Plus aria-hidden="true" />
+          Cargá una audiencia
+        </Button>
+      </div>
+
+      {dialog?.mode === "new" && (
+        <HearingFormDialog
+          defaultDate={view === "semana" ? undefined : anchor}
+          onClose={() => setDialog(null)}
+          onSaved={showSaved}
+        />
+      )}
+      {dialog?.mode === "edit" && (
+        <HearingFormDialog hearingId={dialog.hearingId} onClose={() => setDialog(null)} />
+      )}
+    </HearingEditContext.Provider>
   );
 }

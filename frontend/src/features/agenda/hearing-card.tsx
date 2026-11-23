@@ -8,6 +8,7 @@ import {
   Gavel,
   Lock,
   MapPin,
+  Pencil,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { addMinutes, formatTime } from "@/features/agenda/agenda-dates";
 import { cppArticle, joinNames } from "@/features/agenda/agenda-format";
 import type { AgendaItem } from "@/features/agenda/agenda-types";
+import { useHearingEdit } from "@/features/hearings/hearing-edit-context";
 import { cn } from "@/lib/utils";
 
 function isKnownStatus(code: string): code is HearingStatus {
@@ -172,6 +174,7 @@ export function HearingCard({
   const titleId = useId();
   const detailId = useId();
   const [open, setOpen] = useState(!finished);
+  const edit = useHearingEdit();
   return (
     <Card edge={item.detainee ? "detained" : "none"} asChild>
       <article aria-labelledby={titleId} data-hearing-id={item.hearingId}>
@@ -187,20 +190,38 @@ export function HearingCard({
             className="md:grid-cols-2 md:gap-x-6"
           />
         )}
-        {finished && (
-          <Button
-            variant="ghost"
-            className="-mx-2 -mb-2 justify-self-start px-2 text-primary"
-            aria-expanded={open}
-            aria-controls={open ? detailId : undefined}
-            onClick={() => setOpen((value) => !value)}
-          >
-            {open ? "Ocultá el detalle" : "Mirá el detalle"}
-            <ChevronDown
-              aria-hidden="true"
-              className={cn("transition-transform duration-fast ease-out", open && "rotate-180")}
-            />
-          </Button>
+        {(finished || edit) && (
+          <div className="-mx-2 -mb-2 flex flex-wrap items-center gap-x-2">
+            {finished && (
+              <Button
+                variant="ghost"
+                className="px-2 text-primary"
+                aria-expanded={open}
+                aria-controls={open ? detailId : undefined}
+                onClick={() => setOpen((value) => !value)}
+              >
+                {open ? "Ocultá el detalle" : "Mirá el detalle"}
+                <ChevronDown
+                  aria-hidden="true"
+                  className={cn(
+                    "transition-transform duration-fast ease-out",
+                    open && "rotate-180",
+                  )}
+                />
+              </Button>
+            )}
+            {edit && (
+              <Button
+                variant="ghost"
+                className="px-2 text-primary"
+                aria-label={`Editá la audiencia ${item.typeName}`}
+                onClick={() => edit(item.hearingId)}
+              >
+                <Pencil aria-hidden="true" />
+                Editá
+              </Button>
+            )}
+          </div>
         )}
       </article>
     </Card>

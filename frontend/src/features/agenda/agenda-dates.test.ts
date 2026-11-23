@@ -9,7 +9,9 @@ import {
   formatTime,
   formatWeekLabel,
   groupByDay,
+  instantAt,
   isIsoDate,
+  isLocalTime,
   localDay,
   todayIn,
   weekRange,
@@ -90,5 +92,23 @@ describe("agenda dates", () => {
       ["2026-11-24", ["tuesday"]],
       ["2026-11-25", []],
     ]);
+  });
+});
+
+describe("instantAt", () => {
+  it("reads the day and time on Neuquén's clock, whatever the device's zone", () => {
+    expect(instantAt("2026-11-23", "09:30", FIRM_TIME_ZONE)).toBe("2026-11-23T12:30:00.000Z");
+    expect(instantAt("2026-12-31", "23:45", FIRM_TIME_ZONE)).toBe("2027-01-01T02:45:00.000Z");
+  });
+
+  it("follows a zone with daylight saving time", () => {
+    expect(instantAt("2026-07-01", "10:00", "Europe/Madrid")).toBe("2026-07-01T08:00:00.000Z");
+    expect(instantAt("2026-01-15", "10:00", "Europe/Madrid")).toBe("2026-01-15T09:00:00.000Z");
+  });
+
+  it("accepts only HH:MM times", () => {
+    expect(isLocalTime("09:30")).toBe(true);
+    expect(isLocalTime("24:00")).toBe(false);
+    expect(isLocalTime("9:30")).toBe(false);
   });
 });

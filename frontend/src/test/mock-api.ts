@@ -13,6 +13,7 @@ import {
   MEASURES,
 } from "@/test/case-fixtures";
 import { ALL_DEADLINES, caseDeadlines, upcomingDeadlines } from "@/test/deadline-fixtures";
+import { FORM_CATALOGS, MEMBERS } from "@/test/form-fixtures";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
@@ -131,6 +132,7 @@ export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {})
     "GET /api/v1/cases": ({ query }) =>
       json(200, { items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
     "GET /api/v1/deadlines": () => json(200, []),
+    "GET /api/v1/users": () => json(200, MEMBERS),
     ...catalogRoutes(),
     ...routes,
   });
@@ -139,7 +141,7 @@ export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {})
 /** The catalogs the screens read, answered from the fictitious fixtures. */
 export function catalogRoutes(): Record<string, Handler> {
   return Object.fromEntries(
-    Object.values(CATALOGS).map((view) => [
+    [...Object.values(CATALOGS), ...FORM_CATALOGS].map((view) => [
       `GET /api/v1/catalogs/${view.catalog}`,
       () => json(200, view),
     ]),

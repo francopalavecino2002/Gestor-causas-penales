@@ -1,8 +1,9 @@
-import { useId, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Archive, ArrowLeft, Info } from "lucide-react";
+import { Archive, ArrowLeft, Info, Pencil, Plus } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/shell/page-header";
 import { FIRM_TIME_ZONE, localDay, todayIn } from "@/features/agenda/agenda-dates";
@@ -20,11 +21,17 @@ import {
   REPRESENTATION_LABELS,
   TEAM_ROLE_LABELS,
 } from "@/features/cases/case-format";
+import { useMe } from "@/features/auth/me-query";
 import { CaseDeadlines } from "@/features/cases/case-deadlines";
+import { CaseFormDialog } from "@/features/cases/case-form-dialog";
+import { caseRights } from "@/features/cases/case-rights";
+import { DefendantFormDialog } from "@/features/cases/defendant-form-dialog";
+import { HearingEditContext } from "@/features/hearings/hearing-edit-context";
+import { HearingFormDialog } from "@/features/hearings/hearing-form-dialog";
 import { CaseHearings } from "@/features/cases/case-hearings";
 import { useCase } from "@/features/cases/case-queries";
 import { CaseDetailSkeleton, CaseNotFound, LoadError } from "@/features/cases/case-states";
-import type { CaseDetail, TeamRole } from "@/features/cases/case-types";
+import type { CaseDetail, DefendantView, TeamRole } from "@/features/cases/case-types";
 import { DefendantCard } from "@/features/cases/defendant-card";
 import { isApiError } from "@/lib/api";
 
@@ -47,17 +54,23 @@ function Section({
   title,
   children,
   className,
+  action,
 }: {
   title: string;
   children: ReactNode;
   className?: string;
+  /** A button next to the title, e.g. "Agregá un imputado". */
+  action?: ReactNode;
 }) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className={className ?? "grid content-start gap-3"}>
-      <h2 id={headingId} className="text-title font-bold">
-        {title}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <h2 id={headingId} className="text-title font-bold">
+          {title}
+        </h2>
+        {action}
+      </div>
       {children}
     </section>
   );
@@ -239,11 +252,25 @@ function Parties({ detail }: { detail: CaseDetail }) {
   );
 }
 
+/** Which form is open over the case. */
+type CaseDialog =
+  | { kind: "case" }
+  | { kind: "defendant"; defendant?: DefendantView }
+  | { kind: "hearing"; hearingId?: string }
+  | null;
+
 function CaseScreen({ detail }: { detail: CaseDetail }) {
   const now = useNow();
   const timeZone = useAgendaCache().timeZone ?? FIRM_TIME_ZONE;
+  const { data: me } = useMe();
+  const rights = caseRights(me, detail);
+  const [dialog, setDialog] = useState<CaseDialog>(null);
+  const close = () => setDialog(null);
+  const editHearing = rights.edit
+    ? (hearingId: string) => setDialog({ kind: "hearing", hearingId })
+    : null;
   return (
-    <>
+    <HearingEditContext.Provider value={editHearing}>
       <div className="grid gap-2">
         <BackLink />
         <header className="grid gap-2">
@@ -253,13 +280,23 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
               {detail.archived && <ArchivedBadge />}
             </p>
           )}
-          <h1 className="text-display font-bold text-balance">{detail.caption}</h1>
-          <p className="flex flex-wrap gap-x-4 text-body text-muted-foreground">
-            {detail.mpfLegajo && (
-              <span className="whitespace-nowrap tabular-nums">Legajo {detail.mpfLegajo}</span>
+          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+            <div className="grid min-w-0 gap-2">
+              <h1 className="text-display font-bold text-balance">{detail.caption}</h1>
+              <p className="flex flex-wrap gap-x-4 text-body text-muted-foreground">
+                {detail.mpfLegajo && (
+                  <span className="whitespace-nowrap tabular-nums">Legajo {detail.mpfLegajo}</span>
+                )}
+                <span>{detail.circumscriptionName}</span>
+              </p>
+            </div>
+            {rights.edit && (
+              <Button variant="outline" onClick={() => setDialog({ kind: "case" })}>
+                <Pencil aria-hidden="true" />
+                Editá la causa
+              </Button>
             )}
-            <span>{detail.circumscriptionName}</span>
-          </p>
+          </div>
         </header>
       </div>
 
@@ -279,12 +316,28 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
           <Section title="Resumen">
             <Summary detail={detail} timeZone={timeZone} />
           </Section>
-          <Section title="Imputados">
+          <Section
+            title="Imputados"
+            action={
+              rights.edit && (
+                <Button variant="outline" onClick={() => setDialog({ kind: "defendant" })}>
+                  <Plus aria-hidden="true" />
+                  Agregá un imputado
+                </Button>
+              )
+            }
+          >
             {detail.defendants.length > 0 ? (
               <ul className="grid gap-3">
                 {detail.defendants.map((defendant) => (
                   <li key={defendant.id}>
-                    <DefendantCard defendant={defendant} today={todayIn(timeZone, now)} />
+                    <DefendantCard
+                      defendant={defendant}
+                      today={todayIn(timeZone, now)}
+                      onEdit={
+                        rights.edit ? () => setDialog({ kind: "defendant", defendant }) : undefined
+                      }
+                    />
                   </li>
                 ))}
               </ul>
@@ -297,7 +350,17 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
           <Section title="Plazos">
             <CaseDeadlines caseId={detail.id} timeZone={timeZone} />
           </Section>
-          <Section title="Audiencias">
+          <Section
+            title="Audiencias"
+            action={
+              rights.edit && (
+                <Button variant="outline" onClick={() => setDialog({ kind: "hearing" })}>
+                  <Plus aria-hidden="true" />
+                  Nueva audiencia
+                </Button>
+              )
+            }
+          >
             <CaseHearings caseId={detail.id} timeZone={timeZone} now={now} />
           </Section>
         </div>
@@ -313,7 +376,21 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
           </Section>
         </div>
       </div>
-    </>
+
+      {dialog?.kind === "case" && (
+        <CaseFormDialog detail={detail} canChangeReserved={rights.changeReserved} onClose={close} />
+      )}
+      {dialog?.kind === "defendant" && (
+        <DefendantFormDialog caseId={detail.id} defendant={dialog.defendant} onClose={close} />
+      )}
+      {dialog?.kind === "hearing" && (
+        <HearingFormDialog
+          caseId={dialog.hearingId ? undefined : detail.id}
+          hearingId={dialog.hearingId}
+          onClose={close}
+        />
+      )}
+    </HearingEditContext.Provider>
   );
 }
 
