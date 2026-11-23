@@ -108,3 +108,18 @@ jobs:
             echo "bash -n $script"
             bash -n "$script"
           done
+      # shellcheck and pwsh are preinstalled on ubuntu-latest runners.
+      - name: Lint the demo script
+        run: shellcheck scripts/demo.sh
+      - name: Check PowerShell scripts parse
+        shell: pwsh
+        run: |
+          $failed = $false
+          foreach ($script in Get-ChildItem scripts -Filter *.ps1) {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($script.FullName, [ref]$null, [ref]$errors)
+            Write-Host "parse $($script.Name): $($errors.Count) error(s)"
+            $errors | ForEach-Object { Write-Host "  $_" }
+            if ($errors) { $failed = $true }
+          }
+          if ($failed) { exit 1 }

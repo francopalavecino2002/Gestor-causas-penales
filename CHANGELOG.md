@@ -128,3 +128,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   every stage, multi-defendant cases, a full week of the most frequent hearing types on weekdays,
   two detainees with deadlines due within 48 h, a suspension of trial on probation, a mediation, a
   jury trial, closed cases and visible `[validar]` items, all relative to today (ADR-0028).
+- One-command local demo (T31): `scripts/demo.ps1` and `scripts/demo.sh` start Postgres, recreate a
+  dedicated `gestor_demo` database, run the backend with the `dev,demo` profiles and the frontend,
+  wait for health, open the login with the demo firm prefilled and print the users and password.
+  The app is also served on the LAN IP for a phone on the same Wi-Fi; in that mode the session and
+  CSRF cookies drop `Secure`, now driven by one property. Guide in Spanish in `docs/DEMO.md`; CI
+  lints the demo scripts (ADR-0029).

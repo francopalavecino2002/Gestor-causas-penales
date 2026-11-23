@@ -28,6 +28,9 @@ frontend/playwright-report/
 frontend/test-results/
 /test-results/
 
+# Local demo (scripts/demo.sh, scripts/demo.ps1)
+.demo-logs/
+
 # Agents
 .agent-logs/
 .agent-tmp/

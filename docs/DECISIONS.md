@@ -1329,3 +1329,46 @@ Superseded decisions are marked, never deleted.
   row counts: every stage present, at least 15 hearings in this week's five weekdays with at least 8
   types, no weekend hearings, two detainees due within 48 h through the real `/api/v1/deadlines`
   endpoint, the probation case, the `[validar]` items and no duplicates on a rerun.
+
+## ADR-0029: One-command local demo and LAN access (T31)
+
+- **Date:** 2026-11-23
+- **Status:** accepted
+- **Context:** Milestone 3 wants the product shown to a lawyer from a laptop or a phone with one
+  command, without deploying anything. The session and CSRF cookies are `Secure` (ADR-0008):
+  browsers accept them on `http://localhost` but drop them on `http://192.168.x.x`, so a phone on
+  the same Wi-Fi could load the login but never sign in. ADR-0028 also left the demo needing a
+  fresh database, because its dates are relative to the day of the first seed.
+- **Decision:**
+  - **Two thin scripts, same behaviour:** `scripts/demo.ps1` (Windows PowerShell 5.1+) and
+    `scripts/demo.sh` (Linux, macOS, Git Bash). They check the tools and ports, start Postgres with
+    `docker compose up --wait`, start the backend with `SPRING_PROFILES_ACTIVE=dev,demo` and the
+    frontend dev server, wait for `/actuator/health` and the frontend, open the login with the demo
+    firm prefilled (`/ingresar?estudio=estudio-demo`) and print the URLs, password and users. Logs
+    go to `.demo-logs/` (git-ignored). Ctrl+C stops backend and frontend (process tree); Postgres
+    keeps running.
+  - **A dedicated demo database recreated on every run** (`gestor_demo`, `DROP ... WITH (FORCE)`
+    then `CREATE`, inside the same container) and passed to the backend as `DB_URL`. The demo always
+    starts from today and the developer's `gestor_causas` database is never touched.
+  - **Demo password:** taken from `DEMO_PASSWORD` or `.env`; otherwise 20 random alphanumerics are
+    generated and appended to `.env`, so the presenter sees the same password every run. Still no
+    default in the application (ADR-0011).
+  - **LAN access by default**, `--local` / `-Local` to opt out. Vite listens on `0.0.0.0` and keeps
+    proxying `/api` to the backend, so the phone talks to a single origin. In LAN mode the scripts set
+    `SERVER_SERVLET_SESSION_COOKIE_SECURE=false`; the CSRF cookie now follows that same property
+    (`server.servlet.session.cookie.secure`, default `true`), so one switch drives both cookies and
+    production behaviour is unchanged. `HttpOnly` and `SameSite=Lax` stay as they were.
+  - **Dev server, not a production build:** no build step before the demo, and the PWA service
+    worker would not register over plain HTTP on a LAN IP anyway.
+  - CI lints `demo.sh` with shellcheck and parses every `scripts/*.ps1` with the PowerShell parser.
+- **Alternatives considered:** a self-signed HTTPS dev server (keeps `Secure`, but every device,
+  laptop included, shows a certificate warning, and it adds a dependency); a tunnel service
+  (needs internet and an external account, out of scope for this milestone); making the demo
+  profile itself turn `Secure` off (would also weaken a manual `dev,demo` run on localhost).
+- **Consequences:** In LAN mode the cookies travel over plain HTTP inside the local network. That is
+  acceptable only because the data is fictitious and the scripts are for local demos; the README
+  and `docs/DEMO.md` say so. Listening on `0.0.0.0` also exposes the dev server and, through its
+  `/api` proxy, the backend to anyone on that network, so the scripts warn to use LAN mode only on
+  a trusted network and `--local` elsewhere. Behind the proxy every device counts as one client for
+  the login throttle. Anything imported during a demo is lost on the next run. Windows asks
+  once to allow Node.js through the firewall on private networks.
