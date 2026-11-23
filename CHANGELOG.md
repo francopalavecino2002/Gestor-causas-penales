@@ -151,3 +151,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   gallery, an updated architecture diagram, test counts per suite, a backend coverage badge and a
   "Cómo se construyó" section about the agent workflow. The backend build measures line coverage
   with JaCoCo; CI writes it to the job summary and uploads the report as an artifact (ADR-0030).
+- Create and edit forms (T35): "Nueva causa" (with an optional first defendant), "Editá la causa",
+  "Agregá un imputado", "Nueva audiencia" from the agenda and the case detail, and "Editá" on
+  hearings, built with React Hook Form + Zod in one mobile-first form sheet. Server errors are mapped
+  to their field, schedule clashes are shown after saving without blocking, and changing a hearing's
+  date goes through rescheduling with a reason. New `GET /api/v1/users` lists the firm's active
+  members for the lawyer pickers (ADR-0031).
