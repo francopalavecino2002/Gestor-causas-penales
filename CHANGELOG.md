@@ -124,3 +124,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   hearings, downloading the template, uploading a .csv/.xlsx, reviewing a dry-run validation report
   row by row and confirming explicitly before anything is saved. Reachable from settings and the
   empty case list (ADR-0027).
+- Rich demo dataset (T30): the `demo` profile now seeds 25 fictitious cases for three lawyers across
+  every stage, multi-defendant cases, a full week of the most frequent hearing types on weekdays,
+  two detainees with deadlines due within 48 h, a suspension of trial on probation, a mediation, a
+  jury trial, closed cases and visible `[validar]` items, all relative to today (ADR-0028).
