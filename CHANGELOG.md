@@ -116,3 +116,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   detainees first, with a horizon (7/15/30/60 days) and a detainees-only switch kept in the URL;
   every card shows the legal source with its review tags, the due date, the time left and the
   "Cálculo asistido" disclaimer. The case detail gets a "Plazos" section (ADR-0025).
+- Settings (T25): `/ajustes` with catalogs (rename, hide, add firm items; article and review tags
+  kept), custom fields for cases and defendants (create, edit, archive, restore), deadline-rule
+  settings (on/off and warning days, source and disclaimer visible) and a read-only users and roles
+  page. Changes are for the titular only; templates and user management come later (ADR-0026).
