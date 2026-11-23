@@ -77,11 +77,19 @@ function Wait-Http([string]$Name, [string]$Url, $Process, [int]$Seconds, [string
   Write-Step "Esperando $Name ($Url)..."
   for ($i = 0; $i -lt $Seconds; $i++) {
     if ($Process.HasExited) { Stop-Demo "$Name termino con error. Mira $LogDir\$Name.log" }
-    try {
-      $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 2
-      if ($response.Content -like "*$Contains*") { return }
-    } catch {
-      # Not up yet.
+    # "localhost" may resolve to ::1 first while Vite with --host 0.0.0.0 listens on IPv4 only
+    # (the request then times out), so try the IPv4 loopback too.
+    foreach ($candidate in @($Url, $Url.Replace("//localhost:", "//127.0.0.1:")) | Select-Object -Unique) {
+      try {
+        $response = Invoke-WebRequest -Uri $candidate -UseBasicParsing -TimeoutSec 2
+        # Windows PowerShell 5.1 returns Content as byte[] for media types it doesn't know as
+        # text, such as application/vnd.spring-boot.actuator.v3+json; decode it before matching.
+        $body = $response.Content
+        if ($body -is [byte[]]) { $body = [System.Text.Encoding]::UTF8.GetString($body) }
+        if ($body -like "*$Contains*") { return }
+      } catch {
+        # Not up yet.
+      }
     }
     Start-Sleep -Seconds 1
   }
