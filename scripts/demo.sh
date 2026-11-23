@@ -96,6 +96,7 @@ open_browser() {
 }
 
 # Stops a background process and its children (mvn starts a separate java process).
+# shellcheck disable=SC2329 # called from cleanup, which runs from the EXIT trap
 stop_tree() {
   local pid="$1"
   kill -0 "$pid" 2>/dev/null || return 0
@@ -112,6 +113,7 @@ stop_tree() {
 
 BACKEND_PID=""
 FRONTEND_PID=""
+# shellcheck disable=SC2329 # invoked by the EXIT trap
 cleanup() {
   if [ -z "$BACKEND_PID$FRONTEND_PID" ]; then return; fi
   echo
