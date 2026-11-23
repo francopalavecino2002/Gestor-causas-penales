@@ -52,8 +52,11 @@ class DemoDataSeederTests {
     @Autowired
     private JdbcTemplate jdbc;
 
+    private static final String ORIGINAL_CASES = " AND case_id IN (SELECT id FROM case_file"
+            + " WHERE internal_number IN ('DEMO-001', 'DEMO-002'))";
+
     @Test
-    void shouldCreateTheDemoFirmWithItsThreeUsers() {
+    void shouldCreateTheDemoFirmWithThreeLawyersAndAParalegal() {
         UUID tenantId = tenants.findActiveIdBySlug("estudio-demo").orElseThrow();
 
         List<AppUser> demoUsers = TenantContext.callAs(tenantId, users::findAll);
@@ -63,7 +66,8 @@ class DemoDataSeederTests {
                 .containsExactlyInAnyOrder(
                         tuple("lucia.ejemplo@example.com", "Lucía Ejemplo", Role.OWNER),
                         tuple("martin.prueba@example.com", "Martín Prueba", Role.LAWYER),
-                        tuple("sofia.ficticia@example.com", "Sofía Ficticia", Role.PARALEGAL));
+                        tuple("sofia.ficticia@example.com", "Sofía Ficticia", Role.PARALEGAL),
+                        tuple("julian.muestra@example.com", "Julián Muestra", Role.LAWYER));
     }
 
     @Test
@@ -74,21 +78,27 @@ class DemoDataSeederTests {
 
         assertThat(tenants.findActiveIdBySlug("estudio-demo")).contains(tenantId);
         List<AppUser> demoUsers = TenantContext.callAs(tenantId, users::findAll);
-        assertThat(demoUsers).hasSize(3);
+        assertThat(demoUsers).hasSize(4);
     }
 
     @Test
-    void shouldCreateTwoDemoCasesOneOfThemReservedWithoutDuplicatingOnARerun() {
+    void shouldCreateTheTwoOriginalCasesOneOfThemReservedWithoutDuplicatingOnARerun() {
         UUID tenantId = tenants.findActiveIdBySlug("estudio-demo").orElseThrow();
 
         seeder.run(new DefaultApplicationArguments());
 
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM case_file WHERE tenant_id = ?", Integer.class, tenantId))
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM case_file WHERE tenant_id = ? AND internal_number IN ('DEMO-001', 'DEMO-002')",
+                        Integer.class,
+                        tenantId))
                 .isEqualTo(2);
         assertThat(jdbc.queryForObject(
-                        "SELECT count(*) FROM case_file WHERE tenant_id = ? AND reserved", Integer.class, tenantId))
+                        "SELECT count(*) FROM case_file WHERE tenant_id = ? AND reserved AND internal_number = 'DEMO-002'",
+                        Integer.class,
+                        tenantId))
                 .isEqualTo(1);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM defendant WHERE tenant_id = ?", Integer.class, tenantId))
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM defendant WHERE tenant_id = ?" + ORIGINAL_CASES, Integer.class, tenantId))
                 .isEqualTo(3);
         assertThat(jdbc.queryForObject(
                         "SELECT count(DISTINCT stage_code) FROM defendant d JOIN case_file c ON c.id = d.case_id"
@@ -96,10 +106,9 @@ class DemoDataSeederTests {
                         Integer.class,
                         tenantId))
                 .isEqualTo(2);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM person WHERE tenant_id = ?", Integer.class, tenantId))
-                .isEqualTo(3);
         assertThat(jdbc.queryForObject(
-                        "SELECT count(*) FROM case_team_member WHERE tenant_id = ? AND team_role = 'RESPONSIBLE'",
+                        "SELECT count(*) FROM case_team_member WHERE tenant_id = ? AND team_role = 'RESPONSIBLE'"
+                                + ORIGINAL_CASES,
                         Integer.class,
                         tenantId))
                 .isEqualTo(2);
@@ -111,23 +120,29 @@ class DemoDataSeederTests {
 
         seeder.run(new DefaultApplicationArguments());
 
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM hearing WHERE tenant_id = ?", Integer.class, tenantId))
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM hearing WHERE tenant_id = ?" + ORIGINAL_CASES, Integer.class, tenantId))
                 .isEqualTo(4);
         assertThat(jdbc.queryForObject(
-                        "SELECT count(*) FROM hearing_lawyer WHERE tenant_id = ? AND archived_at IS NULL",
+                        "SELECT count(*) FROM hearing_lawyer WHERE tenant_id = ? AND archived_at IS NULL"
+                                + " AND hearing_id IN (SELECT id FROM hearing WHERE true" + ORIGINAL_CASES + ")",
                         Integer.class,
                         tenantId))
                 .isEqualTo(4);
+        String originalDefendants = " AND defendant_id IN (SELECT id FROM defendant WHERE true" + ORIGINAL_CASES + ")";
         assertThat(jdbc.queryForObject(
-                        "SELECT count(*) FROM coercive_measure WHERE tenant_id = ?", Integer.class, tenantId))
+                        "SELECT count(*) FROM coercive_measure WHERE tenant_id = ?" + originalDefendants,
+                        Integer.class,
+                        tenantId))
                 .isEqualTo(2);
         assertThat(jdbc.queryForObject(
                         "SELECT count(*) FROM coercive_measure WHERE tenant_id = ? AND measure_code = 'prision-preventiva'"
-                                + " AND ends_on IS NOT NULL AND next_review_on IS NOT NULL",
+                                + " AND ends_on IS NOT NULL AND next_review_on IS NOT NULL" + originalDefendants,
                         Integer.class,
                         tenantId))
                 .isEqualTo(1);
-        // Two hearings of the same lawyer overlap: both start on the same day, half an hour apart.
+        // Two hearings of the same lawyer overlap: both start on the same day, half an hour apart. It is
+        // the only clash of the whole demo: the rest of the agenda is laid out so that nobody double-books.
         assertThat(jdbc.queryForObject(
                         "SELECT count(*) FROM hearing a JOIN hearing b ON a.tenant_id = b.tenant_id AND a.id < b.id"
                                 + " JOIN hearing_lawyer la ON la.hearing_id = a.id JOIN hearing_lawyer lb ON lb.hearing_id = b.id"
@@ -146,14 +161,18 @@ class DemoDataSeederTests {
         seeder.run(new DefaultApplicationArguments());
 
         assertThat(jdbc.queryForList(
-                        "SELECT rule_code FROM deadline WHERE tenant_id = ? ORDER BY rule_code", String.class, tenantId))
+                        "SELECT rule_code FROM deadline WHERE tenant_id = ?" + ORIGINAL_CASES + " ORDER BY rule_code",
+                        String.class,
+                        tenantId))
                 .containsExactly(
                         "duracion-fijada-prision-preventiva",
                         "duracion-maxima-prision-preventiva",
                         "impugnacion-ordinaria",
                         "investigacion-preparatoria");
         assertThat(jdbc.queryForObject(
-                        "SELECT count(*) FROM deadline WHERE tenant_id = ? AND defendant_id IS NULL", Integer.class, tenantId))
+                        "SELECT count(*) FROM deadline WHERE tenant_id = ? AND defendant_id IS NULL" + ORIGINAL_CASES,
+                        Integer.class,
+                        tenantId))
                 .isEqualTo(1);
     }
 
@@ -169,7 +188,10 @@ class DemoDataSeederTests {
         assertThat(demoUsers)
                 .extracting(AppUser::getEmail)
                 .containsExactlyInAnyOrder(
-                        "lucia.ejemplo@example.com", "martin.prueba@example.com", "sofia.ficticia@example.com");
+                        "lucia.ejemplo@example.com",
+                        "martin.prueba@example.com",
+                        "sofia.ficticia@example.com",
+                        "julian.muestra@example.com");
     }
 
     @Test

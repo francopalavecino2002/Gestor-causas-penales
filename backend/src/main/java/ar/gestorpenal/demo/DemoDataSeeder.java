@@ -24,7 +24,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
- * Creates the fictitious demo firm, its users, people and two cases at startup (profile {@code demo}).
+ * Creates the fictitious demo firm, its users, people and about 25 cases at startup (profile
+ * {@code demo}): the two original cases here, the rest from {@link DemoCases} through {@link DemoPortfolio}.
  * It is resumable: it creates only what is missing, so a restart never duplicates anything and
  * completes a run that failed halfway. An archived demo firm is left alone. It is not transactional,
  * because {@link TenantContext#runAs} must start outside any transaction.
@@ -45,6 +46,7 @@ class DemoDataSeeder implements ApplicationRunner {
     private final CaseSeeding caseSeeding;
     private final HearingSeeding hearingSeeding;
     private final DeadlineSeeding deadlineSeeding;
+    private final DemoPortfolio portfolio;
     private final DemoProperties properties;
 
     DemoDataSeeder(
@@ -55,6 +57,7 @@ class DemoDataSeeder implements ApplicationRunner {
             CaseSeeding caseSeeding,
             HearingSeeding hearingSeeding,
             DeadlineSeeding deadlineSeeding,
+            DemoPortfolio portfolio,
             DemoProperties properties) {
         this.tenants = tenants;
         this.userService = userService;
@@ -63,6 +66,7 @@ class DemoDataSeeder implements ApplicationRunner {
         this.caseSeeding = caseSeeding;
         this.hearingSeeding = hearingSeeding;
         this.deadlineSeeding = deadlineSeeding;
+        this.portfolio = portfolio;
         this.properties = properties;
     }
 
@@ -72,6 +76,7 @@ class DemoDataSeeder implements ApplicationRunner {
             createMissingUsers();
             createMissingCases();
             createMissingAgenda();
+            portfolio.createMissingCases();
         }));
     }
 

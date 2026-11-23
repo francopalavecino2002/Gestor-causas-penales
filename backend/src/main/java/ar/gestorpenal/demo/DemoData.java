@@ -12,12 +12,17 @@ final class DemoData {
     static final List<DemoUser> USERS = List.of(
             new DemoUser("lucia.ejemplo@example.com", "Lucía Ejemplo", Role.OWNER),
             new DemoUser("martin.prueba@example.com", "Martín Prueba", Role.LAWYER),
-            new DemoUser("sofia.ficticia@example.com", "Sofía Ficticia", Role.PARALEGAL));
+            new DemoUser("sofia.ficticia@example.com", "Sofía Ficticia", Role.PARALEGAL),
+            new DemoUser("julian.muestra@example.com", "Julián Muestra", Role.LAWYER));
 
+    /** The firm's head, also a lawyer with her own cases. */
     static final DemoUser OWNER = USERS.get(0);
 
-    /** The lawyer who is the responsible of the demo cases. */
+    /** The lawyer who is the responsible of the first two demo cases. */
     static final DemoUser LAWYER = USERS.get(1);
+
+    /** The third lawyer of the firm. */
+    static final DemoUser SECOND_LAWYER = USERS.get(3);
 
     /** Fictitious people, without document numbers. */
     static final DemoPerson TOMAS = new DemoPerson("Tomás", "Fernández Ruiz");
