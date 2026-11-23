@@ -24,10 +24,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   computationLabel,
   dueLabel,
+  dueLead,
   extensionDetail,
   extensionsLabel,
+  FALLBACK_DISCLAIMER,
   FLAG_LABELS,
   isHourBased,
+  isUrgent,
   KIND_LABELS,
   notCalculableText,
   remainingLabel,
@@ -81,7 +84,7 @@ interface MetaRow {
 function DueBlock({ deadline, timeZone }: { deadline: DeadlineView; timeZone: string }) {
   const due = dueLabel(deadline, timeZone);
   const remaining = remainingLabel(deadline);
-  const urgent = deadline.status === "OVERDUE" || deadline.status === "DUE_SOON";
+  const urgent = isUrgent(deadline.status);
 
   if (deadline.status === "NOT_CALCULABLE") {
     return (
@@ -111,7 +114,7 @@ function DueBlock({ deadline, timeZone }: { deadline: DeadlineView; timeZone: st
       {due && (
         <p className="text-body">
           <span className="text-muted-foreground">
-            {deadline.status === "OVERDUE" ? "Venció el " : "Vence el "}
+            {dueLead(deadline.status)}
           </span>
           <time
             dateTime={
@@ -163,7 +166,7 @@ export function DeadlineCard({
 }) {
   const titleId = useId();
   const { rule } = deadline;
-  const urgent = deadline.status === "OVERDUE" || deadline.status === "DUE_SOON";
+  const urgent = isUrgent(deadline.status);
   const edge = rule.detainee ? "detained" : urgent ? "deadline" : "none";
 
   const meta: MetaRow[] = [];
@@ -293,7 +296,7 @@ export function DeadlineCard({
         <p className="flex items-start gap-2 border-t pt-2.5 text-small text-muted-foreground">
           <Info aria-hidden="true" className="mt-0.5 size-4.5 shrink-0" />
           <span>
-            <strong className="font-bold">{deadline.disclaimer}</strong> El sistema propone la
+            <strong className="font-bold">{deadline.disclaimer.trim() || FALLBACK_DISCLAIMER}</strong> El sistema propone la
             fecha; la decisión es tuya.
           </span>
         </p>

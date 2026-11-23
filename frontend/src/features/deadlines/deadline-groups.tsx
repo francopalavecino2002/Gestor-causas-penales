@@ -14,6 +14,7 @@ import {
   countDeadlines,
   GROUP_TITLES,
   groupDeadlines,
+  isUrgent,
   type DeadlineGroup,
 } from "@/features/deadlines/deadline-format";
 import type { DeadlineStatus, DeadlineView } from "@/features/deadlines/deadline-types";
@@ -52,7 +53,7 @@ function Group({
   const Heading = headingLevel;
   const Icon = GROUP_ICONS[group.status];
   const note = GROUP_NOTES[group.status];
-  const urgent = group.status === "OVERDUE" || group.status === "DUE_SOON";
+  const urgent = isUrgent(group.status);
   return (
     <section aria-labelledby={headingId} className="grid content-start gap-3">
       <div className="grid gap-0.5">

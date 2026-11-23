@@ -41,6 +41,21 @@ export const STATUS_LABELS: Record<DeadlineStatus, string> = {
   MET: "Cumplido",
 };
 
+/** Shown when the API sends no disclaimer: the system assists, the lawyer controls (rule 6). */
+export const FALLBACK_DISCLAIMER = "Cálculo asistido: verificá con la norma.";
+
+/** Already ended, or ends within the rule's warning window: amber, and it asks for action. */
+export function isUrgent(status: DeadlineStatus): boolean {
+  return status === "OVERDUE" || status === "DUE_SOON";
+}
+
+/** Lead-in before the due date: past for what ended or was done, future otherwise. */
+export function dueLead(status: DeadlineStatus): string {
+  if (status === "OVERDUE") return "Venció el ";
+  if (status === "MET") return "Vencía el ";
+  return "Vence el ";
+}
+
 export interface DeadlineGroup {
   status: DeadlineStatus;
   items: DeadlineView[];

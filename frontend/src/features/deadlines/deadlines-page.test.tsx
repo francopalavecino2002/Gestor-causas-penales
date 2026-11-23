@@ -32,6 +32,16 @@ describe("DeadlinesPage", () => {
     vi.useRealTimers();
   });
 
+  it("still shows the disclaimer when the API sends an empty one", async () => {
+    signedIn(undefined, deadlineRoutes([{ ...DEADLINE_INVESTIGATION_DIEGO, disclaimer: " " }]));
+    renderApp("/plazos");
+
+    const investigation = await screen.findByRole("article", {
+      name: DEADLINE_INVESTIGATION_DIEGO.rule.name,
+    });
+    expect(investigation).toHaveTextContent("Cálculo asistido: verificá con la norma.");
+  });
+
   it("groups the deadlines by urgency, detainees first, each with its source and disclaimer", async () => {
     const requests = signedIn(undefined, deadlineRoutes());
     renderApp("/plazos");

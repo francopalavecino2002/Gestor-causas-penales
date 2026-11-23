@@ -4,9 +4,11 @@ import {
   computationLabel,
   deadlinesSummary,
   dueLabel,
+  dueLead,
   extensionDetail,
   extensionsLabel,
   groupDeadlines,
+  isUrgent,
   notCalculableText,
   remainingLabel,
   triggeredLabel,
@@ -27,6 +29,22 @@ import {
 const with_ = (base: DeadlineView, overrides: Partial<DeadlineView>): DeadlineView => ({
   ...base,
   ...overrides,
+});
+
+describe("isUrgent and dueLead", () => {
+  it("marks only overdue and due-soon deadlines as urgent", () => {
+    expect(isUrgent("OVERDUE")).toBe(true);
+    expect(isUrgent("DUE_SOON")).toBe(true);
+    expect(isUrgent("RUNNING")).toBe(false);
+    expect(isUrgent("MET")).toBe(false);
+  });
+
+  it("speaks in the past for what ended or was done", () => {
+    expect(dueLead("OVERDUE")).toBe("Venció el ");
+    expect(dueLead("MET")).toBe("Vencía el ");
+    expect(dueLead("RUNNING")).toBe("Vence el ");
+    expect(dueLead("DUE_SOON")).toBe("Vence el ");
+  });
 });
 
 describe("groupDeadlines", () => {
