@@ -1,10 +1,11 @@
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, CircleCheck, Eye, LayoutTemplate } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleCheck, Eye, FileUp, LayoutTemplate } from "lucide-react";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { useCanImport } from "@/features/imports/import-hooks";
 import { SETTINGS_SECTIONS } from "@/features/settings/settings-copy";
 import { useCanEditSettings } from "@/features/settings/settings-hooks";
 import { cn } from "@/lib/utils";
@@ -147,6 +148,40 @@ export function SettingsHomePage() {
           </li>
         </ul>
       </nav>
+
+      <ImportEntry />
     </>
+  );
+}
+
+/** The way in to the import wizard: where a firm sets itself up. */
+function ImportEntry() {
+  const titleId = useId();
+  const canImport = useCanImport();
+  return (
+    <section aria-labelledby={titleId} className="grid max-w-3xl gap-3">
+      <h2 id={titleId} className="text-title font-bold">
+        Tus datos
+      </h2>
+      <div className="overflow-hidden rounded-xl border bg-card">
+        <Link
+          to="/importar"
+          className="flex min-h-11 items-center gap-4 px-4 py-4 transition-colors duration-fast ease-out hover:bg-accent focus-visible:-outline-offset-3"
+        >
+          <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+            <FileUp aria-hidden="true" className="size-6" />
+          </span>
+          <span className="grid min-w-0 flex-1 gap-0.5">
+            <span className="text-card-title font-bold">Importar planillas</span>
+            <span className="text-meta text-muted-foreground">
+              {canImport
+                ? "Traé personas, causas y audiencias desde Excel o CSV."
+                : "Traer datos desde Excel o CSV: lo hacen la persona titular y los abogados."}
+            </span>
+          </span>
+          <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
+        </Link>
+      </div>
+    </section>
   );
 }

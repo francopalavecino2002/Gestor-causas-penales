@@ -327,7 +327,86 @@ const SCREENS: Record<string, Screen[]> = {
     },
     { path: "/ajustes/usuarios", name: "settings-users", prepare: agendaWeek() },
   ],
+  t26: [
+    { path: "/importar", name: "import-kind", prepare: agendaWeek() },
+    {
+      path: "/importar",
+      name: "import-file",
+      prepare: agendaWeek(),
+      act: (page) => chooseImportKind(page, "Personas"),
+    },
+    {
+      path: "/importar",
+      name: "import-file-invalid",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await chooseImportKind(page, "Personas");
+        await uploadImport(page, "personas.xls");
+        await page.getByRole("alert").waitFor();
+      },
+    },
+    {
+      path: "/importar",
+      name: "import-review-errors",
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await chooseImportKind(page, "Personas");
+        await uploadImport(page, "personas-con-errores.csv");
+        await page.getByRole("table").waitFor();
+      },
+    },
+    {
+      path: "/importar",
+      name: "import-review-ready",
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await chooseImportKind(page, "Causas");
+        await uploadImport(page, "causas.xlsx");
+        await page.getByRole("button", { name: /Confirmá e importá/ }).waitFor();
+      },
+    },
+    {
+      path: "/importar",
+      name: "import-done",
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await chooseImportKind(page, "Causas");
+        await uploadImport(page, "causas.xlsx");
+        await page.getByRole("button", { name: /Confirmá e importá/ }).click();
+        await page.getByRole("heading", { name: /Listo/ }).waitFor();
+        await page.mouse.move(0, 0);
+      },
+    },
+    {
+      path: "/importar",
+      name: "import-not-allowed",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: async (page) => {
+        await mockBackend(page, { signedIn: true, role: "PARALEGAL" });
+      },
+      fullPage: false,
+    },
+  ],
 };
+
+async function chooseImportKind(page: Page, title: string) {
+  await page.getByRole("radio", { name: new RegExp(`^${title}`) }).check();
+  await page.getByRole("button", { name: "Continuá" }).click();
+  await page.getByRole("heading", { name: /Subí la planilla/ }).waitFor();
+  // Keep the pointer off the buttons that take the clicked one's place.
+  await page.mouse.move(0, 0);
+}
+
+async function uploadImport(page: Page, name: string) {
+  await page.getByLabel(/Elegí el archivo/).setInputFiles({
+    name,
+    mimeType: "text/csv",
+    buffer: Buffer.from("tipo_persona;nombres;apellidos\nhumana;Juan;Ejemplo\n"),
+  });
+}
 
 const VIEWPORTS: Record<ViewportName, { width: number; height: number }> = {
   mobile: { width: 390, height: 844 },

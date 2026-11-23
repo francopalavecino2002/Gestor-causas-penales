@@ -1249,3 +1249,41 @@ Superseded decisions are marked, never deleted.
   list. Field reordering, 2FA enrollment and case templates are pending. `CatalogView` and
   `CatalogItem` in the frontend now carry `hideable`, `extensible` and `origin`, as the API
   already sent. Vitest and Playwright share fictitious settings in `src/test/settings-fixtures.ts`.
+
+## ADR-0027: Import wizard (T26)
+
+- **Date:** 2026-11-23
+- **Status:** accepted
+- **Context:** T26 puts a screen on top of the import endpoints of ADR-0019: `POST
+  /api/v1/imports/{persons|cases|hearings}` (multipart `file`, `dryRun` true by default) and `GET
+  .../template`. The server stores nothing between the preview and the commit, so the client sends
+  the file twice. Only the owner and lawyers may import (`403 access-denied` otherwise).
+- **Decision:**
+  - **Route `/importar`**, a child of the signed-in layout, outside the main navigation (it is a
+    setup task, not a daily one). Ways in: a "Tus datos → Importar planillas" row on the `/ajustes`
+    index and an "Importá desde una planilla" button in the empty case list (only for roles that can
+    import).
+  - **Four steps in one screen**, state in memory (a `File` cannot live in the URL): what to import
+    (the three kinds on a numbered rail in the recommended order persons → cases → hearings, each
+    with its "Descargá la plantilla" link to the GET endpoint), the file (input inside a drop zone,
+    drag and drop, `.csv`/`.xlsx` up to 2 MB checked on the device first), the review (the dry run's
+    counts and a three-column table "Fila / Columna / Problema" grouped by row with `rowgroup`
+    headers, readable from 360 px) and the result with a link to the imported area and the next
+    kind. The dry run starts as soon as a valid file is chosen; nothing is saved until "Confirmá e
+    importá N filas", which only exists when the report has no errors. Each step's heading takes
+    the focus when the step changes.
+  - **Errors:** `import-invalid-file` details are shown as the backend writes them (they are
+    Spanish user text by design, ADR-0019), with the offending headers as chips and a link to the
+    template; every other problem gets the screen's own words. A `422 import-has-errors` on commit
+    replaces the report with the one it carries; a `409 concurrent-change` or a transient failure
+    offers "Revisá la planilla de nuevo". A server `403` shows the same "No tenés permiso" state as
+    the role check.
+  - **API client:** `apiFetch` gained `formData` (no Content-Type set, so the browser adds the
+    boundary; the CSRF header and the 403 retry work as for JSON) and `ApiError.problem`, the whole
+    problem+json body, for extension members like `report` and `headers`.
+  - After a commit every cached query except `/me` is invalidated (cases, agenda, deadlines...).
+  - The row errors' technical `detail` is not shown: it is for support, not for lawyers.
+- **Consequences:** No column mapping in the client yet (ADR-0019 left it possible): a file must
+  use the template's headers. Vitest and Playwright share fictitious reports in
+  `src/test/import-fixtures.ts`; the e2e mock picks a report with errors when the file name has
+  "errores".

@@ -20,7 +20,9 @@ import type {
   DeadlineRuleSetting,
   NewCustomField,
 } from "../src/features/settings/settings-types";
+import type { ImportKind } from "../src/features/imports/import-types";
 import { ALL_DEADLINES, caseDeadlines, upcomingDeadlines } from "../src/test/deadline-fixtures";
+import { cleanReport, reportWithErrors } from "../src/test/import-fixtures";
 import {
   CASE_FIELDS,
   DEADLINE_RULES,
@@ -63,6 +65,8 @@ interface MockBackendOptions {
   deadlines?: DeadlineView[];
   /** The upcoming deadlines answer 500, to show their error state. */
   deadlinesFail?: boolean;
+  /** The signed-in user's role; the owner by default. */
+  role?: "OWNER" | "LAWYER" | "PARALEGAL" | "ADMIN_STAFF";
 }
 
 /**
@@ -226,7 +230,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
         });
       case "GET /api/v1/me":
         return state.signedIn
-          ? route.fulfill({ status: 200, json: DEMO_ME })
+          ? route.fulfill({ status: 200, json: { ...DEMO_ME, role: options.role ?? DEMO_ME.role } })
           : problem(route, 401, "authentication-required");
       case "POST /api/v1/auth/login": {
         const body = request.postDataJSON() as { tenant: string; email: string; password: string };
@@ -295,6 +299,32 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
         });
       }
       default: {
+        const importKind = /^\/api\/v1\/imports\/(persons|cases|hearings)(\/template)?$/.exec(path);
+        if (importKind && state.signedIn) {
+          const kind = importKind[1] as ImportKind;
+          if (importKind[2]) {
+            return route.fulfill({
+              status: 200,
+              contentType: "text/csv;charset=UTF-8",
+              body: "tipo_persona;nombres;apellidos\nhumana;Juan;Ejemplo\n",
+            });
+          }
+          if (method !== "POST") return problem(route, 404, "not-found");
+          // The file's name decides the answer: "...errores..." has row errors.
+          const fileName = /filename="([^"]*)"/.exec(request.postDataBuffer()?.toString("latin1") ?? "")?.[1] ?? "";
+          const dryRun = url.searchParams.get("dryRun") !== "false";
+          const report = fileName.includes("errores")
+            ? reportWithErrors(kind, dryRun)
+            : cleanReport(kind, dryRun);
+          if (!dryRun && report.errorRows > 0) {
+            return route.fulfill({
+              status: 422,
+              contentType: "application/problem+json",
+              body: JSON.stringify({ type: "/problems/import-has-errors", status: 422, report }),
+            });
+          }
+          return route.fulfill({ status: 200, json: report });
+        }
         const settingsAnswer = state.signedIn
           ? settings(method, url, () => request.postDataJSON())
           : undefined;

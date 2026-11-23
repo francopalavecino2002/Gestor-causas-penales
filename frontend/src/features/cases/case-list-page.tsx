@@ -16,6 +16,7 @@ import { CaseCards, CaseTable } from "@/features/cases/case-list";
 import { useCases } from "@/features/cases/case-queries";
 import type { CaseListSearch } from "@/features/cases/case-search";
 import { CaseListSkeleton, CasesEmpty, LoadError } from "@/features/cases/case-states";
+import { useCanImport } from "@/features/imports/import-hooks";
 import { cn } from "@/lib/utils";
 
 const LIST_CATALOGS: CatalogId[] = ["stages", "hearing-types"];
@@ -162,6 +163,7 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
   const switchId = useId();
   const page = search.pagina ?? 1;
   const includeArchived = search.archivadas === "si";
+  const canImport = useCanImport();
   const cases = useCases({ q: search.q, includeArchived, page: page - 1 });
   const catalogs = {
     stages: useCatalogItems("stages"),
@@ -246,6 +248,11 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
             title="Todavía no hay causas"
             description="Cuando cargues una causa o la importes desde una planilla, la vas a ver acá con sus imputados, el legajo y la próxima audiencia."
           >
+            {canImport && !includeArchived && (
+              <Button asChild>
+                <Link to="/importar">Importá desde una planilla</Link>
+              </Button>
+            )}
             {!includeArchived && (
               <Button variant="outline" onClick={() => go({ archivadas: "si" })}>
                 Mirá también las archivadas
