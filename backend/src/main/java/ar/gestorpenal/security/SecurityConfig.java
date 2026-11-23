@@ -74,11 +74,16 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /** Readable by the SPA (not HttpOnly) by design: the double-submit pattern needs it. */
+    /**
+     * Readable by the SPA (not HttpOnly) by design: the double-submit pattern needs it. It follows
+     * the session cookie's {@code Secure} flag, so one switch serves both; only the LAN demo over
+     * plain HTTP turns it off (ADR-0029).
+     */
     @Bean
-    CsrfTokenRepository csrfTokenRepository() {
+    CsrfTokenRepository csrfTokenRepository(
+            @Value("${server.servlet.session.cookie.secure:true}") boolean secureCookies) {
         CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
-        repository.setCookieCustomizer(cookie -> cookie.secure(true).sameSite("Lax"));
+        repository.setCookieCustomizer(cookie -> cookie.secure(secureCookies).sameSite("Lax"));
         return repository;
     }
 
