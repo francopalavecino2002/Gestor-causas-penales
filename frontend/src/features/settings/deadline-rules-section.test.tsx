@@ -74,9 +74,7 @@ describe("settings: deadline rules", () => {
       ),
     );
     expect(writes(requests)[0]?.body).toEqual({ enabled: false, alertDaysBefore: 2 });
-    expect(writes(requests)[0]?.path).toBe(
-      `/api/v1/deadline-rules/${RULE_REVIEW.code}/settings`,
-    );
+    expect(writes(requests)[0]?.path).toBe(`/api/v1/deadline-rules/${RULE_REVIEW.code}/settings`);
     expect(card(RULE_REVIEW.name)).toHaveTextContent("Desactivada en el estudio");
 
     const mediation = card(RULE_MEDIATION.name);
@@ -138,7 +136,9 @@ describe("settings: deadline rules", () => {
     expect(serverAlert).toHaveTextContent(
       "El servidor no respondió como esperábamos. Volvé a intentar en unos minutos.",
     );
-    expect(within(mediation).getByRole("switch", { name: "Activa en el estudio" })).not.toBeChecked();
+    expect(
+      within(mediation).getByRole("switch", { name: "Activa en el estudio" }),
+    ).not.toBeChecked();
     expect(mediation).toHaveTextContent("Desactivada en el estudio");
 
     const review = card(RULE_REVIEW.name);

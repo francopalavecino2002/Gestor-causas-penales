@@ -57,7 +57,9 @@ function CatalogItemRow({
         <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <span
             id={nameId}
-            className={item.hidden ? "text-body font-bold text-muted-foreground" : "text-body font-bold"}
+            className={
+              item.hidden ? "text-body font-bold text-muted-foreground" : "text-body font-bold"
+            }
           >
             {item.name}
           </span>

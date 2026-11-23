@@ -200,7 +200,9 @@ export function AddItemDialog({
               maxLength={ITEM_ARTICLE_MAX}
               aria-invalid={errors.article ? true : undefined}
               aria-describedby={
-                errors.article ? "new-item-article-help new-item-article-error" : "new-item-article-help"
+                errors.article
+                  ? "new-item-article-help new-item-article-error"
+                  : "new-item-article-help"
               }
               {...register("article")}
             />

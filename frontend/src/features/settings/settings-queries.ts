@@ -54,7 +54,10 @@ export function useUpdateCatalogItem(catalog: AnyCatalogId) {
   const invalidate = useCatalogInvalidation();
   return useMutation({
     mutationFn: (variables: { code: string; name: string | null; hidden: boolean }) =>
-      updateCatalogItem(catalog, variables.code, { name: variables.name, hidden: variables.hidden }),
+      updateCatalogItem(catalog, variables.code, {
+        name: variables.name,
+        hidden: variables.hidden,
+      }),
     onSuccess: () => invalidate(catalog),
   });
 }

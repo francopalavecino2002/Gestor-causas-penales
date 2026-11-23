@@ -58,7 +58,10 @@ function AccountCard() {
       <p className="flex max-w-prose items-start gap-2 text-meta text-muted-foreground">
         {me.twoFactorEnabled ? (
           <>
-            <ShieldCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-status-efectiva" />
+            <ShieldCheck
+              aria-hidden="true"
+              className="mt-0.5 size-5 shrink-0 text-status-efectiva"
+            />
             <span>
               Al ingresar te pedimos el código de tu app de autenticación. Si perdés el teléfono,
               usá uno de tus códigos de recuperación.
@@ -88,13 +91,15 @@ function RolesGuide() {
           Qué puede hacer cada rol
         </h2>
         <p className="max-w-prose text-meta text-muted-foreground">
-          Cada persona del estudio tiene un rol. El sistema controla estos permisos en cada
-          acción.
+          Cada persona del estudio tiene un rol. El sistema controla estos permisos en cada acción.
         </p>
       </div>
       <ul className="grid gap-3 sm:grid-cols-2">
         {ROLE_ORDER.map((role) => (
-          <li key={role} className="grid content-start gap-2 rounded-xl border bg-card px-4 pt-3.5 pb-4">
+          <li
+            key={role}
+            className="grid content-start gap-2 rounded-xl border bg-card px-4 pt-3.5 pb-4"
+          >
             <h3 className="text-card-title font-bold">{ROLE_LABELS[role]}</h3>
             <ul className="grid list-disc gap-1 pl-5 text-meta marker:text-muted-foreground">
               {ROLE_DESCRIPTIONS[role].map((line) => (
@@ -123,8 +128,8 @@ export function UsersSection() {
         <Alert>
           <Info aria-hidden="true" />
           <AlertDescription>
-            Invitar personas, cambiar roles y desactivar cuentas llega con una próxima versión.
-            Por ahora, las cuentas del estudio las crea quien administra el sistema.
+            Invitar personas, cambiar roles y desactivar cuentas llega con una próxima versión. Por
+            ahora, las cuentas del estudio las crea quien administra el sistema.
           </AlertDescription>
         </Alert>
         <RolesGuide />

@@ -22,10 +22,11 @@ describe("settings: custom fields", () => {
     ).toBeInTheDocument();
     await screen.findByRole("region", { name: "En uso" });
     const inUse = section("En uso");
-    expect(within(inUse).getAllByRole("listitem").map((item) => item.querySelector("span")?.textContent)).toEqual([
-      "Juzgado de familia vinculado",
-      "Cómo llegó el cliente",
-    ]);
+    expect(
+      within(inUse)
+        .getAllByRole("listitem")
+        .map((item) => item.querySelector("span")?.textContent),
+    ).toEqual(["Juzgado de familia vinculado", "Cómo llegó el cliente"]);
     const origin = row("Cómo llegó el cliente");
     expect(origin).toHaveTextContent("Lista de opciones");
     expect(origin).toHaveTextContent("Obligatorio");
@@ -75,7 +76,9 @@ describe("settings: custom fields", () => {
       target: { value: "fiscalía 1 (ficticia)" },
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "Agregá el campo" }));
-    expect(await within(dialog).findByText("Ya hay una opción con este nombre.")).toBeInTheDocument();
+    expect(
+      await within(dialog).findByText("Ya hay una opción con este nombre."),
+    ).toBeInTheDocument();
 
     fireEvent.change(within(dialog).getByLabelText("Opción 2"), {
       target: { value: "Fiscalía 2 (ficticia)" },
@@ -83,7 +86,9 @@ describe("settings: custom fields", () => {
     fireEvent.click(within(dialog).getByRole("checkbox", { name: "Es obligatorio completarlo" }));
     fireEvent.click(within(dialog).getByRole("button", { name: "Agregá el campo" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Agregado: Fiscalía interviniente.");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Agregado: Fiscalía interviniente.",
+    );
     expect(writes(requests)[0]?.body).toEqual({
       entity: "CASE_FILE",
       label: "Fiscalía interviniente",
@@ -110,7 +115,9 @@ describe("settings: custom fields", () => {
     expect(dialog).toHaveTextContent("el tipo no se cambia");
     expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
     // Saved options are hidden, never removed.
-    expect(within(dialog).queryByRole("button", { name: /Quitá la opción/ })).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: /Quitá la opción/ }),
+    ).not.toBeInTheDocument();
 
     const hiddenBoxes = within(dialog).getAllByRole("checkbox", { name: "Oculta" });
     expect(hiddenBoxes.map((box) => box.getAttribute("aria-checked"))).toEqual([
@@ -125,9 +132,7 @@ describe("settings: custom fields", () => {
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "Guardá los cambios" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      `Guardado: ${FIELD_ORIGIN.label}.`,
-    );
+    expect(await screen.findByRole("status")).toHaveTextContent(`Guardado: ${FIELD_ORIGIN.label}.`);
     const [put] = writes(requests);
     expect(put?.method).toBe("PUT");
     expect(put?.path).toBe(`/api/v1/custom-fields/${FIELD_ORIGIN.id}`);
@@ -149,10 +154,9 @@ describe("settings: custom fields", () => {
     renderApp("/ajustes/campos");
 
     fireEvent.click(
-      within(await screen.findByRole("listitem", { name: "Juzgado de familia vinculado" })).getByRole(
-        "button",
-        { name: "Archivá" },
-      ),
+      within(
+        await screen.findByRole("listitem", { name: "Juzgado de familia vinculado" }),
+      ).getByRole("button", { name: "Archivá" }),
     );
     const dialog = await screen.findByRole("dialog", {
       name: "¿Archivás el campo Juzgado de familia vinculado?",
@@ -169,9 +173,7 @@ describe("settings: custom fields", () => {
       ).toBeInTheDocument(),
     );
 
-    fireEvent.click(
-      within(row(FIELD_OLD_FILE.label)).getByRole("button", { name: "Restaurá" }),
-    );
+    fireEvent.click(within(row(FIELD_OLD_FILE.label)).getByRole("button", { name: "Restaurá" }));
     expect(await screen.findByRole("status")).toHaveTextContent(
       `Restaurado: ${FIELD_OLD_FILE.label}.`,
     );
@@ -196,10 +198,9 @@ describe("settings: custom fields", () => {
     renderApp("/ajustes/campos");
 
     fireEvent.click(
-      within(await screen.findByRole("listitem", { name: "Juzgado de familia vinculado" })).getByRole(
-        "button",
-        { name: "Archivá" },
-      ),
+      within(
+        await screen.findByRole("listitem", { name: "Juzgado de familia vinculado" }),
+      ).getByRole("button", { name: "Archivá" }),
     );
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Archivá el campo" }));

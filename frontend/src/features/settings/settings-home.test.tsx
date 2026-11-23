@@ -12,12 +12,11 @@ describe("settings: index and users", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "Ajustes" })).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Secciones de ajustes" });
-    expect(within(nav).getAllByRole("link").map((link) => link.getAttribute("href"))).toEqual([
-      "/ajustes/catalogos",
-      "/ajustes/campos",
-      "/ajustes/plazos",
-      "/ajustes/usuarios",
-    ]);
+    expect(
+      within(nav)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("href")),
+    ).toEqual(["/ajustes/catalogos", "/ajustes/campos", "/ajustes/plazos", "/ajustes/usuarios"]);
     expect(nav).toHaveTextContent("Plantillas por tipo de causa");
     expect(nav).toHaveTextContent("Todavía no disponible");
 
@@ -48,15 +47,18 @@ describe("settings: index and users", () => {
     expect(account).toHaveTextContent("RolProcurador/a");
     expect(account).toHaveTextContent("Verificación en dos pasosDesactivada");
     expect(account).toHaveTextContent("Te recomendamos activarla");
-    expect(screen.getByText(/Invitar personas, cambiar roles y desactivar cuentas llega con una próxima versión/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Invitar personas, cambiar roles y desactivar cuentas llega con una próxima versión/,
+      ),
+    ).toBeInTheDocument();
 
     const roles = screen.getByRole("region", { name: "Qué puede hacer cada rol" });
-    expect(within(roles).getAllByRole("heading", { level: 3 }).map((h) => h.textContent)).toEqual([
-      "Titular",
-      "Abogado/a",
-      "Procurador/a",
-      "Administrativo/a",
-    ]);
+    expect(
+      within(roles)
+        .getAllByRole("heading", { level: 3 })
+        .map((h) => h.textContent),
+    ).toEqual(["Titular", "Abogado/a", "Procurador/a", "Administrativo/a"]);
     expect(roles).toHaveTextContent("Ve todas las causas, también las reservadas.");
   });
 
