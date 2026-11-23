@@ -1,6 +1,6 @@
 import { useId, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { CircleAlert, FolderSearch } from "lucide-react";
+import { CircleAlert, FolderSearch, type LucideIcon } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -47,10 +47,12 @@ export function CaseDetailSkeleton() {
 export function CasesEmpty({
   title,
   description,
+  icon: Icon = FolderSearch,
   children,
 }: {
   title: string;
   description: string;
+  icon?: LucideIcon;
   children?: ReactNode;
 }) {
   const titleId = useId();
@@ -59,7 +61,7 @@ export function CasesEmpty({
       aria-labelledby={titleId}
       className="grid max-w-2xl justify-items-start gap-3 rounded-xl border border-dashed border-border-strong bg-card px-5 py-6"
     >
-      <FolderSearch aria-hidden="true" className="size-6 text-primary" />
+      <Icon aria-hidden="true" className="size-6 text-primary" />
       <h2 id={titleId} className="text-title font-bold">
         {title}
       </h2>

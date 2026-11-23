@@ -20,6 +20,7 @@ import {
   REPRESENTATION_LABELS,
   TEAM_ROLE_LABELS,
 } from "@/features/cases/case-format";
+import { CaseDeadlines } from "@/features/cases/case-deadlines";
 import { CaseHearings } from "@/features/cases/case-hearings";
 import { useCase } from "@/features/cases/case-queries";
 import { CaseDetailSkeleton, CaseNotFound, LoadError } from "@/features/cases/case-states";
@@ -293,6 +294,9 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
               </p>
             )}
           </Section>
+          <Section title="Plazos">
+            <CaseDeadlines caseId={detail.id} timeZone={timeZone} />
+          </Section>
           <Section title="Audiencias">
             <CaseHearings caseId={detail.id} timeZone={timeZone} now={now} />
           </Section>
@@ -315,7 +319,8 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
 
 /**
  * `/causas/$caseId`, read only (ADR-0024): the case's header and numbers, the computed summary,
- * each defendant with their liberty situation, the hearings, the parties and the team.
+ * each defendant with their liberty situation, the deadlines (ADR-0025), the hearings, the
+ * parties and the team.
  */
 export function CaseDetailPage({ caseId }: { caseId: string }) {
   const query = useCase(caseId);

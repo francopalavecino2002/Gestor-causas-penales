@@ -8,7 +8,7 @@ import {
   redirect,
   type RouterHistory,
 } from "@tanstack/react-router";
-import { Hourglass, Settings, Users } from "lucide-react";
+import { Settings, Users } from "lucide-react";
 
 import { AppShell } from "@/components/shell/app-shell";
 import { parseAgendaSearch } from "@/features/agenda/agenda-search";
@@ -16,6 +16,8 @@ import { CaseDetailPage } from "@/features/cases/case-detail-page";
 import { CaseListPage } from "@/features/cases/case-list-page";
 import { isCaseId, parseCaseListSearch } from "@/features/cases/case-search";
 import { CaseNotFound } from "@/features/cases/case-states";
+import { DeadlinesPage } from "@/features/deadlines/deadlines-page";
+import { parseDeadlineSearch } from "@/features/deadlines/deadline-search";
 import { LoginPage, type LoginSearch } from "@/features/auth/login-page";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { LOGIN_PATH, loginSearchFor } from "@/features/auth/redirect";
@@ -107,16 +109,15 @@ const caseRoute = createRoute({
   },
 });
 
+/** Deadlines that need attention (ADR-0025). `?dias` and `?detenidos` keep the view linkable (T24). */
 const deadlinesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/plazos",
-  component: () => (
-    <PlaceholderPage
-      title="Plazos"
-      icon={Hourglass}
-      description="Acá vas a ver los plazos que vencen, cada uno con su fuente legal. El cálculo es asistido: siempre lo verificás con la norma."
-    />
-  ),
+  validateSearch: parseDeadlineSearch,
+  component: function DeadlinesRoute() {
+    const search = deadlinesRoute.useSearch();
+    return <DeadlinesPage search={search} />;
+  },
 });
 
 const personsRoute = createRoute({
