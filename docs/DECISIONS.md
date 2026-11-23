@@ -1430,3 +1430,84 @@ Superseded decisions are marked, never deleted.
   rescheduling history the OFIJU workflow needs).
 - **Consequences:** The UI makes up to three calls to create a case with a defendant. Native date
   and time pickers follow the browser's locale.
+
+## ADR-0032: Practice areas (fueros) as configuration inside the jurisdiction package (T40)
+
+- **Date:** 2026-11-23
+- **Status:** accepted
+- **Context:** Franco's goal (2026-11-23) is a **general, affordable case manager for small firms of
+  any practice area**, not a criminal-only product: every area is a first-class citizen, and the price
+  target is close to the hosting cost (around USD 25 a month for the database, as in his other
+  product). Criminal Neuquén is simply the first complete package and stays the demo. Today the
+  Neuquén package is criminal throughout: the catalogs (stages, hearing types, party roles,
+  closing outcomes, coercive measures...), the 13 built-in deadline rules, and parts of the core
+  (`Defendant`, `CoerciveMeasure`, detainee alerts, `MpfLegajo`, the `ActionType` and
+  `Representation` enums on the case). Research for
+  other areas (see `docs/domain/neuquen-otros-fueros.md`) found that Neuquén's civil procedure
+  changed on 2026-08-01 (new adversarial code, Ley 3551), family procedure is being reformed, and
+  the labour procedure text could not be read from an official source. So non-criminal legal
+  content is thin and unverified.
+- **Decision:**
+  - **Package layout.** A jurisdiction folder keeps its shared catalogs at the top level
+    (`circumscriptions.yml`, `court-calendar.yml`) and gets one subfolder per practice area:
+    `jurisdictions/neuquen/penal/` (today's criminal files moved as they are, codes unchanged),
+    `civil/`, `laboral/`, `familia/`. Each area has an `area.yml` manifest: `code`, `name`, `law`,
+    `reviewedOn`, `source`, review flags, and **`modules`**, the list of optional features the area
+    turns on. Criminal declares `defendants`, `coercive-measures`, `detainee-alerts`,
+    `alternative-outcomes`, `mpf-legajo`. Adding an area or a province is adding a folder.
+  - **Per-area catalogs.** `stages`, `closing-outcomes`, `hearing-types`, `hearing-statuses`,
+    `cancellation-reasons`, `party-roles`, `action-types` and `deadline-rules` live in the area folder.
+    Module-specific catalogs (coercive measures, procedural risks, liberty situations, alternative
+    outcomes) live only in the area that declares the module. The `Catalog` enum gains a `scope`
+    (jurisdiction or area).
+  - **Case.** A case gets `practice_area` (`varchar(40) not null`). A Flyway migration sets every
+    existing row to `penal`. The case's action type and represented side become codes from the
+    area's catalogs instead of Java enums, keeping today's criminal codes so stored values stay valid.
+    `mpf_legajo` stays a column but is only accepted when the area has the `mpf-legajo` module.
+  - **No area is special in the core.** The case, its parties and roles, stages, hearings, deadlines,
+    tasks and fees are generic and read their vocabulary from the case's area. Criminal concepts
+    (defendant with its own stage, coercive measures, detainee alerts, MPF legajo, OFIJU references)
+    are modules that the criminal area turns on, never assumptions of the core. Labels in the UI
+    ("Imputado", "Actor", "Demandado") come from the area's `party-roles`.
+  - **Where stage and outcome live.** For areas with the `defendants` module (criminal) they stay
+    per defendant, as today. For areas without it they live on the case (`stage_code`, `status`,
+    `closing_outcome_code`), and the case's parties come from the area's `party-roles` (actor,
+    demandado, tercero...). One rule decides: per defendant if the module is on, per case otherwise.
+  - **Firm settings.** The tenant gets `enabled_practice_areas` (default `{penal}`). Catalog
+    customizations gain a `practice_area` column (null for jurisdiction-scoped catalogs), and the
+    unique key becomes `(tenant_id, practice_area, catalog, item_code)`.
+  - **Validation.** Every catalog code written to a case, defendant, hearing or deadline is checked
+    against the catalogs of **that case's** area. Criminal-only endpoints (defendants, coercive
+    measures, detainee alerts) answer `409 problem+json` ("module not enabled for this practice
+    area") for a case of another area.
+  - **Deadline rules.** They are per area. No built-in rule ships without a cited article read from
+    the law's text. Civil, labour and family ship with **no** built-in rules: lawyers enter their
+    deadlines by hand as judicial deadlines (the engine already supports it) until rules are
+    researched and cited.
+  - **Non-criminal content** ships flagged. The civil, labour and family catalogs are short, generic
+    and flagged `validar` (and `no-verificado` where the source is secondary). Their `area.yml`
+    carries a note saying so, and the UI shows it as it already does for criminal items.
+  - **API.** `GET /api/v1/catalogs?area=<code>` (default `penal`, so the current frontend keeps
+    working). `GET /api/v1/practice-areas` returns the enabled areas with their modules. Cases expose
+    `practiceArea` and the area's modules so the UI can adapt.
+  - **UI.** "Nueva causa" asks the area first, among the enabled ones and preselecting criminal when
+    it is the only one. The case detail and the forms show or hide sections by module and use the
+    area's labels. The case list and the agenda get an area filter only when more than one area is
+    enabled. Ajustes turns areas on and off.
+- **Alternatives considered:**
+  - A separate generic "matter" entity next to the criminal case. It would duplicate hearings,
+    deadlines, import and audit wiring.
+  - Making the defendant fully generic ("party with stage"). It would blur the criminal model the
+    product is built on and that the legal review validated.
+  - Shipping researched civil deadline rules now. The new code is three months old and its text was
+    not read from an official source, so this would break the hard rule that a deadline shows its
+    real legal source.
+- **Consequences:**
+  - Neuquén ships basic civil and labour packages (and a family one) next to criminal, so the
+    flexibility can be shown, all flagged until a legal review.
+  - Criminal behaviour, codes and the demo are unchanged. The work is mostly moving files and
+    threading the area through validation.
+  - Non-criminal areas are useful from day one for the agenda, cases, parties, manual deadlines,
+    tasks and fees, but without computed deadlines.
+  - Each non-criminal area needs its own legal review before it is presented as validated.
+  - The task split T41 (packages and case area), T42 (non-criminal cases) and T43 (UI) stands.
