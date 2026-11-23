@@ -27,7 +27,7 @@ export default defineConfig([
     rules: { "react-refresh/only-export-components": "off" },
   },
   {
-    files: ["*.config.{ts,js}", "e2e/**/*.ts"],
+    files: ["*.config.{ts,js}", "e2e/**/*.ts", "e2e-demo/**/*.ts"],
     languageOptions: { globals: globals.node },
   },
   prettier,
