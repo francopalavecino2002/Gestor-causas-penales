@@ -52,4 +52,4 @@ best option itself and records it as an ADR. Only ask Franco for things that phy
 | T23 | Case list and case detail. | frontend | T21, T12 | done (#31) |
 | T24 | Deadlines view with source and disclaimer. | frontend | T21, T14 | done (#32) |
 | T25 | Settings: catalogs, custom fields, templates, users and roles. | frontend | T21, T15 | done (#33) |
-| T26 | Import wizard. | frontend | T21, T16 | todo |
+| T26 | Import wizard. | frontend | T21, T16 | done |

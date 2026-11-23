@@ -21,6 +21,7 @@ import { parseDeadlineSearch } from "@/features/deadlines/deadline-search";
 import { LoginPage, type LoginSearch } from "@/features/auth/login-page";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { LOGIN_PATH, loginSearchFor } from "@/features/auth/redirect";
+import { ImportPage } from "@/features/imports/import-page";
 import { CatalogsSection } from "@/features/settings/catalogs-section";
 import { CustomFieldsSection } from "@/features/settings/custom-fields-section";
 import { DeadlineRulesSection } from "@/features/settings/deadline-rules-section";
@@ -179,6 +180,13 @@ const settingsUsersRoute = createRoute({
   component: UsersSection,
 });
 
+/** Import wizard (ADR-0027): reached from Ajustes and from the empty case list. */
+const importRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/importar",
+  component: ImportPage,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   designSystemRoute,
@@ -193,6 +201,7 @@ const routeTree = rootRoute.addChildren([
     settingsFieldsRoute,
     settingsRulesRoute,
     settingsUsersRoute,
+    importRoute,
   ]),
 ]);
 

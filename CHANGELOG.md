@@ -120,3 +120,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   kept), custom fields for cases and defendants (create, edit, archive, restore), deadline-rule
   settings (on/off and warning days, source and disclaimer visible) and a read-only users and roles
   page. Changes are for the titular only; templates and user management come later (ADR-0026).
+- Import wizard (T26): `/importar` guides owners and lawyers through choosing persons, cases or
+  hearings, downloading the template, uploading a .csv/.xlsx, reviewing a dry-run validation report
+  row by row and confirming explicitly before anything is saved. Reachable from settings and the
+  empty case list (ADR-0027).
