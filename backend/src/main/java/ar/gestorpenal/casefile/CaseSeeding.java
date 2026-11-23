@@ -1,6 +1,7 @@
 package ar.gestorpenal.casefile;
 
 import ar.gestorpenal.person.PersonKind;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -63,9 +64,31 @@ public class CaseSeeding {
     /** An active human defendant in {@code stageCode}, defended by the firm, with one charge. */
     @Transactional
     public void addDefendant(UUID caseId, UUID personId, String stageCode, String offence, String legalReference) {
-        DefendantData data = new DefendantData(
-                personId, stageCode, DefendantStatus.ACTIVE, null, null, true, null, null, null, null, null, null);
-        Defendant defendant = defendants.save(Defendant.create(caseId, personId, data, PersonKind.HUMAN));
-        charges.save(DefendantCharge.create(defendant.getId(), new ChargeData(offence, legalReference)));
+        addDefendant(caseId, new DefendantSeed(
+                personId, stageCode, DefendantStatus.ACTIVE, null, offence, legalReference, null, null));
     }
+
+    /** A human defendant defended by the firm, with one charge; the entity validates stage, status and outcome. */
+    @Transactional
+    public void addDefendant(UUID caseId, DefendantSeed seed) {
+        DefendantData data = new DefendantData(
+                seed.personId(), seed.stageCode(), seed.status(), seed.closingOutcomeCode(),
+                seed.chargesFormulatedOn(), true, null, null, null, null, seed.indigenousPeople(), null);
+        Defendant defendant = defendants.save(Defendant.create(caseId, seed.personId(), data, PersonKind.HUMAN));
+        charges.save(DefendantCharge.create(defendant.getId(), new ChargeData(seed.offence(), seed.legalReference())));
+    }
+
+    /**
+     * A defendant of the demo data. {@code closingOutcomeCode} only for a closed one (stage {@code cerrada});
+     * {@code indigenousPeople} is the optional {@code [validar]} field (ADR-0014).
+     */
+    public record DefendantSeed(
+            UUID personId,
+            String stageCode,
+            DefendantStatus status,
+            String closingOutcomeCode,
+            String offence,
+            String legalReference,
+            LocalDate chargesFormulatedOn,
+            Boolean indigenousPeople) {}
 }

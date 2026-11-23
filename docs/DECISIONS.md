@@ -1287,3 +1287,45 @@ Superseded decisions are marked, never deleted.
   use the template's headers. Vitest and Playwright share fictitious reports in
   `src/test/import-fixtures.ts`; the e2e mock picks a report with errors when the file name has
   "errores".
+
+## ADR-0028: Rich demo dataset as a declarative portfolio (T30)
+
+- **Date:** 2026-11-23
+- **Status:** accepted
+- **Context:** Milestone 3 needs a demo a lawyer recognises in 10 minutes: a full week of hearings,
+  detainees whose deadlines are about to expire, an alternative outcome in its probation period, and
+  the `[validar]` items in sight. The T08 seeder (ADR-0011) only had two cases and three users.
+- **Decision:**
+  - **Declarative list.** `DemoCases` describes 23 more cases (DEMO-003 to DEMO-025, 25 in total)
+    with a small builder: defendants, hearings, coercive measures and deadlines, each referring to
+    defendants by position. `DemoPortfolio` loads it through the existing `CaseSeeding`,
+    `HearingSeeding` and `DeadlineSeeding` entry points, so the entities still validate every row.
+    It is resumable like the T08 seeder: each case, its hearings, each defendant's measures and the
+    case's deadlines are created only when missing. The two T08 cases stay as they were.
+  - **Three lawyers.** A third user, Julián Muestra (`LAWYER`), joins the owner and Martín; the
+    paralegal stays. Every case has one of the three lawyers as responsible.
+  - **Dates relative to today.** Hearings are placed in *weekdays* from today (`DemoCalendar`); on a
+    weekend "today" counts as the next Monday, so a demo never shows a Saturday hearing and the
+    agenda of the day is never empty. Court holidays are ignored on purpose. Measures and deadlines
+    count calendar days from today.
+  - **No accidental clashes.** New hearings use the slots 8:00, 13:00, 14:30 and 16:00, outside the
+    9:00 to 12:30 window of the two T08 cases, and no lawyer gets two at once; the only clash of the
+    demo stays the deliberate DEMO-001/DEMO-002 one. A test counts overlapping pairs tenant-wide.
+  - **The story:** two detainees with a deadline due within 48 h (a preventive prison whose fixed
+    term ends tomorrow, and a review requested four days ago, art. 118); a suspension of trial on
+    probation (status `SUSPENDED` plus a `plazo-judicial` with the probation term and a `[validar]`
+    note, since there is no alternative-outcome entity yet); a penal mediation running; an expired
+    investigation term; a technical trial over two days and a jury trial; closed defendants with
+    their outcome; one defendant flagged as belonging to an indigenous people (`[validar]`); one more
+    reserved case; every stage of `stages.yml` covered.
+  - **Fictitious names only:** every new person carries a surname such as Ficticio, Ejemplo, Prueba
+    or Demo, and no document, MPF, OFIJU or Pehuén numbers are generated.
+  - `DefendantStatus` became public so the seeding entry point can take a status.
+- **Consequences:** Dates are relative to the day of the *first* seed: the seeder only creates what is
+  missing, so on a database kept across days hearings drift into the past and the 48 h deadlines
+  expire. The demo needs a fresh database; the one-command demo script (T31) resets it. A case left
+  with fewer defendants than its spec by a failed run is skipped with a warning (positions would
+  no longer match). Adding a scenario for the demo is one builder entry. Tests check the story, not
+  row counts: every stage present, at least 15 hearings in this week's five weekdays with at least 8
+  types, no weekend hearings, two detainees due within 48 h through the real `/api/v1/deadlines`
+  endpoint, the probation case, the `[validar]` items and no duplicates on a rerun.

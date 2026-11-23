@@ -34,8 +34,15 @@ public class DeadlineSeeding {
      */
     @Transactional
     public UUID createDeadline(UUID caseId, UUID defendantId, String ruleCode, LocalDate triggeredOn, LocalDate setDueOn) {
+        return createDeadline(caseId, defendantId, ruleCode, triggeredOn, setDueOn, null);
+    }
+
+    /** As {@link #createDeadline(UUID, UUID, String, LocalDate, LocalDate)}, with the lawyer's notes. */
+    @Transactional
+    public UUID createDeadline(
+            UUID caseId, UUID defendantId, String ruleCode, LocalDate triggeredOn, LocalDate setDueOn, String notes) {
         DeadlineRule rule = firmRules.current().rule(ruleCode);
-        DeadlineData data = new DeadlineData(ruleCode, defendantId, triggeredOn, null, setDueOn, null, null, null);
+        DeadlineData data = new DeadlineData(ruleCode, defendantId, triggeredOn, null, setDueOn, null, null, notes);
         return deadlines.save(Deadline.create(caseId, defendantId, rule, data, DeadlineClock.ZONE, clock.today())).getId();
     }
 }
