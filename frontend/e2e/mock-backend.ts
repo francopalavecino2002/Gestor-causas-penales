@@ -11,6 +11,8 @@ import {
   HEARINGS_BY_CASE,
   MEASURES,
 } from "../src/test/case-fixtures";
+import type { DeadlineView } from "../src/features/deadlines/deadline-types";
+import { ALL_DEADLINES, caseDeadlines, upcomingDeadlines } from "../src/test/deadline-fixtures";
 
 /** Fictitious user of the fictitious demo firm (same as the Vitest fixtures). */
 export const DEMO_ME = {
@@ -43,6 +45,10 @@ interface MockBackendOptions {
   cases?: CaseView[];
   /** The case search answers 500, to show its error state. */
   casesFail?: boolean;
+  /** Deadlines `/plazos` serves (filtered by horizon); the fictitious fixtures by default. */
+  deadlines?: DeadlineView[];
+  /** The upcoming deadlines answer 500, to show their error state. */
+  deadlinesFail?: boolean;
 }
 
 /**
@@ -52,6 +58,10 @@ interface MockBackendOptions {
 function caseResource(path: string): unknown {
   const catalog = /^\/api\/v1\/catalogs\/([a-z-]+)$/.exec(path)?.[1];
   if (catalog) return Object.values(CATALOGS).find((view) => view.catalog === catalog);
+  const deadlines = /^\/api\/v1\/cases\/([^/]+)\/deadlines$/.exec(path)?.[1];
+  if (deadlines) {
+    return DETAILS.some((detail) => detail.id === deadlines) ? caseDeadlines(deadlines) : undefined;
+  }
   const hearings = /^\/api\/v1\/cases\/([^/]+)\/hearings$/.exec(path)?.[1];
   if (hearings) {
     return DETAILS.some((detail) => detail.id === hearings)
@@ -154,6 +164,17 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
             page: Number(query.get("page") ?? 0),
             size: Number(query.get("size") ?? 20),
           }),
+        });
+      }
+      case "GET /api/v1/deadlines": {
+        if (!state.signedIn) return problem(route, 401, "authentication-required");
+        if (options.deadlinesFail) return problem(route, 500, "internal");
+        return route.fulfill({
+          status: 200,
+          json: upcomingDeadlines(
+            Number(url.searchParams.get("withinDays") ?? 30),
+            options.deadlines ?? ALL_DEADLINES,
+          ),
         });
       }
       default:

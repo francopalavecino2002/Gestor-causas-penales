@@ -3,6 +3,7 @@ import { vi } from "vitest";
 import { FIRM_TIME_ZONE } from "@/features/agenda/agenda-dates";
 import type { Me } from "@/features/auth/auth-api";
 import type { CaseDetail, CaseView } from "@/features/cases/case-types";
+import type { DeadlineView } from "@/features/deadlines/deadline-types";
 import {
   CASES,
   CATALOGS,
@@ -11,6 +12,7 @@ import {
   HEARINGS_BY_CASE,
   MEASURES,
 } from "@/test/case-fixtures";
+import { ALL_DEADLINES, caseDeadlines, upcomingDeadlines } from "@/test/deadline-fixtures";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
@@ -116,6 +118,7 @@ export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {})
     "GET /api/v1/detainee-alerts": () => json(200, []),
     "GET /api/v1/cases": ({ query }) =>
       json(200, { items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
+    "GET /api/v1/deadlines": () => json(200, []),
     ...catalogRoutes(),
     ...routes,
   });
@@ -156,12 +159,21 @@ export function caseRoutes(
     routes[`GET /api/v1/cases/${detail.id}`] = () => json(200, detail);
     routes[`GET /api/v1/cases/${detail.id}/hearings`] = () =>
       json(200, HEARINGS_BY_CASE[detail.id] ?? []);
+    routes[`GET /api/v1/cases/${detail.id}/deadlines`] = () => json(200, caseDeadlines(detail.id));
     for (const defendant of detail.defendants) {
       routes[`GET /api/v1/defendants/${defendant.id}/coercive-measures`] = () =>
         json(200, MEASURES[defendant.id] ?? []);
     }
   }
   return routes;
+}
+
+/** `GET /api/v1/deadlines` over the fictitious deadlines, filtered by `withinDays`. */
+export function deadlineRoutes(deadlines: DeadlineView[] = ALL_DEADLINES): Record<string, Handler> {
+  return {
+    "GET /api/v1/deadlines": ({ query }) =>
+      json(200, upcomingDeadlines(Number(query.withinDays ?? 30), deadlines)),
+  };
 }
 
 /** Anonymous session: /me answers 401. */

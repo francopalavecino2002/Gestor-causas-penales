@@ -102,6 +102,59 @@ describe("CaseDetailPage", () => {
     expect(charges).toHaveTextContent("Se formularon cargos");
   });
 
+  it("lists the case's deadlines by urgency, met ones included, with the disclaimer", async () => {
+    signedIn(undefined, caseRoutes());
+    renderApp(`/causas/${DETAIL_MODELO.id}`);
+
+    const deadlines = await screen.findByRole("region", { name: "Plazos" });
+    const groups = await within(deadlines).findAllByRole("heading", { level: 3 });
+    expect(groups.map((heading) => heading.textContent)).toEqual([
+      "Vencen pronto1 plazo",
+      "Próximos2 plazos",
+      "Cumplidos1 plazo",
+    ]);
+    const cards = within(deadlines).getAllByRole("article");
+    expect(cards.map((item) => item.querySelector("h4")?.textContent)).toEqual([
+      "Audiencia de revisión de prisión preventiva",
+      "Duración máxima de la prisión preventiva",
+      "Plazo fijado por el juez o el fiscal",
+      "Formulación de cargos con detenido",
+    ]);
+    for (const item of cards) {
+      expect(item).toHaveTextContent("Cálculo asistido: verificá con la norma.");
+      // Inside the case there is no link to the case itself.
+      expect(within(item).queryByRole("link", { name: DETAIL_MODELO.caption })).toBeNull();
+    }
+    const met = within(deadlines).getByRole("article", {
+      name: "Formulación de cargos con detenido",
+    });
+    expect(met).toHaveTextContent("Cumplido el 12/05/2026");
+  });
+
+  it("shows a suspended deadline with the days the suspension added", async () => {
+    signedIn(undefined, caseRoutes());
+    renderApp(`/causas/${DETAIL_EJEMPLAR.id}`);
+
+    const deadlines = await screen.findByRole("region", { name: "Plazos" });
+    const suspended = await within(deadlines).findByRole("region", { name: /Suspendidos/ });
+    const nora = within(suspended).getByRole("article");
+    expect(nora).toHaveTextContent("Nora Ficticia");
+    expect(nora).toHaveTextContent("no corre mientras dure");
+    expect(nora).toHaveTextContent("Las suspensiones sumaron 114 días al plazo.");
+  });
+
+  it("explains when the deadlines fail, without hiding the rest of the case", async () => {
+    signedIn(undefined, {
+      ...caseRoutes(),
+      [`GET /api/v1/cases/${DETAIL_MODELO.id}/deadlines`]: () => problem(500, "internal"),
+    });
+    renderApp(`/causas/${DETAIL_MODELO.id}`);
+
+    const alert = await screen.findByRole("alert", undefined, { timeout: 4000 });
+    expect(alert).toHaveTextContent("No pudimos cargar los plazos de la causa");
+    expect(screen.getByRole("heading", { level: 1, name: DETAIL_MODELO.caption })).toBeVisible();
+  });
+
   it("marks a reserved case and shows rebellion and the other counsel", async () => {
     signedIn(undefined, caseRoutes());
     renderApp(`/causas/${DETAIL_EJEMPLAR.id}`);

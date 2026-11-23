@@ -227,6 +227,56 @@ const SCREENS: Record<string, Screen[]> = {
       fullPage: false,
     },
   ],
+  t24: [
+    {
+      path: "/plazos",
+      name: "deadlines",
+      prepare: agendaWeek(),
+      act: waitForHearings,
+    },
+    {
+      path: "/plazos?detenidos=si",
+      name: "deadlines-detainees",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: waitForHearings,
+    },
+    {
+      path: "/plazos?dias=7",
+      name: "deadlines-empty",
+      themes: ["light"],
+      prepare: async (page) => {
+        await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+        await mockBackend(page, { signedIn: true, deadlines: [] });
+      },
+      act: (page) => page.getByRole("heading", { name: /No hay plazos/ }).waitFor(),
+    },
+    {
+      path: "/plazos",
+      name: "deadlines-error",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: async (page) => {
+        await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+        await mockBackend(page, { signedIn: true, deadlinesFail: true });
+      },
+      act: (page) => page.getByText("No pudimos cargar los plazos").waitFor({ timeout: 15_000 }),
+    },
+    {
+      path: `/causas/${CASE_MODELO.id}`,
+      name: "case-detail-deadlines",
+      prepare: agendaWeek(),
+      act: async (page) => {
+        const section = page.getByRole("region", { name: "Plazos", exact: true });
+        await section.getByRole("article").first().waitFor();
+        // The section's heading near the top, below the mobile top bar.
+        await section.evaluate((element) =>
+          window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 80),
+        );
+      },
+      fullPage: true,
+    },
+  ],
 };
 
 const VIEWPORTS: Record<ViewportName, { width: number; height: number }> = {

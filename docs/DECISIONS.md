@@ -1160,3 +1160,45 @@ Superseded decisions are marked, never deleted.
   `grid-cols-with-aside` for the detail's right column from 1280 px. Each defendant costs one
   request for its measures. Vitest and Playwright share fictitious cases in
   `src/test/case-fixtures.ts`, tied to the agenda fixtures' hearings.
+
+## ADR-0025: Deadlines view with source and disclaimer (T24)
+
+- **Date:** 2026-11-22
+- **Status:** accepted
+- **Context:** T24 replaces the `/plazos` placeholder with a read-only view of the deadlines on
+  top of `GET /api/v1/deadlines?withinDays=N` (overdue, due within N days and not calculable,
+  across the visible cases; met, suspended and disabled-rule deadlines left out) and adds the
+  case's deadlines to its detail with `GET /api/v1/cases/{id}/deadlines` (ADR-0017). Every due
+  date must carry its legal source and the disclaimer (CLAUDE.md, rule 6).
+- **Decision:**
+  - **Urgency groups**, in this order: "Vencidos" (OVERDUE), "Vencen pronto" (DUE_SOON, the
+    rule's warning window), "Próximos" (RUNNING), "Sin calcular" (NOT_CALCULABLE),
+    "Suspendidos" (SUSPENDED) and "Cumplidos" (MET). "Sin calcular" goes before "Suspendidos"
+    because it asks the lawyer to count by hand now; a suspended term does not run. Empty groups
+    are left out. The groups come from the backend's `status`; the frontend never recomputes
+    dates or the remaining time (`daysLeft`, `hoursLeft` as answered).
+  - **Detainees first inside each group** (the backend already sorts them first overall), with
+    the red edge and a "Persona detenida" badge with the lock. Urgency still wins over detention
+    between groups: an overdue deadline of a free person shows above a running one of a detained
+    person, because it already ended. Overdue and due-soon cards of free people get the amber
+    edge. Status is always a word plus an icon, never only a color.
+  - **One card for both screens** (`DeadlineCard`): status, rule name, source as the API writes
+    it ("Art. 118 · CPP de Neuquén (Ley 2784)") with the review tags visible ("[validar]",
+    "[no verificado]"), due date (with the time only for hour-based terms; day-based ones say
+    "hasta las 24"), what is left ("Quedan 15 horas", "Vence mañana", "Venció hace 3 días";
+    hour-based terms count in hours in their last 48 h), defendant, case link (left out inside the
+    case), legal or judicial kind and how it is counted in plain words, start, consequence,
+    extensions, days added by suspensions, case law with its press link (new tab), and the API's
+    disclaimer in every card, as text. Not-calculable cards explain which court-calendar year is
+    missing and ask to count by hand.
+  - **Horizon** in the URL (`?dias=7|15|30|60`), 30 by default (the backend's
+    `DEFAULT_WITHIN_DAYS`) and left out of the URL; any other value falls back to 30. A
+    "Solo personas detenidas" switch (`?detenidos=si`) filters on the client: it is the same
+    request. The previous horizon stays on screen, dimmed, while the next loads.
+  - **Case detail**: a "Plazos" section between "Imputados" and "Audiencias" with every
+    non-archived deadline of the case, met and suspended included, with the same groups.
+  - Empty states offer the next wider horizon and the cases; errors say what happened and
+    retry, like the other screens. Cards go two per row from 1280 px on `/plazos`.
+- **Consequences:** No create, edit, extension or "mark as met" yet: those forms come with a
+  later task, on these cards. `CasesEmpty` gained an optional `icon`. Vitest and Playwright share
+  fictitious deadlines in `src/test/deadline-fixtures.ts`, tied to the case fixtures.
