@@ -307,6 +307,8 @@ describe("HomePage (agenda)", () => {
 
     const toggle = within(region).getByRole("button", { name: "Mirá los 5 avisos" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
+    // More than three also overflow wider screens, so the toggle stays visible there.
+    expect(toggle).not.toHaveClass("md:hidden");
     fireEvent.click(toggle);
 
     expect(within(list).getAllByRole("listitem")).toHaveLength(5);
@@ -316,6 +318,30 @@ describe("HomePage (agenda)", () => {
 
     fireEvent.click(collapse);
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  it("keeps only the first alert on phones until the lawyer asks for the rest", async () => {
+    // jsdom applies no CSS: check the responsive classes that hide and show them.
+    agendaBackend();
+    renderApp("/");
+
+    const region = await screen.findByRole("region", { name: "2 avisos sobre personas detenidas" });
+    const items = within(within(region).getByRole("list", { name: "Avisos" })).getAllByRole(
+      "listitem",
+    );
+    expect(items).toHaveLength(2);
+    expect(items[0]).not.toHaveClass("max-md:hidden");
+    expect(items[1]).toHaveClass("max-md:hidden");
+
+    // Both fit on wider screens, so the toggle is only for phones.
+    const toggle = within(region).getByRole("button", { name: "Mirá los 2 avisos" });
+    expect(toggle).toHaveClass("md:hidden");
+    fireEvent.click(toggle);
+    expect(items[1]).not.toHaveClass("max-md:hidden");
+    expect(within(region).getByRole("button", { name: "Mostrá menos avisos" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
   });
 
   it("explains a failure and retries", async () => {

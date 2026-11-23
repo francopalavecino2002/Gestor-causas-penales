@@ -42,6 +42,30 @@ describe("DeadlinesPage", () => {
     expect(investigation).toHaveTextContent("Cálculo asistido: verificá con la norma.");
   });
 
+  it("shows the notes loaded with a deadline, such as the rules of a probation", async () => {
+    const notes = "Suspensión de juicio a prueba: reglas de conducta ficticias. [validar]";
+    signedIn(
+      undefined,
+      deadlineRoutes([{ ...DEADLINE_INVESTIGATION_DIEGO, notes: `  ${notes} ` }]),
+    );
+    renderApp("/plazos");
+
+    const investigation = await screen.findByRole("article", {
+      name: DEADLINE_INVESTIGATION_DIEGO.rule.name,
+    });
+    expect(investigation).toHaveTextContent(`Notas: ${notes}`);
+  });
+
+  it("leaves out the notes row when a deadline has none", async () => {
+    signedIn(undefined, deadlineRoutes([{ ...DEADLINE_INVESTIGATION_DIEGO, notes: " " }]));
+    renderApp("/plazos");
+
+    const investigation = await screen.findByRole("article", {
+      name: DEADLINE_INVESTIGATION_DIEGO.rule.name,
+    });
+    expect(investigation).not.toHaveTextContent("Notas:");
+  });
+
   it("groups the deadlines by urgency, detainees first, each with its source and disclaimer", async () => {
     const requests = signedIn(undefined, deadlineRoutes());
     renderApp("/plazos");

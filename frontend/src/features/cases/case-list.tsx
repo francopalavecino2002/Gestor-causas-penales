@@ -41,11 +41,14 @@ function NextHearingText({ item, catalogs, timeZone }: RowProps) {
   );
 }
 
-function Legajo({ value }: { value: string | null }) {
+/** Under the table's "Legajo MPF" header a missing one is just "Sin cargar", on one line. */
+function Legajo({ value, inTable = false }: { value: string | null; inTable?: boolean }) {
   return value ? (
     <span className="whitespace-nowrap tabular-nums">{value}</span>
   ) : (
-    <span className="text-muted-foreground">Sin legajo MPF</span>
+    <span className="whitespace-nowrap text-muted-foreground">
+      {inTable ? "Sin cargar" : "Sin legajo MPF"}
+    </span>
   );
 }
 
@@ -163,7 +166,7 @@ export function CaseTable({
             <th scope="col" className={cn(headerCell, "pl-5")}>
               Causa
             </th>
-            <th scope="col" className={headerCell}>
+            <th scope="col" className={cn(headerCell, "whitespace-nowrap")}>
               Legajo MPF
             </th>
             <th scope="col" className={headerCell}>
@@ -204,7 +207,7 @@ export function CaseTable({
                   </span>
                 </th>
                 <td className={cell}>
-                  <Legajo value={item.mpfLegajo} />
+                  <Legajo value={item.mpfLegajo} inTable />
                 </td>
                 <td className={cell}>{item.circumscriptionName}</td>
                 <td className={cell}>

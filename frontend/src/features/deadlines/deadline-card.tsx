@@ -12,6 +12,7 @@ import {
   Hourglass,
   Info,
   Lock,
+  NotebookPen,
   Play,
   Timer,
   TriangleAlert,
@@ -113,9 +114,7 @@ function DueBlock({ deadline, timeZone }: { deadline: DeadlineView; timeZone: st
     <div className="grid gap-0.5">
       {due && (
         <p className="text-body">
-          <span className="text-muted-foreground">
-            {dueLead(deadline.status)}
-          </span>
+          <span className="text-muted-foreground">{dueLead(deadline.status)}</span>
           <time
             dateTime={
               isHourBased(deadline) ? (deadline.dueAt ?? undefined) : (deadline.dueOn ?? undefined)
@@ -227,6 +226,16 @@ export function DeadlineCard({
       value: suspendedDaysLabel(deadline.suspendedDays),
     });
   }
+  // What the lawyer wrote when loading it: for a judicial term, often what it is about (e.g. the
+  // probation period of an alternative outcome and its rules of conduct).
+  if (deadline.notes?.trim()) {
+    meta.push({
+      icon: NotebookPen,
+      term: "Notas",
+      visibleTerm: true,
+      value: deadline.notes.trim(),
+    });
+  }
   if (rule.caseLawStatus) {
     meta.push({
       icon: BookOpen,
@@ -296,8 +305,10 @@ export function DeadlineCard({
         <p className="flex items-start gap-2 border-t pt-2.5 text-small text-muted-foreground">
           <Info aria-hidden="true" className="mt-0.5 size-4.5 shrink-0" />
           <span>
-            <strong className="font-bold">{deadline.disclaimer.trim() || FALLBACK_DISCLAIMER}</strong> El sistema propone la
-            fecha; la decisión es tuya.
+            <strong className="font-bold">
+              {deadline.disclaimer.trim() || FALLBACK_DISCLAIMER}
+            </strong>{" "}
+            El sistema propone la fecha; la decisión es tuya.
           </span>
         </p>
       </article>

@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isApiError, NETWORK_ERROR } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 /** The shape of a few case rows while the list loads. */
 export function CaseListSkeleton() {
@@ -49,17 +50,23 @@ export function CasesEmpty({
   description,
   icon: Icon = FolderSearch,
   children,
+  className,
 }: {
   title: string;
   description: string;
   icon?: LucideIcon;
   children?: ReactNode;
+  /** E.g. `max-w-none` to line up with a toolbar above it. */
+  className?: string;
 }) {
   const titleId = useId();
   return (
     <section
       aria-labelledby={titleId}
-      className="grid max-w-2xl justify-items-start gap-3 rounded-xl border border-dashed border-border-strong bg-card px-5 py-6"
+      className={cn(
+        "grid max-w-2xl justify-items-start gap-3 rounded-xl border border-dashed border-border-strong bg-card px-5 py-6",
+        className,
+      )}
     >
       <Icon aria-hidden="true" className="size-6 text-primary" />
       <h2 id={titleId} className="text-title font-bold">
