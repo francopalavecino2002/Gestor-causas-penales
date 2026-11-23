@@ -74,9 +74,32 @@ accounts and is decided later).
 Feedback from the first demo (2026-11-23): lawyers create and edit cases and hearings by hand every
 day; the spreadsheet import is for the initial load only. The backend endpoints already exist.
 
-**Paused (2026-11-23):** Franco asked to pause programming after T35 to analyse a competitor
-(Veredicta) and decide what to improve. Do not pick new tasks until new ones are added here.
 
 | ID  | Task | Owner | Needs | Status |
 |-----|------|-------|-------|--------|
 | T35 | Create and edit forms (React Hook Form + Zod) over the existing API: "Nueva causa" from the case list (caption, internal number, MPF legajo, OFIJU/Pehuén numbers, circumscription, action type, represented side, responsible lawyer, reserved flag, first defendant with stage), "Editar causa" and "Agregar/editar imputado" from the case detail, "Nueva audiencia" from the agenda and from the case detail (type from catalog with article, date/time, duration, room, judge, OFIJU reference, status, lawyers, defendants), "Editar audiencia". Only roles allowed by the backend see the buttons; server validation errors shown per field; schedule-clash warnings shown; mobile-first sheets/dialogs per `docs/design/DESIGN.md`. Unit tests per form and one Playwright flow creating a case and a hearing that then appears in the agenda. | frontend | T26 | done (#42) |
+
+## Milestone 5: Practice areas and competitor parity
+
+Decided 2026-11-23 after analysing Veredicta (veredicta.com.ar): Franco wants a flexible model, not
+only criminal. The differentiator and the demo stay criminal (Neuquén CPP ships by default and the
+demo must keep working), but the **practice area** (fuero: penal, civil, laboral, familia) becomes
+configuration, exactly like the jurisdiction: catalogs, stages, hearing types, party roles and
+deadline rules per area, and nothing criminal hardcoded in the core. Then the Veredicta features
+worth having, in small PRs. Non-criminal legal content is researched, cited and flagged
+`[validar]`/`[no verificado]`; no deadline rule ships without a cited article.
+
+| ID  | Task | Owner | Needs | Status |
+|-----|------|-------|-------|--------|
+| T40 | Practice-area design (Opus): ADR on how a jurisdiction package holds practice areas (shared catalogs such as circumscriptions and court calendar at jurisdiction level; per-area catalogs, stages, hearing types, party roles, deadline rules and a list of enabled modules such as defendants, coercive measures and detainee alerts for criminal), what moves from defendant to case level for non-criminal areas, migration of existing data to `penal`, API and UI impact. Plus `docs/domain/neuquen-otros-fueros.md` with researched, cited catalogs for civil (CPCyC Neuquén), laboral and familia (stages, hearing types, party roles), each flagged, and the split of T41–T43 adjusted if the design needs it. | orchestrator | T35 | todo |
+| T41 | Practice-area packages in the backend: load per-area YAML under the jurisdiction folder, `practice_area` on the case (existing cases migrate to `penal`), per-tenant enabled areas, catalog API filtered by area, criminal-only modules guarded by the area's module list. Criminal behaviour and the demo unchanged; tests prove an area cannot use another area's catalog items. | backend | T40 | todo |
+| T42 | Non-criminal cases in the backend: case-level stage, status and outcome for areas without the defendants module; parties with the area's roles (actor, demandado, etc.); hearings with the area's types; manual (judicial) deadlines only until rules are cited; import accepts the area column. | backend | T41 | todo |
+| T43 | Practice areas in the UI: area choice in "Nueva causa" (only enabled areas, criminal preselected), case detail and forms adapt to the area's modules and labels, area filter in the case list and agenda, enable/disable areas in Ajustes. | frontend | T42 | todo |
+| T44 | Agenda export (backend): per-user private iCalendar feed (`.ics`, RFC 5545) of the hearings they attend, with a revocable secret token, no personal data beyond what the lawyer already sees, reserved cases shown without caption; plus a one-off `.ics` download of a single hearing. | backend | T35 | todo |
+| T45 | Agenda export (UI): "Sumá tu agenda a Google Calendar / Outlook / iPhone" in Ajustes with the feed URL, copy button, step-by-step instructions and "Generá un enlace nuevo" (revokes the old); "Agregá al calendario" on each hearing. | frontend | T44 | todo |
+| T46 | Tasks per responsible (backend): task with title, due date, responsible member, optional case/hearing link, status (pendiente, hecha), archived not deleted, audited; queries "mis tareas", by case, overdue. | backend | T35 | todo |
+| T47 | Tasks per responsible (UI): "Tareas" screen (mine, by person, overdue first), quick-add from a case or hearing, tasks due today shown on the agenda home. | frontend | T46 | todo |
+| T48 | Firm news wall (backend): feed of what changed in the firm built from the audit log (new case, hearing scheduled/rescheduled, result loaded, deadline due soon) plus short manual posts, respecting reserved cases and roles; paginated. | backend | T35 | todo |
+| T49 | Firm news wall (UI): "Novedades" screen and a compact card on the agenda home, mobile-first. | frontend | T48 | todo |
+| T50 | Fees in JUS (Neuquén, Ley 1594): research and cite the fee scale and the current JUS value source into `docs/domain/honorarios-neuquen.md` (flagged), a calculator (backend rules + UI) that shows the article, the JUS value date and "Cálculo asistido: verificá con la norma"; the JUS value is entered by the firm, never scraped. | backend | T40 | todo |
+| T51 | Public deadline calculator: a page without login that computes a CPP Neuquén deadline from a rule and a start date with the built-in engine and court calendar, showing article, computation type and the disclaimer; rate-limited public endpoint, no data stored. Useful as a marketing entry point. | frontend | T35 | todo |
