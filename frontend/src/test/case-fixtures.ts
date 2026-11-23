@@ -4,7 +4,7 @@
  * is the one of the agenda's 11:00 hearing (agenda-fixtures.ts), so the agenda links to it.
  * Relative imports only: the e2e project (tsconfig.node.json) has no "@/" alias.
  */
-import type { CatalogItem, CatalogView } from "../features/catalogs/catalog-types";
+import type { CatalogId, CatalogItem, CatalogView } from "../features/catalogs/catalog-types";
 import type {
   CaseDetail,
   CaseHearing,
@@ -25,20 +25,23 @@ const item = (code: string, name: string, article: string | null = null): Catalo
   article,
   flags: [],
   note: null,
+  origin: "JURISDICTION",
   hidden: false,
 });
 
-const catalog = (catalogId: CatalogView["catalog"], items: CatalogItem[]): CatalogView => ({
+const catalog = (catalogId: CatalogId, items: CatalogItem[]): CatalogView => ({
   catalog: catalogId,
   jurisdiction: "neuquen",
   packageVersion: 1,
   source: "CPP de Neuquén (Ley 2784)",
   flags: [],
   note: null,
+  hideable: catalogId === "hearing-types",
+  extensible: catalogId === "hearing-types",
   items,
 });
 
-export const CATALOGS: Record<CatalogView["catalog"], CatalogView> = {
+export const CATALOGS: Record<CatalogId, CatalogView> = {
   stages: catalog("stages", [
     item("averiguacion-preliminar", "Averiguación preliminar y valoración inicial", "129 a 132"),
     item("investigacion-preparatoria", "Investigación preparatoria", "133 a 158"),
