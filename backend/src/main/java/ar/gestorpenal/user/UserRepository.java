@@ -1,5 +1,6 @@
 package ar.gestorpenal.user;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +13,9 @@ public interface UserRepository extends JpaRepository<AppUser, UUID> {
 
     /** Expects an email already normalized with {@link UserService#normalizeEmail(String)}. */
     Optional<AppUser> findByEmail(String email);
+
+    /** The active members, by name: what forms offer as responsible or attending lawyers. */
+    List<AppUser> findByArchivedAtIsNullOrderByDisplayNameAscIdAsc();
 
     /**
      * Records {@code step} as the last used TOTP step only if it is newer than the stored one. A
