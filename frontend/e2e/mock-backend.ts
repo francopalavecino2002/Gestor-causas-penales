@@ -11,8 +11,22 @@ import {
   HEARINGS_BY_CASE,
   MEASURES,
 } from "../src/test/case-fixtures";
+import type { CatalogItem, CatalogView } from "../src/features/catalogs/catalog-types";
 import type { DeadlineView } from "../src/features/deadlines/deadline-types";
+import type {
+  CustomField,
+  CustomFieldChange,
+  DeadlineRule,
+  DeadlineRuleSetting,
+  NewCustomField,
+} from "../src/features/settings/settings-types";
 import { ALL_DEADLINES, caseDeadlines, upcomingDeadlines } from "../src/test/deadline-fixtures";
+import {
+  CASE_FIELDS,
+  DEADLINE_RULES,
+  DEFENDANT_FIELDS,
+  SETTINGS_CATALOGS,
+} from "../src/test/settings-fixtures";
 
 /** Fictitious user of the fictitious demo firm (same as the Vitest fixtures). */
 export const DEMO_ME = {
@@ -52,6 +66,108 @@ interface MockBackendOptions {
 }
 
 /**
+ * The settings endpoints (T25) over the fictitious fixtures, with state so a change shows up in
+ * the next GET. Undefined when the request is not one of them.
+ */
+function settingsBackend() {
+  const catalogs: CatalogView[] = structuredClone(SETTINGS_CATALOGS);
+  const fields: CustomField[] = structuredClone([...CASE_FIELDS, ...DEFENDANT_FIELDS]);
+  const rules: DeadlineRule[] = structuredClone(DEADLINE_RULES);
+  let next = 100;
+
+  return (method: string, url: URL, body: () => unknown): { status: number; json?: unknown } | undefined => {
+    const path = url.pathname;
+    if (method === "GET" && path === "/api/v1/catalogs") return { status: 200, json: catalogs };
+    if (method === "GET" && path === "/api/v1/custom-fields") {
+      const entity = url.searchParams.get("entity");
+      return { status: 200, json: fields.filter((field) => field.entity === entity) };
+    }
+    if (method === "GET" && path === "/api/v1/deadline-rules") return { status: 200, json: rules };
+
+    const itemChange = /^\/api\/v1\/catalogs\/([a-z-]+)\/items\/([a-z0-9-]+)$/.exec(path);
+    if (method === "PUT" && itemChange) {
+      const item = catalogs
+        .find((view) => view.catalog === itemChange[1])
+        ?.items.find((candidate) => candidate.code === itemChange[2]);
+      if (!item) return { status: 404 };
+      const change = body() as { name: string | null; hidden: boolean };
+      item.name = change.name ?? item.sourceName ?? item.name;
+      item.hidden = change.hidden;
+      return { status: 200, json: item };
+    }
+    const newItem = /^\/api\/v1\/catalogs\/([a-z-]+)\/items$/.exec(path);
+    if (method === "POST" && newItem) {
+      const view = catalogs.find((candidate) => candidate.catalog === newItem[1]);
+      if (!view) return { status: 404 };
+      const { name, article } = body() as { name: string; article: string | null };
+      const added: CatalogItem = {
+        code: `custom-${next++}`,
+        name,
+        sourceName: null,
+        article,
+        flags: [],
+        note: null,
+        origin: "FIRM",
+        hidden: false,
+      };
+      view.items.push(added);
+      return { status: 201, json: added };
+    }
+
+    if (method === "POST" && path === "/api/v1/custom-fields") {
+      const request = body() as NewCustomField;
+      const created: CustomField = {
+        ...request,
+        id: `00000000-0000-4000-e000-${String(next++).padStart(12, "0")}`,
+        key: `campo-${next}`,
+        position: fields.filter((field) => field.entity === request.entity).length,
+        options: request.options.map((option, index) => ({
+          code: `opcion-${index + 1}`,
+          label: option.label,
+          hidden: false,
+        })),
+        archived: false,
+        createdAt: "2026-11-23T13:20:00Z",
+      };
+      fields.push(created);
+      return { status: 201, json: created };
+    }
+    const fieldPath = /^\/api\/v1\/custom-fields\/([0-9a-f-]+)(?:\/(archive|restore))?$/.exec(path);
+    if (fieldPath && method !== "GET") {
+      const field = fields.find((candidate) => candidate.id === fieldPath[1]);
+      if (!field) return { status: 404 };
+      if (method === "POST" && fieldPath[2]) {
+        field.archived = fieldPath[2] === "archive";
+        return { status: 204 };
+      }
+      if (method === "PUT") {
+        const change = body() as CustomFieldChange;
+        Object.assign(field, {
+          label: change.label,
+          required: change.required,
+          position: change.position,
+          options: change.options.map((option, index) => ({
+            code: option.code ?? `nueva-${index + 1}`,
+            label: option.label,
+            hidden: option.hidden,
+          })),
+        });
+        return { status: 200, json: field };
+      }
+    }
+
+    const ruleSetting = /^\/api\/v1\/deadline-rules\/([a-z0-9-]+)\/settings$/.exec(path);
+    if (method === "PUT" && ruleSetting) {
+      const rule = rules.find((candidate) => candidate.code === ruleSetting[1]);
+      if (!rule) return { status: 404 };
+      Object.assign(rule, body() as DeadlineRuleSetting);
+      return { status: 200, json: rule };
+    }
+    return undefined;
+  };
+}
+
+/**
  * A case detail, its hearings, a defendant's coercive measures or a catalog, from the
  * fixtures; undefined when there is no such resource (the caller answers 404).
  */
@@ -82,6 +198,7 @@ function caseResource(path: string): unknown {
 export async function mockBackend(page: Page, options: MockBackendOptions = {}) {
   const state = { signedIn: options.signedIn ?? false, pendingSecondFactor: false };
   const calls: string[] = [];
+  const settings = settingsBackend();
 
   const problem = (route: Route, status: number, type: string) =>
     route.fulfill({
@@ -177,12 +294,21 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
           ),
         });
       }
-      default:
+      default: {
+        const settingsAnswer = state.signedIn
+          ? settings(method, url, () => request.postDataJSON())
+          : undefined;
+        if (settingsAnswer) {
+          return settingsAnswer.status === 404
+            ? problem(route, 404, "not-found")
+            : route.fulfill({ status: settingsAnswer.status, json: settingsAnswer.json });
+        }
         if (method === "GET" && state.signedIn) {
           const found = caseResource(path);
           if (found !== undefined) return route.fulfill({ status: 200, json: found });
         }
         return problem(route, 404, "not-found");
+      }
     }
   });
 

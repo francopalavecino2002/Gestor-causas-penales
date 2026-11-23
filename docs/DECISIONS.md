@@ -1202,3 +1202,50 @@ Superseded decisions are marked, never deleted.
 - **Consequences:** No create, edit, extension or "mark as met" yet: those forms come with a
   later task, on these cards. `CasesEmpty` gained an optional `icon`. Vitest and Playwright share
   fictitious deadlines in `src/test/deadline-fixtures.ts`, tied to the case fixtures.
+
+## ADR-0026: Settings screen (T25)
+
+- **Date:** 2026-11-23
+- **Status:** accepted
+- **Context:** T25 replaces the `/ajustes` placeholder with the firm's configuration on top of
+  the existing endpoints: catalogs (ADR-0013), custom fields (ADR-0018) and deadline-rule
+  settings (ADR-0017). Every member reads them; the backend lets only the owner (titular) change
+  them (`403 access-denied` otherwise). There is no endpoint to list, invite or change the role of
+  the firm's users, only `GET /api/v1/me`, and case templates were deferred in T15 (ADR-0018).
+- **Decision:**
+  - **Sections as routes**: `/ajustes` is an index (one row per section, sentence-level summary),
+    and each section has its own URL: `/ajustes/catalogos` (`?catalogo=<id>`, "Tipos de
+    audiencia" by default and left out), `/ajustes/campos` (`?para=imputados`, the cases' fields
+    by default), `/ajustes/plazos` and `/ajustes/usuarios`. From 768 px a segmented link bar
+    joins the sections; on phones a "‹ Ajustes" link goes back to the index.
+  - **Catalogs**: one catalog at a time from a native select. Each item shows its name, the CPP
+    article as "CPP art. N", the review tags ("[validar]", "[no verificado]"), the norm's name when
+    renamed, "Oculto" and "Agregado por el estudio" badges. The article and tags are never
+    editable. Actions follow the catalog's `hideable` / `extensible` flags: rename (a built-in item
+    can go back to the norm's name, which sends `name: null`), hide/show (the current name is sent
+    back, so hiding never undoes a rename) and add an item with an optional article.
+  - **Custom fields**: "En uso" and "Archivados" lists per record; create (label, one of the five
+    types, required, options for a list), edit (label, required, options; type and entity are
+    fixed), archive with a confirmation that the values stay, restore. Saved options can only be
+    hidden, never removed; position is kept as is (no reordering yet). The create dialog warns not
+    to store sensitive data (Ley 25.326, arts. 2 y 7), as ADR-0018 requires.
+  - **Deadline rules**: read-only rules grouped "Personas detenidas" / "Otros plazos", each with
+    its source, review tags, how it counts, consequence, allowed extensions, the events that
+    suspend it, case law (review date and press link in a new tab), note and the API's disclaimer,
+    plus the assisted-calculation note on top (CLAUDE.md rule 6). The owner gets a switch
+    ("Activa en el estudio") and the warning days (0 to 90, Zod-validated); disabling asks first,
+    with a red note for a detainee's rule. A change refreshes `/plazos` and the case deadlines.
+  - **Users and roles, read only**: the current account (name, email, role in Spanish, 2FA
+    status) and what each role can do, written from the backend's actual checks. The screen says
+    plainly that inviting people and changing roles come later; no fake user list. 2FA enrollment
+    from the UI is not built either (the backend endpoints exist; a later task adds the flow).
+  - **Templates per case type**: a non-link row in the index, "Todavía no disponible", with one
+    honest sentence. No placeholder UI.
+  - Non-owners see every section read only, with a note; problem+json answers are shown in
+    Spanish (`settingsErrorMessage`), never the server's text. Successful changes are announced
+    in a polite live region ("Guardado: …") that stays on screen.
+- **Consequences:** Follow-up needed in the backend: endpoints to list the firm's users, invite
+  one, change a role and deactivate an account (with the audit log), then this section gains the
+  list. Field reordering, 2FA enrollment and case templates are pending. `CatalogView` and
+  `CatalogItem` in the frontend now carry `hideable`, `extensible` and `origin`, as the API
+  already sent. Vitest and Playwright share fictitious settings in `src/test/settings-fixtures.ts`.

@@ -8,7 +8,7 @@ import {
   redirect,
   type RouterHistory,
 } from "@tanstack/react-router";
-import { Settings, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 import { AppShell } from "@/components/shell/app-shell";
 import { parseAgendaSearch } from "@/features/agenda/agenda-search";
@@ -21,6 +21,12 @@ import { parseDeadlineSearch } from "@/features/deadlines/deadline-search";
 import { LoginPage, type LoginSearch } from "@/features/auth/login-page";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { LOGIN_PATH, loginSearchFor } from "@/features/auth/redirect";
+import { CatalogsSection } from "@/features/settings/catalogs-section";
+import { CustomFieldsSection } from "@/features/settings/custom-fields-section";
+import { DeadlineRulesSection } from "@/features/settings/deadline-rules-section";
+import { SettingsHomePage } from "@/features/settings/settings-layout";
+import { parseCatalogSearch, parseFieldSearch } from "@/features/settings/settings-search";
+import { UsersSection } from "@/features/settings/users-section";
 import { HomePage } from "@/pages/home-page";
 import { NotFoundPage } from "@/pages/not-found-page";
 import { PlaceholderPage } from "@/pages/placeholder-page";
@@ -132,16 +138,45 @@ const personsRoute = createRoute({
   ),
 });
 
+/** Settings index and its sections (ADR-0026). Every member reads; only the owner changes. */
 const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/ajustes",
-  component: () => (
-    <PlaceholderPage
-      title="Ajustes"
-      icon={Settings}
-      description="Acá vas a configurar el estudio: el equipo, los catálogos, los campos propios y la verificación en dos pasos."
-    />
-  ),
+  component: SettingsHomePage,
+});
+
+/** `?catalogo` keeps the chosen catalog linkable. */
+const settingsCatalogsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ajustes/catalogos",
+  validateSearch: parseCatalogSearch,
+  component: function SettingsCatalogsRoute() {
+    const search = settingsCatalogsRoute.useSearch();
+    return <CatalogsSection search={search} />;
+  },
+});
+
+/** `?para=imputados` switches from the cases' fields to the defendants'. */
+const settingsFieldsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ajustes/campos",
+  validateSearch: parseFieldSearch,
+  component: function SettingsFieldsRoute() {
+    const search = settingsFieldsRoute.useSearch();
+    return <CustomFieldsSection search={search} />;
+  },
+});
+
+const settingsRulesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ajustes/plazos",
+  component: DeadlineRulesSection,
+});
+
+const settingsUsersRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ajustes/usuarios",
+  component: UsersSection,
 });
 
 const routeTree = rootRoute.addChildren([
@@ -154,6 +189,10 @@ const routeTree = rootRoute.addChildren([
     deadlinesRoute,
     personsRoute,
     settingsRoute,
+    settingsCatalogsRoute,
+    settingsFieldsRoute,
+    settingsRulesRoute,
+    settingsUsersRoute,
   ]),
 ]);
 

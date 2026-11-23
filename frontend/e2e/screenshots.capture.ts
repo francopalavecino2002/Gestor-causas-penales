@@ -277,6 +277,56 @@ const SCREENS: Record<string, Screen[]> = {
       fullPage: true,
     },
   ],
+  t25: [
+    { path: "/ajustes", name: "settings-index", prepare: agendaWeek() },
+    {
+      path: "/ajustes/catalogos",
+      name: "settings-catalogs",
+      prepare: agendaWeek(),
+      act: (page) => page.getByRole("listitem").first().waitFor(),
+    },
+    {
+      path: "/ajustes/catalogos",
+      name: "settings-catalog-rename",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await page
+          .getByRole("listitem", { name: "Revisión de la preventiva" })
+          .getByRole("button", { name: "Renombrá" })
+          .click();
+        await page.getByRole("dialog").waitFor();
+      },
+      fullPage: false,
+    },
+    {
+      path: "/ajustes/campos",
+      name: "settings-fields",
+      prepare: agendaWeek(),
+      act: (page) => page.getByRole("region", { name: "En uso" }).waitFor(),
+    },
+    {
+      path: "/ajustes/campos",
+      name: "settings-field-create",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Agregá un campo" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByText("Lista de opciones").click();
+        await dialog.getByRole("button", { name: "Agregá el campo" }).click();
+        await dialog.getByText("Escribí el nombre del campo.").waitFor();
+      },
+      fullPage: false,
+    },
+    {
+      path: "/ajustes/plazos",
+      name: "settings-deadline-rules",
+      prepare: agendaWeek(),
+      act: waitForHearings,
+    },
+    { path: "/ajustes/usuarios", name: "settings-users", prepare: agendaWeek() },
+  ],
 };
 
 const VIEWPORTS: Record<ViewportName, { width: number; height: number }> = {
