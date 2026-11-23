@@ -134,3 +134,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   The app is also served on the LAN IP for a phone on the same Wi-Fi; in that mode the session and
   CSRF cookies drop `Secure`, now driven by one property. Guide in Spanish in `docs/DEMO.md`; CI
   lints the demo scripts (ADR-0029).
+- End-to-end demo flow (T32): a Playwright suite in `frontend/e2e-demo/` drives the real backend
+  with the fictitious seed: login with password and TOTP, today's agenda and the week (desktop and
+  phone) with the lawyer filter, finding and opening a case, a detained defendant's deadlines with
+  their legal source and the assisted-calculation disclaimer, and a CSV import of people with its
+  error report. `scripts/e2e-demo.sh` runs it on a fresh `gestor_e2e` database; CI runs the same
+  script in a new `e2e-demo` job.

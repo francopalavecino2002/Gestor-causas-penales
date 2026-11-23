@@ -100,3 +100,24 @@ bash scripts/demo.sh --local
 | En Git Bash falla `./mvnw` por `mktemp` | El script usa `mvn` si está instalado; si no, usá `demo.ps1`. |
 
 Los logs del backend y del frontend quedan en `.demo-logs/` (ignorado por git).
+
+## Pruebas de punta a punta
+
+El recorrido de la demo también es una prueba automática (Playwright, en `frontend/e2e-demo/`):
+login con clave y código de 2FA, agenda de hoy y de la semana (en compu y celular), buscar y abrir
+una causa, los plazos de un imputado detenido con su norma y el aviso de cálculo asistido, e
+importar una planilla CSV de personas. Corre contra el backend real con los datos ficticios, no
+contra respuestas simuladas.
+
+```bash
+bash scripts/e2e-demo.sh
+```
+
+El script recrea la base **`gestor_e2e`** (no toca `gestor_causas` ni `gestor_demo`), arranca el
+backend en `:8081` con los perfiles `dev,demo` y una clave de demo descartable, corre las pruebas
+y apaga el backend. El puerto 8081 tiene que estar libre: si tenés la demo abierta, cortala antes.
+Para correr una sola prueba: `bash scripts/e2e-demo.sh two-factor`. En CI corre el mismo script
+(job `e2e-demo`).
+
+Si una corrida se corta a mitad de la prueba de 2FA, el usuario Julián puede quedar con el segundo
+factor activado: la próxima corrida del script lo arregla sola, porque recrea la base.
