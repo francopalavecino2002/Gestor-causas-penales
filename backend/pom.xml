@@ -21,6 +21,7 @@
         <lombok.version>1.18.48</lombok.version>
         <commons-csv.version>1.14.1</commons-csv.version>
         <poi.version>5.5.1</poi.version>
+        <jacoco.version>0.8.15</jacoco.version>
     </properties>
 
     <dependencies>
@@ -132,6 +133,28 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <!-- Coverage of unit + integration tests (surefire runs both). Report at
+                 target/site/jacoco/; it measures, it does not gate the build. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

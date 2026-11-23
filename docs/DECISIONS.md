@@ -1372,3 +1372,33 @@ Superseded decisions are marked, never deleted.
   a trusted network and `--local` elsewhere. Behind the proxy every device counts as one client for
   the login throttle. Anything imported during a demo is lost on the next run. Windows asks
   once to allow Node.js through the firewall on private networks.
+
+## ADR-0030: Coverage measurement and README media (T34)
+
+- **Date:** 2026-11-23
+- **Status:** accepted
+- **Context:** T34 asks for a coverage badge and an animated GIF of the main flow in the README.
+  The project uses no paid or external services in this milestone, the agent cannot push to `main`
+  (so CI cannot commit a generated badge), and the host has no ffmpeg or ImageMagick.
+- **Decision:**
+  - **JaCoCo 0.8.15** in the backend build: `prepare-agent` plus `report` in `verify`. Surefire
+    runs unit and integration tests together, so one report covers both. It measures and does not
+    gate the build; a threshold can come later once the number is stable.
+  - **CI** writes the total line coverage to the job summary (computed from `jacoco.csv`) and
+    uploads the HTML report as the `backend-coverage` artifact.
+  - **Badge:** a static shields.io badge with the line coverage measured by `verify`, refreshed by
+    hand in the PR that changes it noticeably. The README states the date of the measurement.
+    No Codecov/Coveralls: they need an external account that only Franco can create.
+  - **Frontend coverage** is not measured yet (it would add `@vitest/coverage-v8`); the README shows
+    the test count per suite instead.
+  - **GIF** built from the T33 desktop screenshots by `frontend/scripts/demo-gif.mjs` (dev
+    dependencies `gifenc` 1.0.3 and `pngjs` 7.0.0, the latest on npm, pure JavaScript): 12 frames in the order of the demo script,
+    downscaled to 960 px by area averaging, a 256-color palette per frame, 2.2 s per frame,
+    about 0.5 MB. A slideshow of real screens is reproducible on any machine with Node, unlike a
+    screen recording that needs a video encoder.
+- **Alternatives considered:** a CI job committing an SVG badge to a `badges` branch (more moving
+  parts and write permissions for little gain); recording a Playwright video and converting it
+  (needs ffmpeg and gives a heavier, less legible GIF).
+- **Consequences:** The coverage badge can drift from reality between refreshes; the CI summary is
+  the source of truth. Regenerating the GIF after UI changes is two commands:
+  `bash scripts/e2e-demo.sh --screenshots` and `npm --prefix frontend run demo:gif`.

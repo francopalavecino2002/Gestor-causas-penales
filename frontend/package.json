@@ -17,6 +17,7 @@
     "test:e2e:demo": "playwright test -c playwright.demo.config.ts",
     "screenshots": "playwright test -c playwright.screenshots.config.ts",
     "screenshots:demo": "playwright test -c playwright.demo-screenshots.config.ts",
+    "demo:gif": "node scripts/demo-gif.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -50,8 +51,10 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.8",
+    "gifenc": "^1.0.3",
     "globals": "^17.14.0",
     "jsdom": "^31.0.1",
+    "pngjs": "^7.0.0",
     "prettier": "^3.10.1",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.5",
