@@ -79,6 +79,22 @@ flowchart LR
 
 ## Cómo correrlo localmente
 
+### Demo en un comando
+
+Con Docker Desktop abierto, JDK 21+ y Node 22.12+:
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts\demo.ps1   # Windows
+bash scripts/demo.sh                                         # Linux, macOS o Git Bash
+```
+
+Levanta Postgres, el backend con datos ficticios de hoy (base `gestor_demo`, recreada en cada
+corrida) y el frontend; abre el navegador e imprime los usuarios y la clave. También publica la app
+en la IP de la red local para abrirla desde un celular en el mismo Wi-Fi (`--local` / `-Local` lo
+desactiva). Detalles, usuarios y problemas comunes en [`docs/DEMO.md`](docs/DEMO.md).
+
+### Paso a paso
+
 Requisitos: JDK 21 o superior, Node 22.12 o superior, Docker con Docker Compose. Los comandos son
 de bash (Linux, macOS o Git Bash). Si `./mvnw` falla en Git Bash por falta de `mktemp`, usá `mvn`
 (Maven 3.10) con los mismos argumentos.
