@@ -26,14 +26,23 @@ export class ApiError extends Error {
   /** Seconds from the `Retry-After` header, when the server sent one (429). */
   readonly retryAfter: number | undefined;
   readonly detail: string | undefined;
+  /** The whole problem+json body, for the extension members some errors carry (e.g. `report`). */
+  readonly problem: Record<string, unknown> | undefined;
 
-  constructor(options: { status: number; type: string; retryAfter?: number; detail?: string }) {
+  constructor(options: {
+    status: number;
+    type: string;
+    retryAfter?: number;
+    detail?: string;
+    problem?: Record<string, unknown>;
+  }) {
     super(`API error ${options.status} (${options.type})`);
     this.name = "ApiError";
     this.status = options.status;
     this.type = options.type;
     this.retryAfter = options.retryAfter;
     this.detail = options.detail;
+    this.problem = options.problem;
   }
 }
 
@@ -55,6 +64,11 @@ interface RequestOptions {
   method?: Method;
   /** Serialized as JSON. */
   body?: unknown;
+  /**
+   * Sent as multipart/form-data instead of `body` (file uploads). The browser sets the
+   * Content-Type with its boundary, so it is never set here.
+   */
+  formData?: FormData;
   signal?: AbortSignal;
 }
 
@@ -79,7 +93,8 @@ export async function apiFetch<T = undefined>(
 
 async function send(path: string, method: Method, options: RequestOptions): Promise<Response> {
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  const json = options.formData === undefined && options.body !== undefined;
+  if (json) headers["Content-Type"] = "application/json";
   if (method !== "GET") headers[CSRF_HEADER] = await csrfToken();
 
   try {
@@ -87,7 +102,7 @@ async function send(path: string, method: Method, options: RequestOptions): Prom
       method,
       headers,
       credentials: "include",
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body: options.formData ?? (json ? JSON.stringify(options.body) : undefined),
       signal: options.signal,
     });
   } catch (error) {
@@ -111,12 +126,16 @@ async function parse<T>(response: Response): Promise<T> {
 async function toApiError(response: Response): Promise<ApiError> {
   let type = UNKNOWN_PROBLEM;
   let detail: string | undefined;
+  let problem: Record<string, unknown> | undefined;
   try {
-    const problem = (await response.json()) as { type?: unknown; detail?: unknown };
-    if (typeof problem.type === "string" && problem.type.length > 0) {
-      type = problem.type.split("/").filter(Boolean).pop() ?? UNKNOWN_PROBLEM;
+    const body: unknown = await response.json();
+    if (body !== null && typeof body === "object" && !Array.isArray(body)) {
+      problem = body as Record<string, unknown>;
+      if (typeof problem.type === "string" && problem.type.length > 0) {
+        type = problem.type.split("/").filter(Boolean).pop() ?? UNKNOWN_PROBLEM;
+      }
+      if (typeof problem.detail === "string") detail = problem.detail;
     }
-    if (typeof problem.detail === "string") detail = problem.detail;
   } catch {
     // Not JSON (a proxy error page, an empty body): keep the status and an unknown type.
   }
@@ -124,6 +143,7 @@ async function toApiError(response: Response): Promise<ApiError> {
     status: response.status,
     type,
     detail,
+    problem,
     retryAfter: parseRetryAfter(response.headers.get("Retry-After")),
   });
 }

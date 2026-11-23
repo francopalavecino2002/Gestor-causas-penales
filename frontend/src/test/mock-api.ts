@@ -40,6 +40,13 @@ export const problem = (status: number, type: string, headers: Record<string, st
     headers: { "Content-Type": "application/problem+json", ...headers },
   });
 
+/** A problem+json answer with a detail and extension members (e.g. an import `report`). */
+export const problemWith = (status: number, type: string, members: Record<string, unknown>) =>
+  new Response(JSON.stringify({ type: `/problems/${type}`, status, title: type, ...members }), {
+    status,
+    headers: { "Content-Type": "application/problem+json" },
+  });
+
 /** Fictitious user of the fictitious demo firm. */
 export const DEMO_ME: Me = {
   id: "00000000-0000-4000-8000-000000000001",
@@ -90,7 +97,12 @@ export function mockFetch(routes: Record<string, Handler>) {
       path: url.pathname,
       query: Object.fromEntries(url.searchParams),
       headers,
-      body: typeof init.body === "string" ? JSON.parse(init.body) : undefined,
+      body:
+        typeof init.body === "string"
+          ? JSON.parse(init.body)
+          : init.body instanceof FormData
+            ? init.body
+            : undefined,
     };
     requests.push(request);
     const handler = table[`${method} ${url.pathname}`];

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { apiFetch, ApiError, CSRF_UNAVAILABLE, NETWORK_ERROR, UNKNOWN_PROBLEM } from "@/lib/api";
-import { json, mockFetch, noContent, problem } from "@/test/mock-api";
+import { json, mockFetch, noContent, problem, problemWith } from "@/test/mock-api";
 
 async function catchError(promise: Promise<unknown>): Promise<ApiError> {
   try {
@@ -83,6 +83,32 @@ describe("apiFetch", () => {
     expect(error.status).toBe(429);
     expect(error.type).toBe("login-throttled");
     expect(error.retryAfter).toBe(120);
+  });
+
+  it("sends FormData as multipart with the CSRF header and no JSON Content-Type", async () => {
+    document.cookie = "XSRF-TOKEN=token-9; path=/";
+    const requests = mockFetch({ "POST /api/v1/imports/persons": () => json(200, { ok: true }) });
+    const form = new FormData();
+    form.append("file", new File(["a;b"], "personas.csv", { type: "text/csv" }));
+
+    await apiFetch("/api/v1/imports/persons", { method: "POST", formData: form });
+
+    expect(requests[0]?.headers["x-xsrf-token"]).toBe("token-9");
+    expect(requests[0]?.headers["content-type"]).toBeUndefined();
+    expect(requests[0]?.body).toBe(form);
+  });
+
+  it("keeps the problem's extension members", async () => {
+    mockFetch({
+      "POST /api/v1/imports/persons": () =>
+        problemWith(422, "import-has-errors", { detail: "Some rows", report: { totalRows: 2 } }),
+    });
+
+    const error = await catchError(apiFetch("/api/v1/imports/persons", { method: "POST" }));
+
+    expect(error.type).toBe("import-has-errors");
+    expect(error.detail).toBe("Some rows");
+    expect(error.problem?.report).toEqual({ totalRows: 2 });
   });
 
   it("keeps the status when the error body is not JSON", async () => {
