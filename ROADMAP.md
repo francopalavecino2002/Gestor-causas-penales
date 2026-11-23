@@ -52,4 +52,19 @@ best option itself and records it as an ADR. Only ask Franco for things that phy
 | T23 | Case list and case detail. | frontend | T21, T12 | done (#31) |
 | T24 | Deadlines view with source and disclaimer. | frontend | T21, T14 | done (#32) |
 | T25 | Settings: catalogs, custom fields, templates, users and roles. | frontend | T21, T15 | done (#33) |
-| T26 | Import wizard. | frontend | T21, T16 | done |
+| T26 | Import wizard. | frontend | T21, T16 | done (#34) |
+
+## Milestone 3: Demo-ready prototype (stage 3)
+
+Goal: a lawyer can be shown the product in 10 minutes ("this is your week of hearings, these are
+your detainees, this is what expires"), from a laptop or a phone, with fictitious data only.
+No paid services and no deployment to the internet in this milestone (hosting needs Franco's
+accounts and is decided later).
+
+| ID  | Task | Owner | Needs | Status |
+|-----|------|-------|-------|--------|
+| T30 | Rich demo dataset (profile `demo`): 1 fictitious firm, 3 lawyers, ~25 cases across all stages, multi-defendant cases, this week's agenda full of hearings of the most frequent types, 2 detainees with deadlines expiring in <48 h, one alternative outcome in its probation period, `[validar]` items visible. Dates relative to "today" so the demo never looks stale. | backend | T26 | todo |
+| T31 | One-command local demo: `scripts/demo.ps1` (and `demo.sh`) starts Postgres, backend (profile `demo`) and frontend, waits for health, opens the browser and prints the demo users. Also serve the app on the LAN IP so a phone on the same Wi-Fi can open it. Document in README and `docs/DEMO.md` (Spanish). | orchestrator | T30 | todo |
+| T32 | End-to-end tests with Playwright over the demo flow: login + 2FA, agenda today/week, open a case, see a defendant's deadlines with source and disclaimer, import a CSV. Run in CI against Testcontainers/compose. | frontend | T30 | todo |
+| T33 | Demo script and visual QA: `docs/DEMO.md` gets a 10-minute guided script in Spanish with talking points per screen, and the questions for the lawyer from `docs/domain/neuquen-review.md`. Capture screenshots of every screen at 390x844 and 1440x900 into `docs/screenshots/demo/`, review them against `docs/design/DESIGN.md`, fix visual issues found. | frontend | T31, T32 | todo |
+| T34 | Portfolio polish: README with screenshots and an animated GIF of the main flow, architecture diagram updated, test counts and coverage badge, "How it was built" section about the agent workflow. | orchestrator | T33 | todo |
