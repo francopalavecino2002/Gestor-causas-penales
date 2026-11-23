@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "test:e2e:demo": "playwright test -c playwright.demo.config.ts",
     "screenshots": "playwright test -c playwright.screenshots.config.ts",
+    "screenshots:demo": "playwright test -c playwright.demo-screenshots.config.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

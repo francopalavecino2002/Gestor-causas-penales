@@ -25,6 +25,7 @@
     "playwright.config.ts",
     "playwright.screenshots.config.ts",
     "playwright.demo.config.ts",
+    "playwright.demo-screenshots.config.ts",
     "e2e",
     "e2e-demo"
   ]
