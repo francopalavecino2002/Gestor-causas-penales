@@ -146,3 +146,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `bash scripts/e2e-demo.sh --screenshots`. The visual review fixed four issues: on phones the agenda
   shows one detainee alert and "Mirá los N avisos", deadline cards show their notes, the case table
   says "Sin cargar" on one line, and the empty state for custom fields spans the full width.
+- Portfolio polish (T34): the README now presents the demo-ready prototype with an animated GIF of
+  the demo flow (`npm --prefix frontend run demo:gif`, built from the demo screenshots), a screenshot
+  gallery, an updated architecture diagram, test counts per suite, a backend coverage badge and a
+  "Cómo se construyó" section about the agent workflow. The backend build measures line coverage
+  with JaCoCo; CI writes it to the job summary and uploads the report as an artifact (ADR-0030).
