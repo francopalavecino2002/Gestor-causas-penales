@@ -1,6 +1,7 @@
 import { useId } from "react";
-import { Gavel, MapPin, NotebookText, User, type LucideIcon } from "lucide-react";
+import { Gavel, MapPin, NotebookText, Pencil, User, type LucideIcon } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cppArticle, joinNames } from "@/features/agenda/agenda-format";
@@ -9,9 +10,11 @@ import { formatLongDateTime, groupCaseHearings } from "@/features/cases/case-for
 import { useCaseHearings } from "@/features/cases/case-queries";
 import { LoadError } from "@/features/cases/case-states";
 import type { CaseHearing } from "@/features/cases/case-types";
+import { useHearingEdit } from "@/features/hearings/hearing-edit-context";
 
 function HearingItem({ hearing, timeZone }: { hearing: CaseHearing; timeZone: string }) {
   const titleId = useId();
+  const edit = useHearingEdit();
   const article = cppArticle(hearing.typeArticle);
   const meta: { icon: LucideIcon; term: string; value: string }[] = [];
   if (hearing.room) meta.push({ icon: MapPin, term: "Sala", value: hearing.room });
@@ -43,7 +46,20 @@ function HearingItem({ hearing, timeZone }: { hearing: CaseHearing; timeZone: st
               <CardDescription>Se hizo como {hearing.heldAsTypeName}</CardDescription>
             )}
           </div>
-          <AgendaStatusBadge item={hearing} />
+          <div className="flex flex-col items-end gap-1">
+            <AgendaStatusBadge item={hearing} />
+            {edit && (
+              <Button
+                variant="ghost"
+                className="-mr-2 px-2 text-primary"
+                aria-label={`Editá la audiencia ${hearing.typeName}`}
+                onClick={() => edit(hearing.id)}
+              >
+                <Pencil aria-hidden="true" />
+                Editá
+              </Button>
+            )}
+          </div>
         </CardHeader>
         {meta.length > 0 && (
           <CardContent asChild>

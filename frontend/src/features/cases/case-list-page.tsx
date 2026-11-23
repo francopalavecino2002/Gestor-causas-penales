@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useAgendaCache } from "@/features/agenda/agenda-queries";
 import { useCatalogItems, useCatalogsSettled } from "@/features/catalogs/catalog-queries";
 import type { CatalogId } from "@/features/catalogs/catalog-types";
 import { CASE_PAGE_SIZE } from "@/features/cases/case-api";
+import { CaseFormDialog } from "@/features/cases/case-form-dialog";
 import { CaseCards, CaseTable } from "@/features/cases/case-list";
 import { useCases } from "@/features/cases/case-queries";
 import type { CaseListSearch } from "@/features/cases/case-search";
@@ -164,6 +165,7 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
   const page = search.pagina ?? 1;
   const includeArchived = search.archivadas === "si";
   const canImport = useCanImport();
+  const [creating, setCreating] = useState(false);
   const cases = useCases({ q: search.q, includeArchived, page: page - 1 });
   const catalogs = {
     stages: useCatalogItems("stages"),
@@ -189,11 +191,17 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
 
   return (
     <>
-      <PageHeader title="Causas">
-        <p aria-live="polite" className="empty:hidden">
-          {data ? resultSummary(total, search.q, includeArchived) : null}
-        </p>
-      </PageHeader>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <PageHeader title="Causas">
+          <p aria-live="polite" className="empty:hidden">
+            {data ? resultSummary(total, search.q, includeArchived) : null}
+          </p>
+        </PageHeader>
+        <Button onClick={() => setCreating(true)}>
+          <Plus aria-hidden="true" />
+          Nueva causa
+        </Button>
+      </div>
 
       <div className="grid gap-4 md:flex md:items-start md:gap-6">
         <CaseSearchBox value={search.q} onSearch={onSearch} />
@@ -248,8 +256,14 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
             title="Todavía no hay causas"
             description="Cuando cargues una causa o la importes desde una planilla, la vas a ver acá con sus imputados, el legajo y la próxima audiencia."
           >
+            {!includeArchived && (
+              <Button onClick={() => setCreating(true)}>
+                <Plus aria-hidden="true" />
+                Cargá la primera causa
+              </Button>
+            )}
             {canImport && !includeArchived && (
-              <Button asChild>
+              <Button variant="outline" asChild>
                 <Link to="/importar">Importá desde una planilla</Link>
               </Button>
             )}
@@ -282,6 +296,8 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
           <Pagination page={page} pageCount={pageCount} search={search} />
         </div>
       )}
+
+      {creating && <CaseFormDialog onClose={() => setCreating(false)} />}
     </>
   );
 }

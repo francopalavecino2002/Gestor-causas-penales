@@ -90,6 +90,49 @@ export function formatTime(instant: string | Date, timeZone: string): string {
   return `${part(parts, "hour")}:${part(parts, "minute")}`;
 }
 
+/** `HH:MM`, 24-hour clock: what an `<input type="time">` gives. */
+const LOCAL_TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+export function isLocalTime(value: unknown): value is string {
+  return typeof value === "string" && LOCAL_TIME.test(value);
+}
+
+/** How far the zone's wall clock is from UTC at that instant, in milliseconds. */
+function zoneOffset(instant: Date, timeZone: string): number {
+  const parts = formatter("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(instant);
+  const wall = Date.UTC(
+    Number(part(parts, "year")),
+    Number(part(parts, "month")) - 1,
+    Number(part(parts, "day")),
+    Number(part(parts, "hour")),
+    Number(part(parts, "minute")),
+    Number(part(parts, "second")),
+  );
+  return wall - Math.floor(instant.getTime() / 1000) * 1000;
+}
+
+/**
+ * The ISO instant of a day and `HH:MM` on the wall clock of the given zone: a hearing at 09:30 in
+ * Neuquén is 12:30 UTC whatever zone the device is in. Corrected twice, so it also holds across
+ * a daylight-saving change in zones that have one.
+ */
+export function instantAt(day: IsoDate, time: string, timeZone: string): string {
+  const [hours, minutes] = time.split(":").map(Number);
+  const wall = toUtc(day).getTime() + ((hours ?? 0) * 60 + (minutes ?? 0)) * 60_000;
+  let instant = wall - zoneOffset(new Date(wall), timeZone);
+  instant = wall - zoneOffset(new Date(instant), timeZone);
+  return new Date(instant).toISOString();
+}
+
 export function addMinutes(instant: string | Date, minutes: number): Date {
   return new Date(new Date(instant).getTime() + minutes * 60_000);
 }

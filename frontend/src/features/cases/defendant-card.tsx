@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from "react";
-import { CircleAlert, Lock, ShieldAlert } from "lucide-react";
+import { CircleAlert, Lock, Pencil, ShieldAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -174,7 +174,16 @@ function rows(defendant: DefendantView, stageArticle: string | null): Row[] {
 }
 
 /** One defendant: liberty, stage and status, defence, rebellion, charges and outcome. */
-export function DefendantCard({ defendant, today }: { defendant: DefendantView; today: IsoDate }) {
+export function DefendantCard({
+  defendant,
+  today,
+  onEdit,
+}: {
+  defendant: DefendantView;
+  today: IsoDate;
+  /** Opens the edit form; read only without it. */
+  onEdit?: () => void;
+}) {
   const titleId = useId();
   const stages = useCatalogItems("stages");
   const stageArticle = cppArticle(stages.get(defendant.stageCode)?.article);
@@ -193,6 +202,17 @@ export function DefendantCard({ defendant, today }: { defendant: DefendantView; 
               <CardDescription>Ficha de la persona archivada</CardDescription>
             )}
           </div>
+          {onEdit && (
+            <Button
+              variant="ghost"
+              className="-my-1.5 -mr-2 px-2 text-primary"
+              aria-label={`Editá a ${defendant.displayName}`}
+              onClick={onEdit}
+            >
+              <Pencil aria-hidden="true" />
+              Editá
+            </Button>
+          )}
         </CardHeader>
         <LibertyBlock defendant={defendant} measures={measures} today={today} />
         <CardContent asChild>

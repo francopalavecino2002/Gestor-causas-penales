@@ -68,3 +68,15 @@ accounts and is decided later).
 | T32 | End-to-end tests with Playwright over the demo flow: login + 2FA, agenda today/week, open a case, see a defendant's deadlines with source and disclaimer, import a CSV. Run in CI against Testcontainers/compose. | frontend | T30 | done (#38) |
 | T33 | Demo script and visual QA: `docs/DEMO.md` gets a 10-minute guided script in Spanish with talking points per screen, and the questions for the lawyer from `docs/domain/neuquen-review.md`. Capture screenshots of every screen at 390x844 and 1440x900 into `docs/screenshots/demo/`, review them against `docs/design/DESIGN.md`, fix visual issues found. | frontend | T31, T32 | done (#39) |
 | T34 | Portfolio polish: README with screenshots and an animated GIF of the main flow, architecture diagram updated, test counts and coverage badge, "How it was built" section about the agent workflow. | orchestrator | T33 | done (#40) |
+
+## Milestone 4: Everyday data entry
+
+Feedback from the first demo (2026-11-23): lawyers create and edit cases and hearings by hand every
+day; the spreadsheet import is for the initial load only. The backend endpoints already exist.
+
+**Paused (2026-11-23):** Franco asked to pause programming after T35 to analyse a competitor
+(Veredicta) and decide what to improve. Do not pick new tasks until new ones are added here.
+
+| ID  | Task | Owner | Needs | Status |
+|-----|------|-------|-------|--------|
+| T35 | Create and edit forms (React Hook Form + Zod) over the existing API: "Nueva causa" from the case list (caption, internal number, MPF legajo, OFIJU/Pehuén numbers, circumscription, action type, represented side, responsible lawyer, reserved flag, first defendant with stage), "Editar causa" and "Agregar/editar imputado" from the case detail, "Nueva audiencia" from the agenda and from the case detail (type from catalog with article, date/time, duration, room, judge, OFIJU reference, status, lawyers, defendants), "Editar audiencia". Only roles allowed by the backend see the buttons; server validation errors shown per field; schedule-clash warnings shown; mobile-first sheets/dialogs per `docs/design/DESIGN.md`. Unit tests per form and one Playwright flow creating a case and a hearing that then appears in the agenda. | frontend | T26 | done (#42) |

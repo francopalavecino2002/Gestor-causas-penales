@@ -3,6 +3,7 @@ import type { Page, Route } from "@playwright/test";
 import type { AgendaItem, DetaineeAlert } from "../src/features/agenda/agenda-types";
 import type { CaseView } from "../src/features/cases/case-types";
 import { agendaFor } from "../src/test/agenda-fixtures";
+import { formsBackend } from "./forms-backend";
 import {
   CASES,
   CATALOGS,
@@ -207,6 +208,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
   const state = { signedIn: options.signedIn ?? false, pendingSecondFactor: false };
   const calls: string[] = [];
   const settings = settingsBackend();
+  const forms = formsBackend();
 
   const problem = (route: Route, status: number, type: string) =>
     route.fulfill({
@@ -267,7 +269,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
         return route.fulfill({
           status: 200,
           json: agendaFor(
-            options.hearings ?? [],
+            [...(options.hearings ?? []), ...forms.agendaItems()],
             query.get("from") ?? "",
             query.get("to") ?? "",
             query.get("lawyerId"),
@@ -283,7 +285,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
         const query = url.searchParams;
         return route.fulfill({
           status: 200,
-          json: casePageFor(options.cases ?? CASES, {
+          json: casePageFor([...forms.caseViews(), ...(options.cases ?? CASES)], {
             q: query.get("q"),
             includeArchived: query.get("includeArchived") === "true",
             page: Number(query.get("page") ?? 0),
@@ -339,6 +341,11 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
             ? problem(route, 404, "not-found")
             : route.fulfill({ status: settingsAnswer.status, json: settingsAnswer.json });
         }
+        const formsAnswer = state.signedIn
+          ? forms.answer(method, url, () => request.postDataJSON())
+          : undefined;
+        if (formsAnswer)
+          return route.fulfill({ status: formsAnswer.status, json: formsAnswer.json });
         if (method === "GET" && state.signedIn) {
           const found = caseResource(path);
           if (found !== undefined) return route.fulfill({ status: 200, json: found });

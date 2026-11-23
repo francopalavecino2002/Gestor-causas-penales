@@ -390,6 +390,136 @@ const SCREENS: Record<string, Screen[]> = {
       fullPage: false,
     },
   ],
+  t35: [
+    {
+      path: "/causas",
+      name: "case-new",
+      themes: ["light", "dark"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Nueva causa" }).click();
+        await page.getByRole("dialog").getByLabel("Carátula").waitFor();
+      },
+      fullPage: false,
+    },
+    {
+      path: "/causas",
+      name: "case-new-with-defendant",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Nueva causa" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Carátula").fill("Prueba, Lisandro s/ hurto (ficticio)");
+        await dialog.getByLabel("Circunscripción").selectOption("ii-comarca");
+        await dialog.getByRole("checkbox", { name: "Agregá ahora al primer imputado" }).click();
+        await dialog.getByRole("radio", { name: "Es una persona nueva" }).check();
+        await dialog.getByLabel("Apellidos").fill("Prueba");
+        await dialog.getByLabel("Número de documento").fill("12");
+        await dialog.getByRole("button", { name: "Guardá la causa" }).click();
+        await dialog.getByText("El DNI tiene 7 u 8 números.").waitFor();
+        await dialog.getByLabel("Apellidos").scrollIntoViewIfNeeded();
+      },
+      fullPage: false,
+    },
+    {
+      path: "/causas",
+      name: "case-new-errors",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Nueva causa" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Legajo del MPF").fill("12345");
+        await dialog.getByRole("button", { name: "Guardá la causa" }).click();
+        await dialog.getByText("Escribí la carátula.").waitFor();
+      },
+      fullPage: false,
+    },
+    {
+      path: `/causas/${CASE_MODELO.id}`,
+      name: "case-detail-actions",
+      themes: ["light"],
+      prepare: agendaWeek(),
+    },
+    {
+      path: `/causas/${CASE_MODELO.id}`,
+      name: "case-edit",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Editá la causa" }).click();
+        await page.getByRole("dialog").getByLabel("Carátula").waitFor();
+      },
+      fullPage: false,
+    },
+    {
+      path: `/causas/${CASE_MODELO.id}`,
+      name: "defendant-add",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Agregá un imputado" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Buscá por nombre o documento").fill("Fict");
+        await dialog.getByRole("radio", { name: /Ficticio, Julián/ }).waitFor();
+      },
+      fullPage: false,
+    },
+    {
+      path: `/causas/${CASE_EJEMPLAR.id}`,
+      name: "defendant-edit",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Editá a Nora Ficticia" }).click();
+        await page.getByRole("dialog").getByLabel("Estado del proceso").waitFor();
+      },
+      fullPage: false,
+    },
+    {
+      path: "/",
+      name: "hearing-new-agenda",
+      themes: ["light", "dark"],
+      prepare: agendaWeek({ hearings: true }),
+      act: async (page) => {
+        await page
+          .getByRole("button", { name: "Cargá una audiencia" })
+          .filter({ visible: true })
+          .first()
+          .click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Buscá la causa").fill("Modelo");
+        await dialog.getByRole("radio", { name: new RegExp(CASE_MODELO.caption) }).click();
+        await dialog.getByRole("checkbox", { name: /Lucía Ejemplo/ }).waitFor();
+        await dialog.getByLabel("Tipo de audiencia").selectOption("control-de-acusacion");
+        await dialog.getByLabel("Hora").fill("12:30");
+      },
+      fullPage: false,
+    },
+    {
+      path: "/",
+      name: "agenda-with-new-button",
+      themes: ["light"],
+      prepare: agendaWeek({ hearings: true }),
+    },
+    {
+      path: `/causas/${CASE_MODELO.id}`,
+      name: "hearing-edit-reschedule",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await page
+          .getByRole("button", { name: "Editá la audiencia Revisión de prisión preventiva" })
+          .click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Hora").fill("11:30");
+        await dialog.getByLabel("Motivo de la reprogramación").waitFor();
+      },
+      fullPage: false,
+    },
+  ],
 };
 
 async function chooseImportKind(page: Page, title: string) {

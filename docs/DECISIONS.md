@@ -1402,3 +1402,31 @@ Superseded decisions are marked, never deleted.
 - **Consequences:** The coverage badge can drift from reality between refreshes; the CI summary is
   the source of truth. Regenerating the GIF after UI changes is two commands:
   `bash scripts/e2e-demo.sh --screenshots` and `npm --prefix frontend run demo:gif`.
+
+## ADR-0031: Create and edit forms over the existing API (T35)
+
+- **Context:** The first demo showed there was no way to create or edit a case or a hearing from
+  the UI; lawyers do this by hand every day and the spreadsheet import is only for the initial load.
+  The backend already had every write endpoint, but no endpoint listed the firm's members for the
+  "abogado responsable" and hearing-lawyer pickers.
+- **Decision:**
+  - **`GET /api/v1/users`** returns the caller firm's active members (id, display name, role), with
+    no email, scoped by the same tenant filter as every other query. Any authenticated member can
+    read it, as they already see these names on cases and hearings.
+  - **One form shell** (`components/forms/form-sheet.tsx`): a full-height sheet on phones and a
+    dialog from 640 px, sticky footer, focus to the first field and back to the trigger on close.
+  - **Validation mirrors the backend** in Zod schemas; problem+json errors with a known type or
+    detail are mapped to their field, everything else is shown in an alert.
+  - **Changing a hearing's date** is a `PUT` with the old date followed by
+    `POST /hearings/{id}/reschedule` with a required reason, because the backend keeps the
+    rescheduling history and only moves a date through that endpoint.
+  - **Schedule clashes** are returned after saving, so they are shown as a warning once the hearing
+    is saved and never block it.
+  - **Creating a case** runs person, case, then defendant; if the last step fails the case is kept
+    and the user can open it and retry without duplicating the person.
+- **Alternatives considered:** a dedicated create-case endpoint taking the defendant in one
+  transaction (cleaner, but a backend change outside this task's scope; worth doing if partial
+  saves turn out to confuse users); letting `PUT /hearings/{id}` change the date (would lose the
+  rescheduling history the OFIJU workflow needs).
+- **Consequences:** The UI makes up to three calls to create a case with a defendant. Native date
+  and time pickers follow the browser's locale.
