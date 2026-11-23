@@ -112,3 +112,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the URL, cards on phones and a table on desktop, detainee and reserved markers; read-only
   `/causas/$caseId` with summary, case numbers, defendants (liberty situation, stage, counsel,
   rebellion, charges), parties, team and hearings; agenda hearings link to their case (ADR-0024).
+- Deadlines view (T24): `/plazos` groups overdue, due-soon, running and not-calculable deadlines,
+  detainees first, with a horizon (7/15/30/60 days) and a detainees-only switch kept in the URL;
+  every card shows the legal source with its review tags, the due date, the time left and the
+  "Cálculo asistido" disclaimer. The case detail gets a "Plazos" section (ADR-0025).
