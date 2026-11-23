@@ -7,9 +7,11 @@ record it in `docs/DECISIONS.md`, and continue.
 
 ## Product in one paragraph
 
-A case manager for small criminal-defense law firms (1 to 5 lawyers) in Neuquén, Argentina,
-built for the accusatory criminal procedure (CPP Neuquén, Ley 2784). The **hearing agenda**
-(audiencias) is the core, not the case file. Everything that is not core is configurable per
+An affordable case manager for small law firms (1 to 5 lawyers) of any practice area, starting
+in Neuquén, Argentina. Every practice area (penal, civil, laboral, familia) is a configuration
+package (ADR-0032); the first complete one is criminal, built for the accusatory criminal procedure
+(CPP Neuquén, Ley 2784), and it is the demo. Keep running costs close to the hosting bill: the price
+target is low. The **hearing agenda** (audiencias) is the core, not the case file. Everything that is not core is configurable per
 firm without code: custom fields, catalogs, case templates and deadline rules. A jurisdiction
 is a configuration package: Neuquén ships by default, other provinces are added without code.
 Multi-tenant from day one. Mobile-first PWA. Security from day one: roles, audit log, 2FA,

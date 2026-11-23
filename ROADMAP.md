@@ -81,19 +81,20 @@ day; the spreadsheet import is for the initial load only. The backend endpoints 
 
 ## Milestone 5: Practice areas and competitor parity
 
-Decided 2026-11-23 after analysing Veredicta (veredicta.com.ar): Franco wants a flexible model, not
-only criminal. The differentiator and the demo stay criminal (Neuquén CPP ships by default and the
-demo must keep working), but the **practice area** (fuero: penal, civil, laboral, familia) becomes
-configuration, exactly like the jurisdiction: catalogs, stages, hearing types, party roles and
-deadline rules per area, and nothing criminal hardcoded in the core. Then the Veredicta features
+Decided 2026-11-23 after analysing Veredicta (veredicta.com.ar): the product is a **general,
+affordable case manager for small firms of any practice area**, not a criminal-only one. Every
+practice area (fuero: penal, civil, laboral, familia) is a first-class configuration package, exactly
+like the jurisdiction: catalogs, stages, hearing types, party roles and deadline rules per area, and
+nothing criminal hardcoded in the core. Criminal Neuquén is the first complete package and the demo
+must keep working; basic civil and labour packages ship to show the flexibility (ADR-0032). Then the Veredicta features
 worth having, in small PRs. Non-criminal legal content is researched, cited and flagged
 `[validar]`/`[no verificado]`; no deadline rule ships without a cited article.
 
 | ID  | Task | Owner | Needs | Status |
 |-----|------|-------|-------|--------|
-| T40 | Practice-area design (Opus): ADR on how a jurisdiction package holds practice areas (shared catalogs such as circumscriptions and court calendar at jurisdiction level; per-area catalogs, stages, hearing types, party roles, deadline rules and a list of enabled modules such as defendants, coercive measures and detainee alerts for criminal), what moves from defendant to case level for non-criminal areas, migration of existing data to `penal`, API and UI impact. Plus `docs/domain/neuquen-otros-fueros.md` with researched, cited catalogs for civil (CPCyC Neuquén), laboral and familia (stages, hearing types, party roles), each flagged, and the split of T41–T43 adjusted if the design needs it. | orchestrator | T35 | todo |
+| T40 | Practice-area design (Opus): ADR on how a jurisdiction package holds practice areas (shared catalogs such as circumscriptions and court calendar at jurisdiction level; per-area catalogs, stages, hearing types, party roles, deadline rules and a list of enabled modules such as defendants, coercive measures and detainee alerts for criminal), what moves from defendant to case level for non-criminal areas, migration of existing data to `penal`, API and UI impact. Plus `docs/domain/neuquen-otros-fueros.md` with researched, cited catalogs for civil (CPCyC Neuquén), laboral and familia (stages, hearing types, party roles), each flagged, and the split of T41–T43 adjusted if the design needs it. | orchestrator | T35 | done (#44) |
 | T41 | Practice-area packages in the backend: load per-area YAML under the jurisdiction folder, `practice_area` on the case (existing cases migrate to `penal`), per-tenant enabled areas, catalog API filtered by area, criminal-only modules guarded by the area's module list. Criminal behaviour and the demo unchanged; tests prove an area cannot use another area's catalog items. | backend | T40 | todo |
-| T42 | Non-criminal cases in the backend: case-level stage, status and outcome for areas without the defendants module; parties with the area's roles (actor, demandado, etc.); hearings with the area's types; manual (judicial) deadlines only until rules are cited; import accepts the area column. | backend | T41 | todo |
+| T42 | Non-criminal cases in the backend: basic Neuquén civil, laboral and familia packages from `docs/domain/neuquen-otros-fueros.md` §2 (all flagged); case-level stage, status and outcome for areas without the defendants module; parties with the area's roles (actor, demandado, etc.); hearings with the area's types; manual (judicial) deadlines only until rules are cited; import accepts the area column. | backend | T41 | todo |
 | T43 | Practice areas in the UI: area choice in "Nueva causa" (only enabled areas, criminal preselected), case detail and forms adapt to the area's modules and labels, area filter in the case list and agenda, enable/disable areas in Ajustes. | frontend | T42 | todo |
 | T44 | Agenda export (backend): per-user private iCalendar feed (`.ics`, RFC 5545) of the hearings they attend, with a revocable secret token, no personal data beyond what the lawyer already sees, reserved cases shown without caption; plus a one-off `.ics` download of a single hearing. | backend | T35 | todo |
 | T45 | Agenda export (UI): "Sumá tu agenda a Google Calendar / Outlook / iPhone" in Ajustes with the feed URL, copy button, step-by-step instructions and "Generá un enlace nuevo" (revokes the old); "Agregá al calendario" on each hearing. | frontend | T44 | todo |
