@@ -140,3 +140,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   their legal source and the assisted-calculation disclaimer, and a CSV import of people with its
   error report. `scripts/e2e-demo.sh` runs it on a fresh `gestor_e2e` database; CI runs the same
   script in a new `e2e-demo` job.
+- Demo script and visual QA (T33): `docs/DEMO.md` gains a timed 10-minute guided script in Spanish
+  with talking points per screen and the open questions for the lawyer. 20 screens of the real demo
+  are captured at 390x844 and 1440x900 into `docs/screenshots/demo/` with
+  `bash scripts/e2e-demo.sh --screenshots`. The visual review fixed four issues: on phones the agenda
+  shows one detainee alert and "Mirá los N avisos", deadline cards show their notes, the case table
+  says "Sin cargar" on one line, and the empty state for custom fields spans the full width.

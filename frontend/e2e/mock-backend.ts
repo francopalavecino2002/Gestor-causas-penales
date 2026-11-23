@@ -79,7 +79,11 @@ function settingsBackend() {
   const rules: DeadlineRule[] = structuredClone(DEADLINE_RULES);
   let next = 100;
 
-  return (method: string, url: URL, body: () => unknown): { status: number; json?: unknown } | undefined => {
+  return (
+    method: string,
+    url: URL,
+    body: () => unknown,
+  ): { status: number; json?: unknown } | undefined => {
     const path = url.pathname;
     if (method === "GET" && path === "/api/v1/catalogs") return { status: 200, json: catalogs };
     if (method === "GET" && path === "/api/v1/custom-fields") {
@@ -311,7 +315,9 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
           }
           if (method !== "POST") return problem(route, 404, "not-found");
           // The file's name decides the answer: "...errores..." has row errors.
-          const fileName = /filename="([^"]*)"/.exec(request.postDataBuffer()?.toString("latin1") ?? "")?.[1] ?? "";
+          const fileName =
+            /filename="([^"]*)"/.exec(request.postDataBuffer()?.toString("latin1") ?? "")?.[1] ??
+            "";
           const dryRun = url.searchParams.get("dryRun") !== "false";
           const report = fileName.includes("errores")
             ? reportWithErrors(kind, dryRun)

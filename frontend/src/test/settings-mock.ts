@@ -26,8 +26,10 @@ export function settingsRoutes() {
   const rules: DeadlineRule[] = structuredClone(DEADLINE_RULES);
   let next = 100;
 
-  const csrf = (handler: Handler): Handler => (request) =>
-    request.headers["x-xsrf-token"] ? handler(request) : problem(403, "access-denied");
+  const csrf =
+    (handler: Handler): Handler =>
+    (request) =>
+      request.headers["x-xsrf-token"] ? handler(request) : problem(403, "access-denied");
 
   const routes: Record<string, Handler> = {
     "GET /api/v1/catalogs": () => json(200, catalogs),

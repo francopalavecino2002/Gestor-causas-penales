@@ -24,11 +24,7 @@ import {
   type CustomFieldFormInput,
   type CustomFieldFormOutput,
 } from "@/features/settings/custom-field-schema";
-import {
-  ENTITY_TARGETS,
-  FIELD_TYPE_LABELS,
-  FIELD_TYPES,
-} from "@/features/settings/settings-copy";
+import { ENTITY_TARGETS, FIELD_TYPE_LABELS, FIELD_TYPES } from "@/features/settings/settings-copy";
 import { settingsErrorMessage } from "@/features/settings/settings-errors";
 import { useCreateCustomField, useUpdateCustomField } from "@/features/settings/settings-queries";
 import type { CustomField, CustomFieldEntity } from "@/features/settings/settings-types";
@@ -187,7 +183,10 @@ export function CustomFieldDialog({
                         // A list starts with one empty option to fill in.
                         onChange: (event: { target: { value: string } }) => {
                           if (event.target.value === "LIST" && options.fields.length === 0) {
-                            options.append({ code: "", label: "", hidden: false }, { shouldFocus: false });
+                            options.append(
+                              { code: "", label: "", hidden: false },
+                              { shouldFocus: false },
+                            );
                           }
                         },
                       })}

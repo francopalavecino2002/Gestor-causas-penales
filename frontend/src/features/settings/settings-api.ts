@@ -33,10 +33,10 @@ export function updateCatalogItem(
   code: string,
   change: { name: string | null; hidden: boolean },
 ): Promise<CatalogItem> {
-  return apiFetch<CatalogItem>(
-    `/api/v1/catalogs/${catalog}/items/${encodeURIComponent(code)}`,
-    { method: "PUT", body: change },
-  );
+  return apiFetch<CatalogItem>(`/api/v1/catalogs/${catalog}/items/${encodeURIComponent(code)}`, {
+    method: "PUT",
+    body: change,
+  });
 }
 
 /** Archived fields included: the screen lists them apart so they can be restored. */
@@ -44,10 +44,9 @@ export function fetchCustomFields(
   entity: CustomFieldEntity,
   signal?: AbortSignal,
 ): Promise<CustomField[]> {
-  return apiFetch<CustomField[]>(
-    `/api/v1/custom-fields?entity=${entity}&includeArchived=true`,
-    { signal },
-  );
+  return apiFetch<CustomField[]>(`/api/v1/custom-fields?entity=${entity}&includeArchived=true`, {
+    signal,
+  });
 }
 
 export function createCustomField(field: NewCustomField): Promise<CustomField> {
@@ -75,8 +74,8 @@ export function changeDeadlineRuleSetting(
   code: string,
   setting: DeadlineRuleSetting,
 ): Promise<DeadlineRule> {
-  return apiFetch<DeadlineRule>(
-    `/api/v1/deadline-rules/${encodeURIComponent(code)}/settings`,
-    { method: "PUT", body: setting },
-  );
+  return apiFetch<DeadlineRule>(`/api/v1/deadline-rules/${encodeURIComponent(code)}/settings`, {
+    method: "PUT",
+    body: setting,
+  });
 }

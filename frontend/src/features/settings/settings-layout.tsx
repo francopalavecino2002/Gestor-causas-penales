@@ -127,7 +127,10 @@ export function SettingsHomePage() {
                   <span className="text-card-title font-bold">{title}</span>
                   <span className="text-meta text-muted-foreground">{summary}</span>
                 </span>
-                <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
+                <ChevronRight
+                  aria-hidden="true"
+                  className="size-5 shrink-0 text-muted-foreground"
+                />
               </Link>
             </li>
           ))}

@@ -17,7 +17,9 @@ describe("settings: catalogs", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "Catálogos" })).toBeInTheDocument();
     expect(await screen.findByLabelText("Catálogo")).toHaveValue("hearing-types");
-    expect(screen.getByRole("heading", { level: 2, name: "Tipos de audiencia" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Tipos de audiencia" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Podés renombrar y ocultar ítems, y agregar los de tu estudio.", {
         exact: false,
@@ -150,7 +152,9 @@ describe("settings: catalogs", () => {
     expect(
       await screen.findByRole("heading", { level: 2, name: "Medidas de coerción" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Solo la persona titular del estudio puede cambiarla/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Solo la persona titular del estudio puede cambiarla/),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Renombrá" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Ocultá" })).not.toBeInTheDocument();
   });

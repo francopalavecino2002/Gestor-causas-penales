@@ -87,6 +87,207 @@ powershell -ExecutionPolicy Bypass -File scripts\demo.ps1 -Local
 bash scripts/demo.sh --local
 ```
 
+## Guion de 10 minutos
+
+Un recorrido para mostrarle el producto a un abogado o abogada penalista. Entrá como **Lucía
+Ejemplo** (titular): ve todo el estudio y puede cambiar los ajustes. Las cifras entre paréntesis
+son las de las capturas; cambian un poco según el día de la semana, porque las audiencias y los
+plazos se siembran relativos a hoy (un sábado o domingo, "hoy" es el lunes siguiente: usá la
+flecha `>` de la agenda).
+
+La idea que tiene que quedar: **"esta es tu semana de audiencias, estos son tus detenidos y esto
+vence"**. Todo lo demás es apoyo.
+
+Las capturas de cada paso, en celular (390×844) y en compu (1440×900), están en
+[`screenshots/demo/`](screenshots/demo/); el informe de la revisión visual, en su
+[README](screenshots/demo/README.md).
+
+### 0:00 a 1:00. Ingreso y segundo factor
+
+- **Qué hacés:** abrí `http://localhost:5173/ingresar?estudio=estudio-demo` (el estudio ya viene
+  cargado) y entrá con `lucia.ejemplo@example.com` y la clave de demo.
+- **Qué decís:**
+  - "Cada estudio tiene su espacio separado: nadie de otro estudio ve tus causas".
+  - "Hay verificación en dos pasos con una app de códigos, como la del banco. Son datos de causas
+    penales: aunque alguien sepa tu clave, sin el código no entra".
+  - En los datos de demo nadie tiene el segundo factor activado y todavía no se activa desde la
+    pantalla: mostrá la captura del paso del código.
+- **Capturas:** [ingreso, compu](screenshots/demo/01-login-desktop.png),
+  [ingreso, celular](screenshots/demo/01-login-mobile.png),
+  [código de verificación, celular](screenshots/demo/02-second-factor-mobile.png).
+
+### 1:00 a 2:30. La agenda de hoy y los detenidos
+
+- **Qué hacés:** quedás en **Audiencias de hoy**. Señalá el bloque rojo de avisos y una tarjeta
+  con borde rojo ("Revisión de prisión preventiva", CPP art. 118). Tocá **Mirá el detalle** en
+  una audiencia.
+- **Qué decís:**
+  - "Lo primero que ves al entrar es el día, no un expediente: hora, tipo de audiencia con su
+    artículo, imputado y sala".
+  - "Arriba de todo, los detenidos: la preventiva de Ramiro Acosta Ficticio vence mañana (art. 116)
+    y tienen revisión mañana él y Carla Benítez Ejemplo (art. 118)".
+  - "El rojo se usa solo para personas privadas de la libertad. Nada más en la app es rojo".
+  - "Cada aviso dice *Cálculo asistido: verificá con la norma*: el sistema avisa, la decisión es
+    tuya".
+- **Capturas:** [hoy, compu](screenshots/demo/03-agenda-today-desktop.png) (7 audiencias, 2 con
+  personas detenidas, 4 avisos), [hoy, celular](screenshots/demo/03-agenda-today-mobile.png).
+
+### 2:30 a 3:30. La semana y el equipo
+
+- **Qué hacés:** tocá **Semana**. Después, en **Abogado o abogada**, elegí **Julián Muestra** y
+  volvé a **Todo el estudio**.
+- **Qué decís:**
+  - "La semana del estudio entero (23 audiencias, 4 con detenidos), día por día".
+  - "Si sos titular, ves la agenda de cada abogado del estudio; cada uno ve la suya".
+- **Capturas:** [semana, compu](screenshots/demo/04-agenda-week-desktop.png),
+  [semana, celular](screenshots/demo/04-agenda-week-mobile.png).
+
+### 3:30 a 4:30. Plazos por vencer
+
+- **Qué hacés:** andá a **Plazos**. Mostrá el vencido de arriba y prendé **Solo personas
+  detenidas**.
+- **Qué decís:**
+  - "Acá está todo lo que vence en los próximos 30 días (6 plazos), agrupado: vencidos, vencen
+    pronto, próximos".
+  - "Cada plazo trae su norma (*Art. 158; 160 inc. 7, CPP de Neuquén*), cómo se cuenta, desde
+    cuándo corre y qué pasa si vence. La jurisprudencia también: después de «Olave» el plazo de
+    la investigación sigue, pero la consecuencia fue declarada inconstitucional".
+  - "Lo que todavía no confirmamos con un abogado lo marcamos a la vista: **[validar]** y **[no
+    verificado]**. Por eso estás acá".
+  - Con el filtro: "Solo los dos de personas detenidas, que vencen mañana".
+- **Capturas:** [plazos, compu](screenshots/demo/05-deadlines-desktop.png),
+  [plazos, celular](screenshots/demo/05-deadlines-mobile.png),
+  [solo detenidos, compu](screenshots/demo/06-deadlines-detainees-desktop.png),
+  [solo detenidos, celular](screenshots/demo/06-deadlines-detainees-mobile.png).
+
+### 4:30 a 6:00. Una causa con varios imputados
+
+- **Qué hacés:** andá a **Causas** (25 en el estudio). Buscá `DEMO-004` y abrí *Benítez Ejemplo,
+  Carla y otros s/ homicidio (ficticio)*. Bajá hasta **Imputados**.
+- **Qué decís:**
+  - "Una causa, tres imputados, y cada uno con su etapa, su estado y su situación de libertad:
+    Carla en prisión preventiva, Diego Castro Prueba con presentación periódica, Elena Duarte
+    Ficticia en la conclusión de la investigación".
+  - "El resumen te dice cuántos detenidos hay, la etapa más atrasada y la próxima audiencia".
+  - "Podés buscar por carátula, legajo del MPF, número de la OFIJU o número interno". Señalá el
+    aviso **[validar]** de los formatos de la OFIJU y de Pehuén en *Datos de la causa*.
+- **Capturas:** [lista, compu](screenshots/demo/07-case-list-desktop.png),
+  [lista, celular](screenshots/demo/07-case-list-mobile.png),
+  [resumen, compu](screenshots/demo/08-case-summary-desktop.png),
+  [resumen, celular](screenshots/demo/08-case-summary-mobile.png),
+  [imputados, compu](screenshots/demo/09-case-defendants-desktop.png),
+  [imputados, celular](screenshots/demo/09-case-defendants-mobile.png).
+
+### 6:00 a 7:00. Los plazos de un detenido, con su norma
+
+- **Qué hacés:** abrí `DEMO-001` (*Fernández Ruiz, Tomás y otra s/ robo agravado*) y bajá a
+  **Plazos**.
+- **Qué decís:**
+  - "Tomás está en preventiva: el sistema calcula la duración que fijó el juez (art. 116) y el
+    máximo de un año (art. 119, todavía **[validar]**)".
+  - "Todos los plazos dicen *Cálculo asistido: verificá con la norma*. El sistema propone la
+    fecha; la decisión es tuya. No reemplaza leer la resolución".
+- **Capturas:** [plazos de la causa, compu](screenshots/demo/10-case-deadlines-desktop.png),
+  [plazos de la causa, celular](screenshots/demo/10-case-deadlines-mobile.png).
+
+### 7:00 a 7:45. Una salida alternativa en período de prueba
+
+- **Qué hacés:** abrí `DEMO-005` (*Ledesma Prueba, Hernán s/ hurto*) y bajá a **Plazos**.
+- **Qué decís:**
+  - "Hernán tiene el proceso suspendido: una suspensión de juicio a prueba (art. 108) con dos años
+    de prueba. El vencimiento del período de prueba queda como plazo judicial, con las reglas de
+    conducta en la nota".
+  - "Las reglas de conducta del ejemplo están marcadas **[validar]**: queremos saber cómo las
+    controlan ustedes".
+- **Capturas:** [período de prueba, compu](screenshots/demo/11-case-probation-desktop.png),
+  [período de prueba, celular](screenshots/demo/11-case-probation-mobile.png).
+
+### 7:45 a 8:45. Lo que el estudio configura sin programar
+
+- **Qué hacés:** andá a **Ajustes** (en el celular, desde el menú de tu cuenta, arriba a la
+  derecha). Mostrá **Catálogos** (tipos de audiencia), **Campos propios**, **Reglas de plazos** y
+  **Usuarios y roles**. Si hay tiempo, en **Campos propios** tocá **Agregá un campo** y creá uno
+  en vivo (por ejemplo, "Juzgado de familia vinculado"): la demo arranca sin campos propios.
+- **Qué decís:**
+  - "Los tipos de audiencia vienen del paquete de Neuquén (28 ítems, fuente marcada
+    **[validar]**). Los podés renombrar u ocultar como habla tu estudio; nada se borra".
+  - "Si tu estudio necesita registrar algo que el sistema no pide, lo agregás vos: texto, número,
+    fecha, sí o no, o una lista".
+  - "Las reglas de plazos no se editan, porque son la ley: podés desactivar las que no usás y
+    elegir con cuántos días de aviso las querés ver".
+  - "Cada persona tiene un rol: titular, abogado, procuradora. Las causas reservadas solo las ve
+    quien forma parte".
+- **Capturas:** [ajustes](screenshots/demo/12-settings-desktop.png),
+  [catálogos](screenshots/demo/13-settings-catalogs-desktop.png),
+  [campos propios](screenshots/demo/14-settings-fields-desktop.png),
+  [reglas de plazos, celular](screenshots/demo/15-settings-deadline-rules-mobile.png),
+  [usuarios y roles](screenshots/demo/16-settings-users-desktop.png).
+
+### 8:45 a 9:30. Empezar en una tarde: importar una planilla
+
+- **Qué hacés:** desde **Ajustes**, **Importar planillas**. Elegí **Personas**, subí un CSV con
+  una fila sin apellidos, mostrá el informe y subí la planilla corregida. Un ejemplo (separado
+  por punto y coma, datos ficticios):
+
+  ```csv
+  tipo_persona;nombres;apellidos;telefono;domicilio
+  humana;Clara;Captura Ficticia;2990000011;Calle Ficticia 300, Neuquén
+  humana;Darío;;2990000012;Calle Ficticia 400, Neuquén
+  ```
+
+- **Qué decís:**
+  - "Traés lo que ya tenés en Excel: primero las personas, después las causas y al final las
+    audiencias".
+  - "Antes de guardar, el sistema revisa cada fila y te dice qué corregir, con el número de fila
+    de Excel. Si hay un error, no se guarda nada".
+- **Capturas:** [qué importás, celular](screenshots/demo/17-import-kind-mobile.png),
+  [fila para corregir, compu](screenshots/demo/18-import-errors-desktop.png),
+  [listo, celular](screenshots/demo/19-import-done-mobile.png).
+
+### 9:30 a 10:00. En el celular
+
+- **Qué hacés:** abrí en el celular la dirección de la red local que imprimió el script (ver
+  [Desde el celular](#desde-el-celular)) y entrá. Recorré **Agenda**, **Causas** y **Plazos** con
+  la barra de abajo.
+- **Qué decís:**
+  - "Está hecha primero para el teléfono: la consultás en el pasillo, entre audiencia y
+    audiencia. Letra grande, botones grandes y el aviso de detenidos arriba".
+  - "Cerramos con las preguntas: son las que todavía no podemos responder sin vos".
+- **Capturas:** [hoy, celular](screenshots/demo/03-agenda-today-mobile.png),
+  [plazos, celular](screenshots/demo/05-deadlines-mobile.png). La sección **Personas** todavía
+  dice "Próximamente" ([captura](screenshots/demo/20-persons-mobile.png)): no la abras en la demo.
+
+## Preguntas para el abogado
+
+Tomadas de [`domain/neuquen-review.md`](domain/neuquen-review.md#preguntas-para-el-abogado-en-la-demo).
+Anotá las respuestas: cada una confirma o corrige un ítem marcado `[validar]`.
+
+- ¿Los 4 meses del art. 158 se cuentan desde la formulación de cargos o desde la apertura de la
+  investigación? ¿Son hábiles o calendario?
+- ¿Qué se hace hoy cuando vence el art. 87 o el 158: se plantea igual, o se da por perdido después
+  de "Estarli" y "Olave"?
+- ¿Qué tipos de audiencia usa hoy la Oficina Judicial y cuáles ven ustedes en el sistema de
+  citación?
+- ¿Cuál es el plazo real de la impugnación ordinaria y cómo se duplica en asuntos complejos?
+- ¿Existe hoy la VI Circunscripción (Vaca Muerta) con Oficina Judicial propia?
+- ¿Qué números identifican una causa en la práctica: legajo MPF, OFIJU, Pehuén?
+- ¿Se sancionó la reforma del juicio directo (2023) y con qué número de ley la de reiterancia
+  (2025)?
+- ¿La mediación suspende todos los plazos o solo los de la investigación (Ley 2996)?
+
+## Capturas de la demo
+
+Las capturas de `docs/screenshots/demo/` se sacan contra el backend real con los datos de demo
+(no contra respuestas simuladas):
+
+```bash
+bash scripts/e2e-demo.sh --screenshots
+```
+
+Usa la misma base descartable que las pruebas de punta a punta (`gestor_e2e`). Para mostrar el
+paso del código, le activa el segundo factor a Sofía (procuradora) y se lo vuelve a desactivar al
+final.
+
 ## Si algo falla
 
 | Síntoma | Qué hacer |

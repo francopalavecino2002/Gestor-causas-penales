@@ -51,6 +51,19 @@ describe("CaseListPage", () => {
     expect(screen.queryByText("Prueba, Ana s/ hurto simple")).not.toBeInTheDocument();
   });
 
+  it("says a legajo is missing briefly in the table and fully on the cards", async () => {
+    signedIn(undefined, caseRoutes({ cases: [{ ...CASE_MODELO, mpfLegajo: null }] }));
+    renderApp("/causas");
+
+    const link = await within(await screen.findByRole("table")).findByRole("link", {
+      name: CASE_MODELO.caption,
+    });
+    const row = link.closest("tr") as HTMLElement;
+    expect(within(row).getAllByRole("cell")[0]).toHaveTextContent(/^Sin cargar$/);
+    const card = within(cards()).getByRole("article", { name: CASE_MODELO.caption });
+    expect(card).toHaveTextContent("Sin legajo MPF");
+  });
+
   it("opens a case from its row", async () => {
     signedIn(undefined, caseRoutes());
     const { router } = renderApp("/causas");

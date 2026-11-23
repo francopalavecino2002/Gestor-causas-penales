@@ -99,8 +99,8 @@ function DisableDialog({
           <Alert variant="detained">
             <Lock aria-hidden="true" />
             <AlertDescription>
-              Este plazo protege a una persona privada de su libertad. Si lo desactivás, el
-              sistema no te va a avisar cuando venza.
+              Este plazo protege a una persona privada de su libertad. Si lo desactivás, el sistema
+              no te va a avisar cuando venza.
             </AlertDescription>
           </Alert>
         )}
@@ -178,7 +178,11 @@ function RuleControls({ rule }: { rule: DeadlineRule }) {
         <form
           noValidate
           onSubmit={handleSubmit(({ alertDaysBefore }) =>
-            save(true, alertDaysBefore, `Guardado: te avisamos ${alertDaysLabel(alertDaysBefore)}.`),
+            save(
+              true,
+              alertDaysBefore,
+              `Guardado: te avisamos ${alertDaysLabel(alertDaysBefore)}.`,
+            ),
           )}
           className="grid gap-1.5"
         >
@@ -224,7 +228,9 @@ function RuleControls({ rule }: { rule: DeadlineRule }) {
           rule={rule}
           pending={change.isPending}
           error={change.error}
-          onConfirm={() => save(false, rule.alertDaysBefore, "Guardado: la regla está desactivada.")}
+          onConfirm={() =>
+            save(false, rule.alertDaysBefore, "Guardado: la regla está desactivada.")
+          }
           onClose={() => setConfirming(false)}
         />
       )}

@@ -1,6 +1,14 @@
 import { useId, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Archive, ArchiveRestore, CircleAlert, FolderCog, LoaderCircle, Pencil, Plus } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  CircleAlert,
+  FolderCog,
+  LoaderCircle,
+  Pencil,
+  Plus,
+} from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -315,6 +323,7 @@ export function CustomFieldsSection({ search }: { search: FieldSearch }) {
                     : "Cuando la persona titular agregue uno, lo vas a ver en cada ficha."
                 }
                 icon={FolderCog}
+                className="max-w-none"
               >
                 {canEdit && (
                   <Button variant="outline" onClick={() => setEditing({ mode: "create" })}>

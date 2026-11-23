@@ -91,9 +91,7 @@ export async function signIn(page: Page, user: DemoUser): Promise<void> {
 }
 
 export async function fillCredentials(page: Page, user: DemoUser): Promise<void> {
-  await expect(
-    page.getByRole("heading", { level: 1, name: "Ingresá a tu estudio" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Ingresá a tu estudio" })).toBeVisible();
   await page.getByLabel("Estudio").fill(DEMO_FIRM.slug);
   await page.getByLabel("Email").fill(user.email);
   await page.getByLabel("Contraseña", { exact: true }).fill(demoPassword());

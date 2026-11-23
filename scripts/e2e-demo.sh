@@ -5,6 +5,7 @@
 #
 #   bash scripts/e2e-demo.sh                  # the whole suite
 #   bash scripts/e2e-demo.sh two-factor       # extra arguments go to `playwright test`
+#   bash scripts/e2e-demo.sh --screenshots    # captures docs/screenshots/demo/ instead (T33)
 #
 # Uses its own database, so neither the development one (`gestor_causas`) nor the demo one
 # (`gestor_demo`) is touched. See docs/DEMO.md.
@@ -105,5 +106,11 @@ if [ ! -d frontend/node_modules ]; then
   npm --prefix frontend ci
 fi
 
-info "Running the demo flow with Playwright"
-npm --prefix frontend run test:e2e:demo -- "$@"
+if [ "${1:-}" = "--screenshots" ]; then
+  shift
+  info "Capturing the demo screens into docs/screenshots/demo/"
+  npm --prefix frontend run screenshots:demo -- "$@"
+else
+  info "Running the demo flow with Playwright"
+  npm --prefix frontend run test:e2e:demo -- "$@"
+fi

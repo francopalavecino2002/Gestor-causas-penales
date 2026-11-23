@@ -7,13 +7,20 @@ import { Button } from "@/components/ui/button";
 import { cppArticle, detaineeAlertSentence } from "@/features/agenda/agenda-format";
 import { useDetaineeAlerts } from "@/features/agenda/agenda-queries";
 import type { DetaineeAlert } from "@/features/agenda/agenda-types";
+import { cn } from "@/lib/utils";
 
 /** How many alerts show before "Mirá los N avisos". */
 const VISIBLE = 3;
 
-function AlertItem({ alert }: { alert: DetaineeAlert }) {
+/**
+ * On phones (below `md`) only the first one: three alerts filled the whole first screen and hid
+ * the day's hearings (DESIGN.md asks for the alert and two hearings).
+ */
+const VISIBLE_ON_PHONES = 1;
+
+function AlertItem({ alert, className }: { alert: DetaineeAlert; className?: string }) {
   return (
-    <li className="grid gap-0.5">
+    <li className={cn("grid gap-0.5", className)}>
       <p>
         <strong className="font-bold text-detained">{alert.defendantName}</strong>.{" "}
         {detaineeAlertSentence(alert)}
@@ -67,7 +74,7 @@ export function DetaineeAlerts() {
   if (!first) return null;
 
   const visible = expanded ? list : list.slice(0, VISIBLE);
-  const hidden = list.length - VISIBLE;
+  const overflowsDesktop = list.length > VISIBLE;
   // The backend sends the same fixed disclaimer with every alert.
   const { disclaimer } = first;
 
@@ -82,14 +89,19 @@ export function DetaineeAlerts() {
         </AlertTitle>
         <AlertDescription className="gap-3">
           <ul id={listId} aria-label="Avisos" className="grid gap-3">
-            {visible.map((alert) => (
-              <AlertItem key={`${alert.measureId}-${alert.kind}`} alert={alert} />
+            {visible.map((alert, index) => (
+              <AlertItem
+                key={`${alert.measureId}-${alert.kind}`}
+                alert={alert}
+                className={!expanded && index >= VISIBLE_ON_PHONES ? "max-md:hidden" : undefined}
+              />
             ))}
           </ul>
-          {hidden > 0 && (
+          {list.length > VISIBLE_ON_PHONES && (
             <Button
               variant="link"
-              className="-mx-1 justify-self-start px-1"
+              // Collapsed, the phone hides some of the first three; a wider screen shows them.
+              className={cn("-mx-1 justify-self-start px-1", !overflowsDesktop && "md:hidden")}
               aria-expanded={expanded}
               aria-controls={listId}
               onClick={() => setExpanded((value) => !value)}

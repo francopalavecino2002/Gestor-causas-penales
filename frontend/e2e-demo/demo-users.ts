@@ -24,6 +24,12 @@ export const JULIAN: DemoUser = {
   displayName: "Julián Muestra",
 };
 
+/** The paralegal. No e2e test uses her, so the screenshot capture borrows her for the 2FA step. */
+export const SOFIA: DemoUser = {
+  email: "sofia.ficticia@example.com",
+  displayName: "Sofía Ficticia",
+};
+
 /** Checked by playwright.demo.config.ts before any test runs. */
 export function demoPassword(): string {
   const password = process.env.DEMO_PASSWORD;
@@ -36,6 +42,17 @@ export const DEMO_CASE = {
   number: "DEMO-001",
   caption: "Fernández Ruiz, Tomás y otra s/ robo agravado (ficticio)",
   defendants: ["Fernández Ruiz, Tomás", "Soto Ejemplo, Gabriela"],
+} as const;
+
+/** Other demo cases the guided script (docs/DEMO.md) opens (DemoCases). */
+export const DETAINEES_CASE = {
+  number: "DEMO-004",
+  caption: "Benítez Ejemplo, Carla y otros s/ homicidio (ficticio)",
+} as const;
+
+export const PROBATION_CASE = {
+  number: "DEMO-005",
+  caption: "Ledesma Prueba, Hernán s/ hurto (ficticio)",
 } as const;
 
 /** The firm's zone: the seed and the agenda count days in it. */
