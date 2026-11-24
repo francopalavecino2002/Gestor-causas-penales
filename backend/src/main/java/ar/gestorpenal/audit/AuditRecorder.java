@@ -49,7 +49,8 @@ class AuditRecorder implements PostInsertEventListener, PostUpdateEventListener 
 
     static final String ARCHIVED_AT = "archivedAt";
 
-    private static final String INSERT_SQL = """
+    /** Also written by {@link AuditJournal} for manual entries: keep both in sync with the table. */
+    static final String INSERT_SQL = """
             insert into audit_event
                 (tenant_id, occurred_at, actor_user_id, entity_type, entity_id, action, changes)
             values (?, ?, ?, ?, ?, ?, ?::jsonb)
@@ -273,7 +274,7 @@ class AuditRecorder implements PostInsertEventListener, PostUpdateEventListener 
     }
 
     /** The logged-in user, who must belong to the firm that owns the changed record. */
-    private static UUID currentActor(UUID entityTenantId) {
+    static UUID currentActor(UUID entityTenantId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null
                 || !authentication.isAuthenticated()

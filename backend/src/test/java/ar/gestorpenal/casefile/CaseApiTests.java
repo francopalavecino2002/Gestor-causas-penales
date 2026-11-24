@@ -26,7 +26,7 @@ class CaseApiTests extends CaseApiTestSupport {
                 .andExpect(header().string("Location", startsWith("/api/v1/cases/")))
                 .andExpect(jsonPath("$.mpfLegajo").value("MPFNQ 123989/2018"))
                 .andExpect(jsonPath("$.circumscriptionName").value("I Circunscripción (Confluencia)"))
-                .andExpect(jsonPath("$.actionType").value("PUBLIC"))
+                .andExpect(jsonPath("$.actionType").value("public"))
                 .andExpect(jsonPath("$.actionArticle").value("99"))
                 .andExpect(jsonPath("$.reserved").value(false))
                 .andExpect(jsonPath("$.team", hasSize(1)))

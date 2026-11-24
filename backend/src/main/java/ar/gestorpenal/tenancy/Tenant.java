@@ -62,4 +62,12 @@ public class Tenant {
         this.enabledPracticeAreas = List.of(DEFAULT_PRACTICE_AREA);
         this.createdAt = Instant.now();
     }
+
+    /** Replaces the practice areas the firm works in; the caller checks them against the package. */
+    void changeEnabledPracticeAreas(List<String> codes) {
+        if (codes.isEmpty()) {
+            throw new IllegalArgumentException("A firm works in at least one practice area");
+        }
+        this.enabledPracticeAreas = List.copyOf(codes);
+    }
 }

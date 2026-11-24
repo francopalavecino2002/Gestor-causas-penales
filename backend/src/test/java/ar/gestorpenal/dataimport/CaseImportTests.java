@@ -78,8 +78,8 @@ class CaseImportTests extends ImportApiTestSupport {
                 .andExpect(jsonPath("$.mpfLegajo").value("MPFNQ 2002/2035"))
                 .andExpect(jsonPath("$.internalNumber").value("INT-C1"))
                 .andExpect(jsonPath("$.circumscriptionCode").value("i-confluencia"))
-                .andExpect(jsonPath("$.actionType").value("PUBLIC_ON_COMPLAINT"))
-                .andExpect(jsonPath("$.represents").value("DEFENCE"))
+                .andExpect(jsonPath("$.actionType").value("public-on-complaint"))
+                .andExpect(jsonPath("$.represents").value("defence"))
                 .andExpect(jsonPath("$.reserved").value(false))
                 .andExpect(jsonPath("$.team[0].userId").value(lawyerId.toString()))
                 .andExpect(jsonPath("$.team[0].role").value("RESPONSIBLE"))
@@ -305,16 +305,16 @@ class CaseImportTests extends ImportApiTestSupport {
 
         getAs(lawyer, "/api/v1/cases/" + caseIdOf("Actor Ficticio"))
                 .andExpect(jsonPath("$.practiceArea").value("civil"))
-                .andExpect(jsonPath("$.actionType").value("ORDINARIO"))
-                .andExpect(jsonPath("$.represents").value("ACTOR"))
+                .andExpect(jsonPath("$.actionType").value("ordinario"))
+                .andExpect(jsonPath("$.represents").value("actor"))
                 .andExpect(jsonPath("$.stageCode").value("inicio"));
         getAs(lawyer, "/api/v1/cases/" + caseIdOf("Otra Causa"))
                 .andExpect(jsonPath("$.practiceArea").value("penal"))
-                .andExpect(jsonPath("$.actionType").value("PUBLIC"));
+                .andExpect(jsonPath("$.actionType").value("public"));
         getAs(lawyer, "/api/v1/cases/" + caseIdOf("Sin Fuero"))
                 .andExpect(jsonPath("$.practiceArea").value("penal"))
-                .andExpect(jsonPath("$.actionType").value("PRIVATE"))
-                .andExpect(jsonPath("$.represents").value("PRIVATE_PROSECUTION"));
+                .andExpect(jsonPath("$.actionType").value("private"))
+                .andExpect(jsonPath("$.represents").value("private-prosecution"));
     }
 
     @Test

@@ -85,7 +85,7 @@ abstract class DeadlineApiTestSupport {
     /** A public-action case; {@code extraFields} is raw JSON starting with a comma, or empty. */
     String createCase(RequestPostProcessor user, String caption, String extraFields) throws Exception {
         String json = """
-                {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "PUBLIC", "represents": "DEFENCE"%s}
+                {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "public", "represents": "defence"%s}
                 """.formatted(caption, extraFields);
         return idOf(postJson(user, "/api/v1/cases", json).andExpect(status().isCreated()));
     }
