@@ -1638,3 +1638,57 @@ Superseded decisions are marked, never deleted.
   provider abroad (Ley 25.326, art. 12). The free tier's per-minute limit can answer "busy": the UI
   says to wait a minute or type the data by hand. Next candidates, same rules: a case summary to
   prepare a hearing, and column mapping in the import.
+
+## ADR-0034: Agenda export as a private iCalendar feed (T44)
+
+- **Date:** 2026-11-24
+- **Status:** accepted
+- **Context:** Lawyers live in Google Calendar, Outlook or the iPhone calendar, and competitors offer
+  agenda sync. Two-way sync needs OAuth apps per provider (accounts Franco does not have yet) and
+  writes into third-party calendars. A subscribed iCalendar URL (RFC 5545) works with all three
+  without any account, but a calendar app cannot log in, and the events end up stored by a third
+  party.
+- **Decision:**
+  - **One private feed per member**: `GET /api/v1/calendar-feed/{secret}.ics`, public in the security
+    chain, lists the hearings the member attends (`hearing_lawyer`), from 90 days ago on, in cases
+    that are not archived and that the member may see today (same rule as the agenda). Archived
+    hearings drop out; cancelled and suspended ones are `STATUS:CANCELLED`, requested ones
+    `TENTATIVE`. Times are written in UTC, so no `VTIMEZONE` is needed. Refresh hint: one hour.
+  - **The secret is the only credential.** 256 random bits (`SecureRandom`, unpadded base64url),
+    shown once in the answer of `POST /api/v1/me/calendar-feed` and stored only as its SHA-256
+    (`calendar_feed_token`, audited with the hash redacted). A new link revokes the previous one;
+    `POST /api/v1/me/calendar-feed/revoke` stops it; `GET /api/v1/me/calendar-feed` tells whether a
+    link is live and since when. At most one live link per member (partial unique index). Rows are
+    revoked, never deleted. A malformed secret is not even looked up. No rate limit: guessing 256
+    bits is not feasible, and calendar apps poll.
+  - **Tenant resolution.** The feed request has no session, so one JDBC query reads the token table
+    across firms (like the login lookup by slug) and returns only the firm and member ids; the rest
+    runs in `TenantContext.callAs(firm)` as that member with their *current* role. An archived member
+    or firm, or a revoked link, answers 404 with no body. A session of another firm in the same
+    browser does not leak into the feed (the explicit scope wins).
+  - **Data minimisation.** Each event carries the hearing type (with article), time, room, status
+    and, for cases that are not reserved, the caption, judge and OFIJU reference. Defendants, notes,
+    results and team never leave. A reserved case shows "Causa reservada" and nothing that
+    identifies it, even to members who may see it, because the event is stored by the calendar
+    provider. Each description ends with "verificá los datos en la agenda". The caption of a case
+    that is not reserved often names the defendant ("Pérez s/ robo"): that personal data does reach
+    the calendar provider. The firm decides it by not reserving the case, and the T45 screen must
+    say so next to the link. A per-member "sin carátula" feed can come later if lawyers ask.
+  - Events carry no `SEQUENCE` or `LAST-MODIFIED`: hearings keep no modification time, and a
+    subscribed `METHOD:PUBLISH` feed is replaced whole on each refresh, matched by `UID`. Control
+    characters other than tab and line breaks are dropped from TEXT values.
+  - **One-off download**: `GET /api/v1/hearings/{id}/calendar.ics` (with session, same visibility and
+    the same masking) answers a one-event file as an attachment, for "Agregá al calendario".
+  - The `.ics` is written by hand (`IcsWriter`: escaping and 75-octet folding per RFC 5545 §3.1 and
+    §3.3.11) instead of adding a library for a few lines.
+- **Alternatives considered:** keeping the secret encrypted so the UI can show the link again
+  (more convenient, but a database leak plus the key would expose every feed; the UI offers
+  "Generá un enlace nuevo" instead); Google/Microsoft API sync (needs OAuth apps and accounts, later
+  if lawyers ask); per-hearing links only (no automatic updates).
+- **Consequences:** Subscribing needs the app reachable from the internet over HTTPS, so it works
+  once the product is hosted; on the LAN demo only the one-off download is useful. Google refreshes
+  subscribed calendars every few hours whatever the hint says, which the T45 instructions must say.
+  The feed URL is a bearer secret: the UI must warn not to share it. The feed answers
+  `Referrer-Policy: no-referrer` and `Cache-Control: no-store`, and allows HEAD as well as GET; the
+  reverse proxy chosen at hosting time must not log request paths of `/api/v1/calendar-feed/`. Two
+  simultaneous "new link" requests of one member answer 409 (`calendar-feed-conflict`) for one of them.

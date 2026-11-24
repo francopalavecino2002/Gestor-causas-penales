@@ -168,8 +168,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   only a generic court-set deadline rule), action type and represented side as catalog codes of the
   case's area (V13), a case-level stage, status and closing outcome for areas without defendants,
   and an optional `fuero` column in the cases import. The criminal wire format and the demo are unchanged.
+- Optional AI assistance (T52): off by default per firm and per installation, "Completá desde una
+  notificación" fills the new-hearing form from a pasted OFIJU/SINE text through a replaceable provider
+  (Gemini), with the answer checked against the firm's catalogs and the text never stored (ADR-0033).
 - Practice areas in the UI (T43): area choice in "Nueva causa", case detail and forms driven by the
   area's modules (defendants, detainees, MPF legajo), area badges and filters in the case list and the
   agenda when more than one area is enabled, a "Fueros" section in Ajustes (owner only, audited, with
   a row lock against concurrent changes) and per-area catalog settings. The case API now uses plain
   catalog codes. Penal-only firms see the same screens as before.
+- Agenda export (T44): a private iCalendar feed (RFC 5545) of the hearings each member attends, behind
+  a revocable 256-bit secret stored only as its SHA-256 (`/api/v1/me/calendar-feed`, public
+  `GET /api/v1/calendar-feed/{secret}.ics`), and a one-hearing download
+  (`GET /api/v1/hearings/{id}/calendar.ics`). Defendants, notes and results never leave; reserved
+  cases show "Causa reservada" without caption, judge or OFIJU reference (ADR-0034).

@@ -5,6 +5,9 @@ import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,9 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 class HearingController {
 
     private final HearingService hearings;
+    private final HearingIcsExport icsExport;
 
-    HearingController(HearingService hearings) {
+    HearingController(HearingService hearings, HearingIcsExport icsExport) {
         this.hearings = hearings;
+        this.icsExport = icsExport;
     }
 
     @PostMapping("/cases/{caseId}/hearings")
@@ -51,6 +56,19 @@ class HearingController {
     @GetMapping("/hearings/{id}")
     HearingDetail one(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
         return hearings.get(user, id);
+    }
+
+    /** The hearing as a one-event {@code .ics} file, to add it to a calendar app (ADR-0034). */
+    @GetMapping("/hearings/{id}/calendar.ics")
+    ResponseEntity<String> calendarFile(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id) {
+        return ResponseEntity.ok()
+                .contentType(HearingIcsExport.MEDIA_TYPE)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("audiencia.ics")
+                        .build()
+                        .toString())
+                .cacheControl(CacheControl.noStore())
+                .body(icsExport.hearing(user, id));
     }
 
     @PutMapping("/hearings/{id}")

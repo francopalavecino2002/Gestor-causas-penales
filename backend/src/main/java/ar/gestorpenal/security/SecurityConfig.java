@@ -28,7 +28,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
  * Cookie session + CSRF for the same-origin SPA (ADR-0008). Deny by default: only the health
- * check, the CSRF bootstrap and the two login steps (ADR-0009) are public.
+ * check, the CSRF bootstrap, the two login steps (ADR-0009) and the calendar feed (ADR-0034) are public.
  */
 @Configuration
 @EnableConfigurationProperties(LoginThrottleProperties.class)
@@ -38,6 +38,7 @@ public class SecurityConfig {
     static final String SECOND_FACTOR_PATH = "/api/v1/auth/login/second-factor";
     static final String CSRF_PATH = "/api/v1/auth/csrf";
     static final String LOGOUT_PATH = "/api/v1/auth/logout";
+    static final String CALENDAR_FEED_PATTERN = "/api/v1/calendar-feed/*.ics";
 
     @Bean
     SecurityFilterChain securityFilterChain(
@@ -70,6 +71,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, CSRF_PATH).permitAll()
                         .requestMatchers(HttpMethod.POST, LOGIN_PATH, SECOND_FACTOR_PATH).permitAll()
+                        // Calendar apps cannot log in: the secret in the path is the credential (ADR-0034).
+                        .requestMatchers(HttpMethod.GET, CALENDAR_FEED_PATTERN).permitAll()
+                        .requestMatchers(HttpMethod.HEAD, CALENDAR_FEED_PATTERN).permitAll()
                         .anyRequest().authenticated());
         return http.build();
     }
