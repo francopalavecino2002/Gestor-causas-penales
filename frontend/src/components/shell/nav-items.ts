@@ -1,7 +1,15 @@
-import { Calendar, Folder, Hourglass, Settings, Users, type LucideIcon } from "lucide-react";
+import {
+  Calendar,
+  Folder,
+  Hourglass,
+  ListChecks,
+  Settings,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 
 export interface NavItem {
-  to: "/" | "/causas" | "/plazos" | "/personas" | "/ajustes";
+  to: "/" | "/causas" | "/plazos" | "/tareas" | "/personas" | "/ajustes";
   label: string;
   icon: LucideIcon;
 }
@@ -11,6 +19,7 @@ export const MAIN_NAV: NavItem[] = [
   { to: "/", label: "Agenda", icon: Calendar },
   { to: "/causas", label: "Causas", icon: Folder },
   { to: "/plazos", label: "Plazos", icon: Hourglass },
+  { to: "/tareas", label: "Tareas", icon: ListChecks },
   { to: "/personas", label: "Personas", icon: Users },
 ];
 

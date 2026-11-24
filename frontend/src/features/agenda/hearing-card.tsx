@@ -23,6 +23,7 @@ import { cppArticle, joinNames } from "@/features/agenda/agenda-format";
 import type { AgendaItem } from "@/features/agenda/agenda-types";
 import { AddToCalendarButton } from "@/features/calendar-feed/add-to-calendar-button";
 import { useHearingEdit } from "@/features/hearings/hearing-edit-context";
+import { AddHearingTaskButton } from "@/features/tasks/add-hearing-task-button";
 import { AreaBadge } from "@/features/practice-areas/area-badge";
 import { cn } from "@/lib/utils";
 
@@ -224,6 +225,13 @@ export function HearingCard({
             </Button>
           )}
           <AddToCalendarButton hearingId={item.hearingId} typeName={item.typeName} />
+          {/* A collapsed (finished) hearing keeps its row short: open it to add a task. */}
+          {open && (
+            <AddHearingTaskButton
+              hearing={{ id: item.hearingId, typeName: item.typeName, startsAt: item.startsAt }}
+              timeZone={timeZone}
+            />
+          )}
         </div>
       </article>
     </Card>

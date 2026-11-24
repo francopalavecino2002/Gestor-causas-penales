@@ -1739,3 +1739,26 @@ Superseded decisions are marked, never deleted.
     `dueOn`, `overdue`, `includeArchived`) instead of nested routes per case or member.
 - **Consequences:** `created_by` is a column because the edit rule needs it; the last-change time
   lives in the audit log. Tasks have no reminders or notifications yet.
+
+## ADR-0037: Tasks screens (T47)
+
+- **Date:** 2026-11-24
+- **Status:** accepted
+- **Context:** T46 exposes tasks per responsible; the UI must make them part of the daily routine
+  without crowding the agenda, which stays the core.
+- **Decision:**
+  - "Tareas" is a fifth item in the mobile bottom nav (between Plazos and Personas) and in the
+    sidebar; five items fit from 360 px.
+  - The view ("Mías" / "Por persona", "Mostrá las hechas") lives in the URL; "Por persona" without
+    a choice picks the first colleague by name.
+  - Overdue tasks say "Vencida" with an icon and an amber edge: amber deadline tokens, because red
+    is reserved for detained clients in the design rules.
+  - Done, pending again and archive act at once with a "Deshacé" notice instead of a confirmation
+    dialog, since all of them are reversible. Edit and archive only show for the creator, the
+    responsible, owners and lawyers (same rule as the backend).
+  - One "Nueva tarea" form, prefilled by context: from Tareas, from the case detail (which lists the
+    case's pending tasks; hidden on archived cases) and from an open hearing card ("Sumá una tarea").
+  - The agenda home shows "Tareas de hoy" (my pending tasks due today plus the overdue count): below
+    the detainee alerts on phones, in a right column from 1280 px. A failure there never blocks the
+    agenda.
+- **Consequences:** The bottom nav is denser; a sixth top-level item would need a "Más" menu.

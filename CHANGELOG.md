@@ -190,3 +190,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   optional case or hearing link and status pendiente/hecha, archived instead of deleted and audited
   (`/api/v1/tasks`); list filters for "mis tareas", member, case, hearing, status, due day and overdue,
   overdue first; tasks of reserved cases follow the case visibility; six demo tasks (ADR-0036).
+- Tasks per responsible UI (T47): "Tareas" screen in the navigation ("Mías" / "Por persona", show
+  done ones, overdue first with a "Vencida" label), mark done with undo, edit and archive for whoever
+  may manage the task; "Nueva tarea" from Tareas, the case detail (with the case's pending tasks) and
+  each hearing ("Sumá una tarea"); "Tareas de hoy" card on the agenda home (ADR-0037).

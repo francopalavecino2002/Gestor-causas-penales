@@ -37,6 +37,9 @@ import { AreaBadge } from "@/features/practice-areas/area-badge";
 import { AreaDraftNote } from "@/features/practice-areas/area-choice";
 import { DEFAULT_AREA, hasModule } from "@/features/practice-areas/practice-area-format";
 import { useAreaDirectory } from "@/features/practice-areas/practice-area-queries";
+import { CaseTasks } from "@/features/tasks/case-tasks";
+import { TaskFormDialog, type TaskLinks } from "@/features/tasks/task-form-dialog";
+import { TaskQuickAddContext } from "@/features/tasks/task-quick-add-context";
 import { isApiError } from "@/lib/api";
 
 /** The catalogs the page names things with, in the case's area: only those its modules use. */
@@ -323,6 +326,7 @@ type CaseDialog =
   | { kind: "defendant"; defendant?: DefendantView }
   | { kind: "party" }
   | { kind: "hearing"; hearingId?: string }
+  | { kind: "task"; links: TaskLinks }
   | null;
 
 function CaseScreen({ detail }: { detail: CaseDetail }) {
@@ -338,179 +342,212 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
   const editHearing = rights.edit
     ? (hearingId: string) => setDialog({ kind: "hearing", hearingId })
     : null;
+  // Tasks cannot be linked to an archived case (the backend answers 409).
+  const addTask = detail.archived ? null : (links: TaskLinks) => setDialog({ kind: "task", links });
+  const today = todayIn(timeZone, now);
   return (
     <HearingEditContext.Provider value={editHearing}>
-      <div className="grid gap-2">
-        <BackLink />
-        <header className="grid gap-2">
-          {(detail.reserved ||
-            detail.archived ||
-            directory.multiple ||
-            detail.practiceArea !== DEFAULT_AREA) && (
-            <p className="flex flex-wrap gap-1.5">
-              <AreaBadge code={detail.practiceArea} always={detail.practiceArea !== DEFAULT_AREA} />
-              {detail.reserved && <ReservedBadge />}
-              {detail.archived && <ArchivedBadge />}
-            </p>
-          )}
-          <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-            <div className="grid min-w-0 gap-2">
-              <h1 className="text-display font-bold text-balance">{detail.caption}</h1>
-              <p className="flex flex-wrap gap-x-4 text-body text-muted-foreground">
-                {detail.mpfLegajo && (
-                  <span className="whitespace-nowrap tabular-nums">Legajo {detail.mpfLegajo}</span>
-                )}
-                <span>{detail.circumscriptionName}</span>
+      <TaskQuickAddContext.Provider value={addTask}>
+        <div className="grid gap-2">
+          <BackLink />
+          <header className="grid gap-2">
+            {(detail.reserved ||
+              detail.archived ||
+              directory.multiple ||
+              detail.practiceArea !== DEFAULT_AREA) && (
+              <p className="flex flex-wrap gap-1.5">
+                <AreaBadge
+                  code={detail.practiceArea}
+                  always={detail.practiceArea !== DEFAULT_AREA}
+                />
+                {detail.reserved && <ReservedBadge />}
+                {detail.archived && <ArchivedBadge />}
               </p>
-              {area && area.flags.length > 0 && <AreaDraftNote area={area} />}
-            </div>
-            {rights.edit && (
-              <Button variant="outline" onClick={() => setDialog({ kind: "case" })}>
-                <Pencil aria-hidden="true" />
-                Editá la causa
-              </Button>
             )}
-          </div>
-        </header>
-      </div>
+            <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+              <div className="grid min-w-0 gap-2">
+                <h1 className="text-display font-bold text-balance">{detail.caption}</h1>
+                <p className="flex flex-wrap gap-x-4 text-body text-muted-foreground">
+                  {detail.mpfLegajo && (
+                    <span className="whitespace-nowrap tabular-nums">
+                      Legajo {detail.mpfLegajo}
+                    </span>
+                  )}
+                  <span>{detail.circumscriptionName}</span>
+                </p>
+                {area && area.flags.length > 0 && <AreaDraftNote area={area} />}
+              </div>
+              {rights.edit && (
+                <Button variant="outline" onClick={() => setDialog({ kind: "case" })}>
+                  <Pencil aria-hidden="true" />
+                  Editá la causa
+                </Button>
+              )}
+            </div>
+          </header>
+        </div>
 
-      {detail.archived && (
-        <Alert variant="info">
-          <Archive aria-hidden="true" />
-          <AlertTitle>Esta causa está archivada</AlertTitle>
-          <AlertDescription>
-            La ves como quedó al archivarla: nada se borró. No aparece en la lista salvo que
-            incluyas las archivadas.
-          </AlertDescription>
-        </Alert>
-      )}
+        {detail.archived && (
+          <Alert variant="info">
+            <Archive aria-hidden="true" />
+            <AlertTitle>Esta causa está archivada</AlertTitle>
+            <AlertDescription>
+              La ves como quedó al archivarla: nada se borró. No aparece en la lista salvo que
+              incluyas las archivadas.
+            </AlertDescription>
+          </Alert>
+        )}
 
-      <div className="grid gap-7 xl:grid-cols-with-aside xl:gap-10">
-        <div className="grid content-start gap-7">
-          {defendants ? (
-            <Section title="Resumen">
-              <Summary detail={detail} timeZone={timeZone} />
+        <div className="grid gap-7 xl:grid-cols-with-aside xl:gap-10">
+          <div className="grid content-start gap-7">
+            {defendants ? (
+              <Section title="Resumen">
+                <Summary detail={detail} timeZone={timeZone} />
+              </Section>
+            ) : (
+              <Section
+                title="Etapa y estado"
+                action={
+                  rights.edit && (
+                    <Button
+                      variant="outline"
+                      aria-label="Editá la etapa y el estado"
+                      onClick={() => setDialog({ kind: "case" })}
+                    >
+                      <Pencil aria-hidden="true" />
+                      Editá
+                    </Button>
+                  )
+                }
+              >
+                <CourseSummary detail={detail} timeZone={timeZone} />
+              </Section>
+            )}
+            {defendants && (
+              <Section
+                title="Imputados"
+                action={
+                  rights.edit && (
+                    <Button variant="outline" onClick={() => setDialog({ kind: "defendant" })}>
+                      <Plus aria-hidden="true" />
+                      Agregá un imputado
+                    </Button>
+                  )
+                }
+              >
+                {detail.defendants.length > 0 ? (
+                  <ul className="grid gap-3">
+                    {detail.defendants.map((defendant) => (
+                      <li key={defendant.id}>
+                        <DefendantCard
+                          defendant={defendant}
+                          today={todayIn(timeZone, now)}
+                          onEdit={
+                            rights.edit
+                              ? () => setDialog({ kind: "defendant", defendant })
+                              : undefined
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-body text-muted-foreground">
+                    Esta causa todavía no tiene imputados cargados.
+                  </p>
+                )}
+              </Section>
+            )}
+            <Section title="Plazos">
+              <CaseDeadlines caseId={detail.id} timeZone={timeZone} />
             </Section>
-          ) : (
             <Section
-              title="Etapa y estado"
+              title="Audiencias"
               action={
                 rights.edit && (
+                  <Button variant="outline" onClick={() => setDialog({ kind: "hearing" })}>
+                    <Plus aria-hidden="true" />
+                    Nueva audiencia
+                  </Button>
+                )
+              }
+            >
+              <CaseHearings
+                caseId={detail.id}
+                timeZone={timeZone}
+                now={now}
+                scheduledBy={hasModule(detail.modules, "mpf-legajo") ? undefined : "el juzgado"}
+              />
+            </Section>
+            <Section
+              title="Tareas"
+              action={
+                addTask && (
                   <Button
                     variant="outline"
-                    aria-label="Editá la etapa y el estado"
-                    onClick={() => setDialog({ kind: "case" })}
+                    onClick={() =>
+                      addTask({ caseId: detail.id, context: `Para la causa ${detail.caption}.` })
+                    }
                   >
-                    <Pencil aria-hidden="true" />
-                    Editá
+                    <Plus aria-hidden="true" />
+                    Nueva tarea
                   </Button>
                 )
               }
             >
-              <CourseSummary detail={detail} timeZone={timeZone} />
+              <CaseTasks caseId={detail.id} today={today} timeZone={timeZone} />
             </Section>
-          )}
-          {defendants && (
+          </div>
+          <div className="grid content-start gap-7">
+            <Section title="Datos de la causa">
+              <CaseData detail={detail} timeZone={timeZone} />
+            </Section>
             <Section
-              title="Imputados"
+              title="Partes"
               action={
                 rights.edit && (
-                  <Button variant="outline" onClick={() => setDialog({ kind: "defendant" })}>
+                  <Button variant="outline" onClick={() => setDialog({ kind: "party" })}>
                     <Plus aria-hidden="true" />
-                    Agregá un imputado
+                    Agregá una parte
                   </Button>
                 )
               }
             >
-              {detail.defendants.length > 0 ? (
-                <ul className="grid gap-3">
-                  {detail.defendants.map((defendant) => (
-                    <li key={defendant.id}>
-                      <DefendantCard
-                        defendant={defendant}
-                        today={todayIn(timeZone, now)}
-                        onEdit={
-                          rights.edit
-                            ? () => setDialog({ kind: "defendant", defendant })
-                            : undefined
-                        }
-                      />
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-body text-muted-foreground">
-                  Esta causa todavía no tiene imputados cargados.
-                </p>
-              )}
+              <Parties detail={detail} />
             </Section>
-          )}
-          <Section title="Plazos">
-            <CaseDeadlines caseId={detail.id} timeZone={timeZone} />
-          </Section>
-          <Section
-            title="Audiencias"
-            action={
-              rights.edit && (
-                <Button variant="outline" onClick={() => setDialog({ kind: "hearing" })}>
-                  <Plus aria-hidden="true" />
-                  Nueva audiencia
-                </Button>
-              )
-            }
-          >
-            <CaseHearings
-              caseId={detail.id}
-              timeZone={timeZone}
-              now={now}
-              scheduledBy={hasModule(detail.modules, "mpf-legajo") ? undefined : "el juzgado"}
-            />
-          </Section>
+            <Section title="Equipo">
+              <Team detail={detail} />
+            </Section>
+          </div>
         </div>
-        <div className="grid content-start gap-7">
-          <Section title="Datos de la causa">
-            <CaseData detail={detail} timeZone={timeZone} />
-          </Section>
-          <Section
-            title="Partes"
-            action={
-              rights.edit && (
-                <Button variant="outline" onClick={() => setDialog({ kind: "party" })}>
-                  <Plus aria-hidden="true" />
-                  Agregá una parte
-                </Button>
-              )
-            }
-          >
-            <Parties detail={detail} />
-          </Section>
-          <Section title="Equipo">
-            <Team detail={detail} />
-          </Section>
-        </div>
-      </div>
 
-      {dialog?.kind === "case" && (
-        <CaseFormDialog detail={detail} canChangeReserved={rights.changeReserved} onClose={close} />
-      )}
-      {dialog?.kind === "defendant" && (
-        <DefendantFormDialog caseId={detail.id} defendant={dialog.defendant} onClose={close} />
-      )}
-      {dialog?.kind === "party" && (
-        <PartyFormDialog
-          caseId={detail.id}
-          area={detail.practiceArea}
-          defaultRole={detail.parties.length === 0 ? detail.represents : undefined}
-          onClose={close}
-        />
-      )}
-      {dialog?.kind === "hearing" && (
-        <HearingFormDialog
-          caseId={dialog.hearingId ? undefined : detail.id}
-          hearingId={dialog.hearingId}
-          onClose={close}
-        />
-      )}
+        {dialog?.kind === "case" && (
+          <CaseFormDialog
+            detail={detail}
+            canChangeReserved={rights.changeReserved}
+            onClose={close}
+          />
+        )}
+        {dialog?.kind === "defendant" && (
+          <DefendantFormDialog caseId={detail.id} defendant={dialog.defendant} onClose={close} />
+        )}
+        {dialog?.kind === "party" && (
+          <PartyFormDialog
+            caseId={detail.id}
+            area={detail.practiceArea}
+            defaultRole={detail.parties.length === 0 ? detail.represents : undefined}
+            onClose={close}
+          />
+        )}
+        {dialog?.kind === "hearing" && (
+          <HearingFormDialog
+            caseId={dialog.hearingId ? undefined : detail.id}
+            hearingId={dialog.hearingId}
+            onClose={close}
+          />
+        )}
+        {dialog?.kind === "task" && <TaskFormDialog links={dialog.links} onClose={close} />}
+      </TaskQuickAddContext.Provider>
     </HearingEditContext.Provider>
   );
 }

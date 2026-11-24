@@ -25,6 +25,8 @@ import type {
 import type { ImportKind } from "../src/features/imports/import-types";
 import { ALL_DEADLINES, caseDeadlines, upcomingDeadlines } from "../src/test/deadline-fixtures";
 import { cleanReport, reportWithErrors } from "../src/test/import-fixtures";
+import { tasksBackend } from "../src/test/task-fixtures";
+import type { TaskView } from "../src/features/tasks/task-types";
 import {
   CASE_FIELDS,
   DEADLINE_RULES,
@@ -78,6 +80,8 @@ interface MockBackendOptions {
   aiAssist?: boolean;
   /** The member already has a calendar link, created at this instant; none by default. */
   calendarFeedSince?: string;
+  /** Tasks `/api/v1/tasks` serves (filtered, paged, with state); none by default. */
+  tasks?: TaskView[];
 }
 
 /**
@@ -236,6 +240,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
   const calls: string[] = [];
   const settings = settingsBackend();
   const forms = formsBackend();
+  const tasks = tasksBackend(options.tasks ?? [], DEMO_ME.id);
 
   const problem = (route: Route, status: number, type: string) =>
     route.fulfill({
@@ -459,6 +464,15 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
             });
           }
           return route.fulfill({ status: 200, json: report });
+        }
+        const tasksAnswer = state.signedIn
+          ? tasks(method, path, Object.fromEntries(url.searchParams), () => request.postDataJSON())
+          : undefined;
+        if (tasksAnswer) {
+          if (tasksAnswer.status === 404) return problem(route, 404, "not-found");
+          return tasksAnswer.json === undefined
+            ? route.fulfill({ status: tasksAnswer.status })
+            : route.fulfill({ status: tasksAnswer.status, json: tasksAnswer.json });
         }
         const settingsAnswer = state.signedIn
           ? settings(method, url, () => request.postDataJSON())
