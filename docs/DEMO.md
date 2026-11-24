@@ -288,6 +288,33 @@ Usa la misma base descartable que las pruebas de punta a punta (`gestor_e2e`). P
 paso del código, le activa el segundo factor a Sofía (procuradora) y se lo vuelve a desactivar al
 final.
 
+## Asistente de IA (opcional, gratis para la demo)
+
+Completa una audiencia nueva a partir del texto de una notificación de la OFIJU o del SINE
+(ADR-0033). Usa el plan gratis de Google Gemini, que puede usar los textos para mejorar sus
+productos: **solo datos ficticios**.
+
+1. Entrá a <https://aistudio.google.com/apikey> con una cuenta de Google y tocá «Create API key».
+   No pide tarjeta.
+2. En PowerShell: `setx GEMINI_API_KEY "la-clave-que-copiaste"`. Cerrá y abrí la terminal (setx
+   vale para las ventanas nuevas) y corré la demo como siempre.
+3. En la app, como titular: Ajustes > Asistente de IA > «Activado en el estudio».
+4. Agenda > «Cargá una audiencia» > elegí la causa > «Pegá una notificación», pegá el texto de
+   ejemplo de abajo y tocá «Completá con IA». Revisá los datos y guardá.
+
+Texto de ejemplo (inventado):
+
+```text
+OFICINA JUDICIAL - I CIRCUNSCRIPCIÓN (texto ficticio de prueba)
+Se notifica a la defensa que se fijó audiencia de control de acusación para el día
+02/12/2026 a las 10:15 hs, en la Sala 4, con una duración estimada de 90 minutos.
+Juez: Dr. Ejemplo Ficticio. Legajo OFIJU-0000/2026.
+```
+
+Sin clave, la sección de Ajustes dice «No disponible» y el resto de la app funciona igual. Si
+aparece «El servicio de IA está ocupado», es el límite por minuto del plan gratis: esperá un
+minuto.
+
 ## Si algo falla
 
 | Síntoma | Qué hacer |

@@ -68,6 +68,8 @@ interface MockBackendOptions {
   deadlinesFail?: boolean;
   /** The signed-in user's role; the owner by default. */
   role?: "OWNER" | "LAWYER" | "PARALEGAL" | "ADMIN_STAFF";
+  /** The firm turned the AI assistance on (it is off by default, as in the backend). */
+  aiAssist?: boolean;
 }
 
 /**
@@ -205,7 +207,11 @@ function caseResource(path: string): unknown {
  * need the backend. Checks the CSRF header on writes like the real one does.
  */
 export async function mockBackend(page: Page, options: MockBackendOptions = {}) {
-  const state = { signedIn: options.signedIn ?? false, pendingSecondFactor: false };
+  const state = {
+    signedIn: options.signedIn ?? false,
+    pendingSecondFactor: false,
+    aiAssist: options.aiAssist ?? false,
+  };
   const calls: string[] = [];
   const settings = settingsBackend();
   const forms = formsBackend();
@@ -228,7 +234,38 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
       return problem(route, 403, "access-denied");
     }
 
+    const draft = /^\/api\/v1\/cases\/([0-9a-f-]+)\/hearing-drafts$/.exec(path);
+    if (method === "POST" && draft) {
+      if (!state.aiAssist) return problem(route, 409, "ai-assist-disabled");
+      // What a provider would read from the fictitious notification of the e2e test.
+      return route.fulfill({
+        status: 200,
+        json: {
+          typeCode: "control-de-acusacion",
+          date: "2026-12-02",
+          time: "10:15",
+          durationMinutes: 90,
+          room: "Sala 4 (ficticia)",
+          judge: null,
+          ofijuReference: "OFIJU-0000/2026 (ficticia)",
+          missing: ["judge"],
+        },
+      });
+    }
+
     switch (`${method} ${path}`) {
+      case "GET /api/v1/ai-assist":
+        return route.fulfill({
+          status: 200,
+          json: { available: true, enabled: state.aiAssist, provider: "Google Gemini" },
+        });
+      case "PUT /api/v1/ai-assist": {
+        state.aiAssist = (request.postDataJSON() as { enabled: boolean }).enabled;
+        return route.fulfill({
+          status: 200,
+          json: { available: true, enabled: state.aiAssist, provider: "Google Gemini" },
+        });
+      }
       case "GET /api/v1/auth/csrf":
         return route.fulfill({
           status: 204,
