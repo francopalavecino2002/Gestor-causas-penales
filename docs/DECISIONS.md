@@ -1554,7 +1554,6 @@ Superseded decisions are marked, never deleted.
     area. Hearing imports use the area of the row's case. There are no case-level stage columns in the
     file yet: a non-criminal case imported starts in the first stage.
   - The demo firm still has only `penal` enabled.
-<<<<<<< HEAD
 - **Implementation notes (T43):**
   - Plain catalog codes on the wire: the case API takes and returns `public-on-complaint`, `defence`,
     `ordinario`... and `CatalogCodes` with its enum-like translation is gone (an old spelling is now a
@@ -1589,7 +1588,6 @@ Superseded decisions are marked, never deleted.
     validates against the areas it read first; the real import re-checks each case under the lock.
   - Each code in the request is bounded (`@NotBlank`, at most 50 characters) and the 400 for an unknown code
     does not echo it.
-=======
 
 ## ADR-0033: Optional AI assistance, starting with hearings read from a notification (T52)
 
@@ -1640,4 +1638,3 @@ Superseded decisions are marked, never deleted.
   provider abroad (Ley 25.326, art. 12). The free tier's per-minute limit can answer "busy": the UI
   says to wait a minute or type the data by hand. Next candidates, same rules: a case summary to
   prepare a hearing, and column mapping in the import.
->>>>>>> origin/main

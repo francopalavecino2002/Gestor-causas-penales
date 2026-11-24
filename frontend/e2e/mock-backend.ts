@@ -68,16 +68,13 @@ interface MockBackendOptions {
   deadlinesFail?: boolean;
   /** The signed-in user's role; the owner by default. */
   role?: "OWNER" | "LAWYER" | "PARALEGAL" | "ADMIN_STAFF";
-<<<<<<< HEAD
   /**
    * The practice areas the firm works in; only penal by default. With "civil" on, the case list
    * also serves a fictitious civil case.
    */
   areas?: string[];
-=======
   /** The firm turned the AI assistance on (it is off by default, as in the backend). */
   aiAssist?: boolean;
->>>>>>> origin/main
 }
 
 /**
@@ -225,11 +222,8 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
   const state = {
     signedIn: options.signedIn ?? false,
     pendingSecondFactor: false,
-<<<<<<< HEAD
     areas: options.areas ?? ["penal"],
-=======
     aiAssist: options.aiAssist ?? false,
->>>>>>> origin/main
   };
   const calls: string[] = [];
   const settings = settingsBackend();
