@@ -1,15 +1,22 @@
 // Relative imports only: the e2e project (tsconfig.node.json) uses these types through the
 // fixtures and has no "@/" alias.
 import type { IsoDate, NamedRef } from "../agenda/agenda-types";
+import type { PracticeModule } from "../practice-areas/practice-area-types";
 
-/** How the criminal action is exercised (backend `ActionType`), with its CPP article. */
-export type ActionType = "PUBLIC" | "PUBLIC_ON_COMPLAINT" | "PRIVATE";
+/**
+ * How the action is exercised, or the kind of process: a code of the area's `action-types`
+ * catalog ("public-on-complaint", "ordinario").
+ */
+export type ActionType = string;
 
-/** Whom the firm represents in the case (backend `Representation`). */
-export type Representation = "DEFENCE" | "PRIVATE_PROSECUTION";
+/** Whom the firm represents: a code of the area's `represented-sides` catalog ("defence", "actor"). */
+export type Representation = string;
 
 /** Where a defendant stands inside their stage (backend `DefendantStatus`). */
 export type DefendantStatus = "ACTIVE" | "SUSPENDED" | "IN_MEDIATION" | "CLOSED";
+
+/** Where a case of an area without defendants stands inside its stage (backend `CaseStatus`). */
+export type CaseStatus = DefendantStatus;
 
 /** Privately hired or public defender (backend `CounselKind`). */
 export type CounselKind = "PRIVATE" | "PUBLIC";
@@ -30,7 +37,10 @@ export interface NextHearing {
 export interface CaseSummary {
   defendantCount: number;
   openDefendantCount: number;
-  /** Stage code (stages catalog) of the most delayed open defendant; null without defendants. */
+  /**
+   * Stage code (stages catalog) of the most delayed open defendant, null without defendants; in
+   * an area without defendants, the case's own stage.
+   */
   mostDelayedStage: string | null;
   /** Active defendants with an active custodial measure. */
   detaineeCount: number;
@@ -40,6 +50,10 @@ export interface CaseSummary {
 /** A case in the list and as the head of the detail (backend `CaseView`). */
 export interface CaseView {
   id: string;
+  /** Code of the case's practice area ("penal", "civil"...); it never changes. */
+  practiceArea: string;
+  /** What the area turns on: the screen shows or hides sections by them. */
+  modules: PracticeModule[];
   caption: string;
   internalNumber: string | null;
   /** "MPFNQ 123989/2018". */
@@ -49,9 +63,18 @@ export interface CaseView {
   circumscriptionCode: string;
   circumscriptionName: string;
   actionType: ActionType;
-  /** CPP article that defines the action type, e.g. "99". */
-  actionArticle: string;
+  /** Article that defines the action type, e.g. "99"; null when the catalog cites none. */
+  actionArticle: string | null;
   represents: Representation;
+  /**
+   * The case's own stage, status and outcome: only in an area without the `defendants` module
+   * (in a criminal case each defendant has them, and these are null).
+   */
+  stageCode: string | null;
+  stageName: string | null;
+  status: CaseStatus | null;
+  closingOutcomeCode: string | null;
+  closingOutcomeName: string | null;
   reserved: boolean;
   archived: boolean;
   /** ISO instant. */
@@ -125,6 +148,8 @@ export interface CaseHearing {
   id: string;
   caseId: string;
   caseCaption: string;
+  /** Code of the case's practice area, whose catalogs name the hearing. */
+  practiceArea: string;
   typeCode: string;
   typeName: string;
   typeArticle: string | null;

@@ -1,11 +1,22 @@
 /**
  * The case list's state in the URL, so a search can be bookmarked or shared: `?q=robo`,
- * `?pagina=2` (from 1, as people count pages), `?archivadas=si`. Defaults are left out.
+ * `?pagina=2` (from 1, as people count pages), `?archivadas=si`, `?fuero=civil`. Defaults are
+ * left out.
  */
 export interface CaseListSearch {
   q?: string;
   pagina?: number;
   archivadas?: "si";
+  /** Only the cases of this practice area (a code, as the API spells it). */
+  fuero?: string;
+}
+
+/** A practice area code: lowercase words and hyphens, as the jurisdiction packages write them. */
+const AREA_CODE = /^[a-z][a-z0-9-]{0,39}$/;
+
+/** A practice area code from the URL, or undefined (any area). */
+export function parseAreaCode(value: unknown): string | undefined {
+  return typeof value === "string" && AREA_CODE.test(value) ? value : undefined;
 }
 
 /** Longest search text sent to the API; longer input is cut, never rejected. */
@@ -33,6 +44,7 @@ export function parseCaseListSearch(search: Record<string, unknown>): CaseListSe
     q: q || undefined,
     pagina: page > 1 && page <= MAX_PAGE ? page : undefined,
     archivadas: search.archivadas === "si" ? "si" : undefined,
+    fuero: parseAreaCode(search.fuero),
   };
 }
 

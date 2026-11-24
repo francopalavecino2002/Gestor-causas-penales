@@ -3,15 +3,15 @@ import type { Page, Route } from "@playwright/test";
 import type { AgendaItem, DetaineeAlert } from "../src/features/agenda/agenda-types";
 import type { CaseView } from "../src/features/cases/case-types";
 import { agendaFor } from "../src/test/agenda-fixtures";
-import { formsBackend } from "./forms-backend";
+import { CRIMINAL_CATALOGS, formsBackend } from "./forms-backend";
 import {
-  CASES,
-  CATALOGS,
-  casePageFor,
-  DETAILS,
-  HEARINGS_BY_CASE,
-  MEASURES,
-} from "../src/test/case-fixtures";
+  areaCatalog,
+  availableAreas,
+  CASE_CIVIL,
+  CIVIL_CATALOGS,
+  DETAIL_CIVIL,
+} from "../src/test/area-fixtures";
+import { CASES, casePageFor, DETAILS, HEARINGS_BY_CASE, MEASURES } from "../src/test/case-fixtures";
 import type { CatalogItem, CatalogView } from "../src/features/catalogs/catalog-types";
 import type { DeadlineView } from "../src/features/deadlines/deadline-types";
 import type {
@@ -68,6 +68,11 @@ interface MockBackendOptions {
   deadlinesFail?: boolean;
   /** The signed-in user's role; the owner by default. */
   role?: "OWNER" | "LAWYER" | "PARALEGAL" | "ADMIN_STAFF";
+  /**
+   * The practice areas the firm works in; only penal by default. With "civil" on, the case list
+   * also serves a fictitious civil case.
+   */
+  areas?: string[];
   /** The firm turned the AI assistance on (it is off by default, as in the backend). */
   aiAssist?: boolean;
 }
@@ -77,7 +82,10 @@ interface MockBackendOptions {
  * the next GET. Undefined when the request is not one of them.
  */
 function settingsBackend() {
-  const catalogs: CatalogView[] = structuredClone(SETTINGS_CATALOGS);
+  const catalogsByArea: Record<string, CatalogView[]> = {
+    penal: structuredClone(SETTINGS_CATALOGS),
+    civil: structuredClone(CIVIL_CATALOGS),
+  };
   const fields: CustomField[] = structuredClone([...CASE_FIELDS, ...DEFENDANT_FIELDS]);
   const rules: DeadlineRule[] = structuredClone(DEADLINE_RULES);
   let next = 100;
@@ -88,6 +96,7 @@ function settingsBackend() {
     body: () => unknown,
   ): { status: number; json?: unknown } | undefined => {
     const path = url.pathname;
+    const catalogs = catalogsByArea[url.searchParams.get("area") ?? "penal"] ?? [];
     if (method === "GET" && path === "/api/v1/catalogs") return { status: 200, json: catalogs };
     if (method === "GET" && path === "/api/v1/custom-fields") {
       const entity = url.searchParams.get("entity");
@@ -182,9 +191,12 @@ function settingsBackend() {
  * A case detail, its hearings, a defendant's coercive measures or a catalog, from the
  * fixtures; undefined when there is no such resource (the caller answers 404).
  */
-function caseResource(path: string): unknown {
+function caseResource(path: string, area: string | null): unknown {
   const catalog = /^\/api\/v1\/catalogs\/([a-z-]+)$/.exec(path)?.[1];
-  if (catalog) return Object.values(CATALOGS).find((view) => view.catalog === catalog);
+  if (catalog) return areaCatalog(catalog, area, CRIMINAL_CATALOGS);
+  if (path === `/api/v1/cases/${DETAIL_CIVIL.id}`) return DETAIL_CIVIL;
+  if (path === `/api/v1/cases/${DETAIL_CIVIL.id}/hearings`) return [];
+  if (path === `/api/v1/cases/${DETAIL_CIVIL.id}/deadlines`) return [];
   const deadlines = /^\/api\/v1\/cases\/([^/]+)\/deadlines$/.exec(path)?.[1];
   if (deadlines) {
     return DETAILS.some((detail) => detail.id === deadlines) ? caseDeadlines(deadlines) : undefined;
@@ -210,6 +222,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
   const state = {
     signedIn: options.signedIn ?? false,
     pendingSecondFactor: false,
+    areas: options.areas ?? ["penal"],
     aiAssist: options.aiAssist ?? false,
   };
   const calls: string[] = [];
@@ -313,6 +326,29 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
           ),
         });
       }
+      case "GET /api/v1/practice-areas":
+        if (!state.signedIn) return problem(route, 401, "authentication-required");
+        return route.fulfill({
+          status: 200,
+          json: availableAreas(state.areas)
+            .filter((area) => area.enabled)
+            .map((area) => ({ ...area, enabled: undefined })),
+        });
+      case "GET /api/v1/practice-areas/available":
+        if (!state.signedIn) return problem(route, 401, "authentication-required");
+        return route.fulfill({ status: 200, json: availableAreas(state.areas) });
+      case "PUT /api/v1/practice-areas/enabled": {
+        if (!state.signedIn) return problem(route, 401, "authentication-required");
+        if ((options.role ?? DEMO_ME.role) !== "OWNER") return problem(route, 403, "access-denied");
+        const { codes } = request.postDataJSON() as { codes: string[] };
+        if (codes.length === 0) return problem(route, 400, "invalid-practice-areas");
+        // The criminal fixtures are active cases: penal cannot be turned off.
+        if (!codes.includes("penal")) return problem(route, 409, "practice-area-in-use");
+        state.areas = availableAreas(codes)
+          .filter((area) => area.enabled)
+          .map((area) => area.code);
+        return route.fulfill({ status: 200, json: availableAreas(state.areas) });
+      }
       case "GET /api/v1/detainee-alerts":
         if (!state.signedIn) return problem(route, 401, "authentication-required");
         return route.fulfill({ status: 200, json: options.detaineeAlerts ?? [] });
@@ -322,12 +358,20 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
         const query = url.searchParams;
         return route.fulfill({
           status: 200,
-          json: casePageFor([...forms.caseViews(), ...(options.cases ?? CASES)], {
-            q: query.get("q"),
-            includeArchived: query.get("includeArchived") === "true",
-            page: Number(query.get("page") ?? 0),
-            size: Number(query.get("size") ?? 20),
-          }),
+          json: casePageFor(
+            [
+              ...forms.caseViews(),
+              ...(options.cases ?? CASES),
+              ...(state.areas.includes("civil") && !options.cases ? [CASE_CIVIL] : []),
+            ],
+            {
+              q: query.get("q"),
+              includeArchived: query.get("includeArchived") === "true",
+              area: query.get("area"),
+              page: Number(query.get("page") ?? 0),
+              size: Number(query.get("size") ?? 20),
+            },
+          ),
         });
       }
       case "GET /api/v1/deadlines": {
@@ -384,7 +428,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
         if (formsAnswer)
           return route.fulfill({ status: formsAnswer.status, json: formsAnswer.json });
         if (method === "GET" && state.signedIn) {
-          const found = caseResource(path);
+          const found = caseResource(path, url.searchParams.get("area"));
           if (found !== undefined) return route.fulfill({ status: 200, json: found });
         }
         return problem(route, 404, "not-found");

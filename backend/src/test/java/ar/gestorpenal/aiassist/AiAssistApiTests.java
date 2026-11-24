@@ -116,7 +116,7 @@ class AiAssistApiTests {
         paralegal = loggedIn(user(tenantA, "procurador@ejemplo.test", Role.PARALEGAL));
         otherFirmOwner = loggedIn(user(tenantB, "titular@beta.test", Role.OWNER));
         caseId = JsonPath.read(send(owner, post("/api/v1/cases"), """
-                {"caption": "Ficticio s/ prueba", "circumscriptionCode": "i-confluencia", "actionType": "PUBLIC", "represents": "DEFENCE"}
+                {"caption": "Ficticio s/ prueba", "circumscriptionCode": "i-confluencia", "actionType": "public", "represents": "defence"}
                 """).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
         provider.busy = false;
         provider.answer = new HearingNotificationReader.RawHearingDraft(

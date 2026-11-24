@@ -11,14 +11,13 @@ import { cppArticle } from "@/features/agenda/agenda-format";
 import { useAgendaCache } from "@/features/agenda/agenda-queries";
 import { useNow } from "@/features/agenda/use-now";
 import { useCatalogItems, useCatalogsSettled } from "@/features/catalogs/catalog-queries";
-import type { CatalogId } from "@/features/catalogs/catalog-types";
+import type { AnyCatalogId } from "@/features/catalogs/catalog-types";
 import { ArchivedBadge, DetaineeBadge, ReservedBadge } from "@/features/cases/case-badges";
 import {
-  ACTION_TYPE_LABELS,
+  CASE_STATUS_LABELS,
   countDefendants,
   formatLongDateTime,
   formatNumericDate,
-  REPRESENTATION_LABELS,
   TEAM_ROLE_LABELS,
 } from "@/features/cases/case-format";
 import { useMe } from "@/features/auth/me-query";
@@ -33,9 +32,19 @@ import { useCase } from "@/features/cases/case-queries";
 import { CaseDetailSkeleton, CaseNotFound, LoadError } from "@/features/cases/case-states";
 import type { CaseDetail, DefendantView, TeamRole } from "@/features/cases/case-types";
 import { DefendantCard } from "@/features/cases/defendant-card";
+import { PartyFormDialog } from "@/features/cases/party-form-dialog";
+import { AreaBadge } from "@/features/practice-areas/area-badge";
+import { AreaDraftNote } from "@/features/practice-areas/area-choice";
+import { DEFAULT_AREA, hasModule } from "@/features/practice-areas/practice-area-format";
+import { useAreaDirectory } from "@/features/practice-areas/practice-area-queries";
 import { isApiError } from "@/lib/api";
 
-const DETAIL_CATALOGS: CatalogId[] = ["stages", "hearing-types", "liberty-situations"];
+/** The catalogs the page names things with, in the case's area: only those its modules use. */
+function detailCatalogs(detail: CaseDetail | undefined): AnyCatalogId[] {
+  const ids: AnyCatalogId[] = ["stages", "hearing-types", "action-types", "represented-sides"];
+  if (hasModule(detail?.modules, "detainee-alerts")) ids.push("liberty-situations");
+  return ids;
+}
 
 function BackLink() {
   return (
@@ -100,13 +109,27 @@ function number(value: string | null) {
   return value ? <span className="whitespace-nowrap tabular-nums">{value}</span> : missing;
 }
 
+/** The next pending hearing, with its type in the case's area. */
+function NextHearingValue({ detail, timeZone }: { detail: CaseDetail; timeZone: string }) {
+  const hearingTypes = useCatalogItems("hearing-types", detail.practiceArea);
+  const next = detail.summary.nextHearing;
+  if (!next) return <>Sin audiencias pendientes</>;
+  return (
+    <span className="grid">
+      <time dateTime={next.startsAt} className="font-semibold tabular-nums">
+        {formatLongDateTime(next.startsAt, timeZone)}
+      </time>
+      {hearingTypes.get(next.typeCode) && <span>{hearingTypes.get(next.typeCode)?.name}</span>}
+    </span>
+  );
+}
+
 /** At a glance: people, who is detained, how far along, and what comes next. */
 function Summary({ detail, timeZone }: { detail: CaseDetail; timeZone: string }) {
   const { summary } = detail;
-  const stages = useCatalogItems("stages");
-  const hearingTypes = useCatalogItems("hearing-types");
-  const next = summary.nextHearing;
+  const stages = useCatalogItems("stages", detail.practiceArea);
   const stage = summary.mostDelayedStage;
+  const detainees = hasModule(detail.modules, "detainee-alerts");
   const people =
     summary.defendantCount === 0
       ? "Sin imputados cargados"
@@ -114,94 +137,134 @@ function Summary({ detail, timeZone }: { detail: CaseDetail; timeZone: string })
         ? countDefendants(summary.defendantCount)
         : `${countDefendants(summary.defendantCount)}, ${summary.openDefendantCount} con el proceso abierto`;
 
+  const terms: Term[] = [
+    { term: "Imputados", value: <span className="font-semibold">{people}</span> },
+  ];
+  if (detainees) {
+    terms.push({
+      term: "Personas detenidas",
+      value:
+        summary.detaineeCount > 0 ? <DetaineeBadge count={summary.detaineeCount} /> : "Ninguna",
+    });
+  }
+  terms.push(
+    {
+      term: "Etapa más atrasada",
+      value: stage
+        ? (stages.get(stage)?.name ??
+          detail.defendants.find((defendant) => defendant.stageCode === stage)?.stageName ??
+          stage)
+        : "Sin imputados",
+    },
+    { term: "Próxima audiencia", value: <NextHearingValue detail={detail} timeZone={timeZone} /> },
+  );
+
   return (
     <Card edge={summary.detaineeCount > 0 ? "detained" : "none"}>
       <CardContent asChild>
-        <TermList
-          className="grid gap-x-8 gap-y-3 text-meta sm:grid-cols-2"
-          terms={[
-            { term: "Imputados", value: <span className="font-semibold">{people}</span> },
-            {
-              term: "Personas detenidas",
-              value:
-                summary.detaineeCount > 0 ? (
-                  <DetaineeBadge count={summary.detaineeCount} />
-                ) : (
-                  "Ninguna"
-                ),
-            },
-            {
-              term: "Etapa más atrasada",
-              value: stage
-                ? (stages.get(stage)?.name ??
-                  detail.defendants.find((defendant) => defendant.stageCode === stage)?.stageName ??
-                  stage)
-                : "Sin imputados",
-            },
-            {
-              term: "Próxima audiencia",
-              value: next ? (
-                <span className="grid">
-                  <time dateTime={next.startsAt} className="font-semibold tabular-nums">
-                    {formatLongDateTime(next.startsAt, timeZone)}
-                  </time>
-                  {hearingTypes.get(next.typeCode) && (
-                    <span>{hearingTypes.get(next.typeCode)?.name}</span>
-                  )}
-                </span>
-              ) : (
-                "Sin audiencias pendientes"
-              ),
-            },
-          ]}
-        />
+        <TermList className="grid gap-x-8 gap-y-3 text-meta sm:grid-cols-2" terms={terms} />
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * The case's own course, for an area without defendants: its stage, its status and, once closed,
+ * how it ended; plus how many parties it has and what comes next.
+ */
+function CourseSummary({ detail, timeZone }: { detail: CaseDetail; timeZone: string }) {
+  const stages = useCatalogItems("stages", detail.practiceArea);
+  const stage = detail.stageCode
+    ? (stages.get(detail.stageCode)?.name ?? detail.stageName ?? detail.stageCode)
+    : null;
+  const status = detail.status ? CASE_STATUS_LABELS[detail.status] : null;
+  const terms: Term[] = [
+    { term: "Etapa", value: stage ? <span className="font-semibold">{stage}</span> : missing },
+    {
+      term: "Estado",
+      value: status ? (
+        <span>
+          {status}
+          {detail.status === "CLOSED" && detail.closingOutcomeName && (
+            <span className="text-muted-foreground">: {detail.closingOutcomeName}</span>
+          )}
+        </span>
+      ) : (
+        missing
+      ),
+    },
+    {
+      term: "Partes",
+      value:
+        detail.parties.length === 0
+          ? "Sin partes cargadas"
+          : detail.parties.length === 1
+            ? "1 parte"
+            : `${detail.parties.length} partes`,
+    },
+    { term: "Próxima audiencia", value: <NextHearingValue detail={detail} timeZone={timeZone} /> },
+  ];
+  return (
+    <Card>
+      <CardContent asChild>
+        <TermList className="grid gap-x-8 gap-y-3 text-meta sm:grid-cols-2" terms={terms} />
       </CardContent>
     </Card>
   );
 }
 
 function CaseData({ detail, timeZone }: { detail: CaseDetail; timeZone: string }) {
+  const actionTypes = useCatalogItems("action-types", detail.practiceArea);
+  const sides = useCatalogItems("represented-sides", detail.practiceArea);
+  const criminalNumbers = hasModule(detail.modules, "mpf-legajo");
   const article = cppArticle(detail.actionArticle);
+  const terms: Term[] = [];
+  if (criminalNumbers) {
+    terms.push(
+      { term: "Legajo del MPF", value: number(detail.mpfLegajo) },
+      { term: "Número de la OFIJU", value: number(detail.ofijuNumber) },
+      { term: "Número en Pehuén", value: number(detail.pehuenNumber) },
+    );
+  }
+  terms.push(
+    { term: "Número interno del estudio", value: number(detail.internalNumber) },
+    { term: "Circunscripción", value: detail.circumscriptionName },
+    {
+      term: hasModule(detail.modules, "defendants") ? "Acción" : "Tipo de proceso",
+      value: (
+        <>
+          {actionTypes.get(detail.actionType)?.name ?? detail.actionType}
+          {article && <span className="text-muted-foreground tabular-nums"> ({article})</span>}
+        </>
+      ),
+    },
+    {
+      term: "El estudio representa a",
+      value: sides.get(detail.represents)?.name ?? detail.represents,
+    },
+    {
+      term: "Cargada el",
+      value: (
+        <time dateTime={detail.createdAt} className="tabular-nums">
+          {formatNumericDate(localDay(detail.createdAt, timeZone))}
+        </time>
+      ),
+    },
+  );
   return (
     <Card>
       <CardContent asChild>
-        <TermList
-          terms={[
-            { term: "Legajo del MPF", value: number(detail.mpfLegajo) },
-            { term: "Número de la OFIJU", value: number(detail.ofijuNumber) },
-            { term: "Número en Pehuén", value: number(detail.pehuenNumber) },
-            { term: "Número interno del estudio", value: number(detail.internalNumber) },
-            { term: "Circunscripción", value: detail.circumscriptionName },
-            {
-              term: "Acción",
-              value: (
-                <>
-                  {ACTION_TYPE_LABELS[detail.actionType]}
-                  {article && (
-                    <span className="text-muted-foreground tabular-nums"> ({article})</span>
-                  )}
-                </>
-              ),
-            },
-            { term: "El estudio representa a", value: REPRESENTATION_LABELS[detail.represents] },
-            {
-              term: "Cargada el",
-              value: (
-                <time dateTime={detail.createdAt} className="tabular-nums">
-                  {formatNumericDate(localDay(detail.createdAt, timeZone))}
-                </time>
-              ),
-            },
-          ]}
-        />
+        <TermList terms={terms} />
       </CardContent>
-      <p className="flex items-start gap-2 text-small text-muted-foreground">
-        <Info aria-hidden="true" className="mt-0.5 size-4.5 shrink-0" />
-        <span>
-          Los formatos del número de la OFIJU y del número en Pehuén todavía se están validando
-          [validar].
-        </span>
-      </p>
+      {criminalNumbers && (
+        <p className="flex items-start gap-2 text-small text-muted-foreground">
+          <Info aria-hidden="true" className="mt-0.5 size-4.5 shrink-0" />
+          <span>
+            Los formatos del número de la OFIJU y del número en Pehuén todavía se están validando
+            [validar].
+          </span>
+        </p>
+      )}
     </Card>
   );
 }
@@ -231,7 +294,9 @@ function Parties({ detail }: { detail: CaseDetail }) {
   if (detail.parties.length === 0) {
     return (
       <p className="text-meta text-muted-foreground">
-        Todavía no hay otras partes cargadas (víctima, fiscal, querella, testigos).
+        {hasModule(detail.modules, "defendants")
+          ? "Todavía no hay otras partes cargadas (víctima, fiscal, querella, testigos)."
+          : "Todavía no hay partes cargadas. Sumá a quien representa el estudio y a la otra parte."}
       </p>
     );
   }
@@ -256,6 +321,7 @@ function Parties({ detail }: { detail: CaseDetail }) {
 type CaseDialog =
   | { kind: "case" }
   | { kind: "defendant"; defendant?: DefendantView }
+  | { kind: "party" }
   | { kind: "hearing"; hearingId?: string }
   | null;
 
@@ -264,6 +330,9 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
   const timeZone = useAgendaCache().timeZone ?? FIRM_TIME_ZONE;
   const { data: me } = useMe();
   const rights = caseRights(me, detail);
+  const directory = useAreaDirectory();
+  const defendants = hasModule(detail.modules, "defendants");
+  const area = directory.find(detail.practiceArea);
   const [dialog, setDialog] = useState<CaseDialog>(null);
   const close = () => setDialog(null);
   const editHearing = rights.edit
@@ -274,8 +343,12 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
       <div className="grid gap-2">
         <BackLink />
         <header className="grid gap-2">
-          {(detail.reserved || detail.archived) && (
+          {(detail.reserved ||
+            detail.archived ||
+            directory.multiple ||
+            detail.practiceArea !== DEFAULT_AREA) && (
             <p className="flex flex-wrap gap-1.5">
+              <AreaBadge code={detail.practiceArea} always={detail.practiceArea !== DEFAULT_AREA} />
               {detail.reserved && <ReservedBadge />}
               {detail.archived && <ArchivedBadge />}
             </p>
@@ -289,6 +362,7 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
                 )}
                 <span>{detail.circumscriptionName}</span>
               </p>
+              {area && area.flags.length > 0 && <AreaDraftNote area={area} />}
             </div>
             {rights.edit && (
               <Button variant="outline" onClick={() => setDialog({ kind: "case" })}>
@@ -313,40 +387,64 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
 
       <div className="grid gap-7 xl:grid-cols-with-aside xl:gap-10">
         <div className="grid content-start gap-7">
-          <Section title="Resumen">
-            <Summary detail={detail} timeZone={timeZone} />
-          </Section>
-          <Section
-            title="Imputados"
-            action={
-              rights.edit && (
-                <Button variant="outline" onClick={() => setDialog({ kind: "defendant" })}>
-                  <Plus aria-hidden="true" />
-                  Agregá un imputado
-                </Button>
-              )
-            }
-          >
-            {detail.defendants.length > 0 ? (
-              <ul className="grid gap-3">
-                {detail.defendants.map((defendant) => (
-                  <li key={defendant.id}>
-                    <DefendantCard
-                      defendant={defendant}
-                      today={todayIn(timeZone, now)}
-                      onEdit={
-                        rights.edit ? () => setDialog({ kind: "defendant", defendant }) : undefined
-                      }
-                    />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-body text-muted-foreground">
-                Esta causa todavía no tiene imputados cargados.
-              </p>
-            )}
-          </Section>
+          {defendants ? (
+            <Section title="Resumen">
+              <Summary detail={detail} timeZone={timeZone} />
+            </Section>
+          ) : (
+            <Section
+              title="Etapa y estado"
+              action={
+                rights.edit && (
+                  <Button
+                    variant="outline"
+                    aria-label="Editá la etapa y el estado"
+                    onClick={() => setDialog({ kind: "case" })}
+                  >
+                    <Pencil aria-hidden="true" />
+                    Editá
+                  </Button>
+                )
+              }
+            >
+              <CourseSummary detail={detail} timeZone={timeZone} />
+            </Section>
+          )}
+          {defendants && (
+            <Section
+              title="Imputados"
+              action={
+                rights.edit && (
+                  <Button variant="outline" onClick={() => setDialog({ kind: "defendant" })}>
+                    <Plus aria-hidden="true" />
+                    Agregá un imputado
+                  </Button>
+                )
+              }
+            >
+              {detail.defendants.length > 0 ? (
+                <ul className="grid gap-3">
+                  {detail.defendants.map((defendant) => (
+                    <li key={defendant.id}>
+                      <DefendantCard
+                        defendant={defendant}
+                        today={todayIn(timeZone, now)}
+                        onEdit={
+                          rights.edit
+                            ? () => setDialog({ kind: "defendant", defendant })
+                            : undefined
+                        }
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-body text-muted-foreground">
+                  Esta causa todavía no tiene imputados cargados.
+                </p>
+              )}
+            </Section>
+          )}
           <Section title="Plazos">
             <CaseDeadlines caseId={detail.id} timeZone={timeZone} />
           </Section>
@@ -361,14 +459,29 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
               )
             }
           >
-            <CaseHearings caseId={detail.id} timeZone={timeZone} now={now} />
+            <CaseHearings
+              caseId={detail.id}
+              timeZone={timeZone}
+              now={now}
+              scheduledBy={hasModule(detail.modules, "mpf-legajo") ? undefined : "el juzgado"}
+            />
           </Section>
         </div>
         <div className="grid content-start gap-7">
           <Section title="Datos de la causa">
             <CaseData detail={detail} timeZone={timeZone} />
           </Section>
-          <Section title="Partes">
+          <Section
+            title="Partes"
+            action={
+              rights.edit && (
+                <Button variant="outline" onClick={() => setDialog({ kind: "party" })}>
+                  <Plus aria-hidden="true" />
+                  Agregá una parte
+                </Button>
+              )
+            }
+          >
             <Parties detail={detail} />
           </Section>
           <Section title="Equipo">
@@ -382,6 +495,14 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
       )}
       {dialog?.kind === "defendant" && (
         <DefendantFormDialog caseId={detail.id} defendant={dialog.defendant} onClose={close} />
+      )}
+      {dialog?.kind === "party" && (
+        <PartyFormDialog
+          caseId={detail.id}
+          area={detail.practiceArea}
+          defaultRole={detail.parties.length === 0 ? detail.represents : undefined}
+          onClose={close}
+        />
       )}
       {dialog?.kind === "hearing" && (
         <HearingFormDialog
@@ -401,7 +522,10 @@ function CaseScreen({ detail }: { detail: CaseDetail }) {
  */
 export function CaseDetailPage({ caseId }: { caseId: string }) {
   const query = useCase(caseId);
-  const catalogsSettled = useCatalogsSettled(DETAIL_CATALOGS);
+  const catalogsSettled = useCatalogsSettled(
+    detailCatalogs(query.data),
+    query.data?.practiceArea ?? DEFAULT_AREA,
+  );
 
   if (query.isPending || (query.isSuccess && !catalogsSettled)) return <CaseDetailSkeleton />;
   if (query.isError) {

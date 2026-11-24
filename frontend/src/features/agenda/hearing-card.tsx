@@ -22,6 +22,7 @@ import { addMinutes, formatTime } from "@/features/agenda/agenda-dates";
 import { cppArticle, joinNames } from "@/features/agenda/agenda-format";
 import type { AgendaItem } from "@/features/agenda/agenda-types";
 import { useHearingEdit } from "@/features/hearings/hearing-edit-context";
+import { AreaBadge } from "@/features/practice-areas/area-badge";
 import { cn } from "@/lib/utils";
 
 function isKnownStatus(code: string): code is HearingStatus {
@@ -69,12 +70,16 @@ function HearingMarkers({ item }: { item: AgendaItem }) {
   );
 }
 
-/** Defendants in bold with the markers next to them. */
+/**
+ * Defendants in bold with the markers next to them, and the case's area when the firm works in
+ * more than one. Empty (nothing rendered) when there is nothing to say.
+ */
 function HearingPeople({ item }: { item: AgendaItem }) {
   const names = joinNames(item.defendants);
   return (
-    <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+    <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 empty:hidden">
       {names && <span className="font-semibold">{names}</span>}
+      <AreaBadge code={item.practiceArea} />
       <HearingMarkers item={item} />
     </p>
   );

@@ -20,12 +20,15 @@ import { AgendaToolbar } from "@/features/agenda/agenda-toolbar";
 import type { IsoDate } from "@/features/agenda/agenda-types";
 import { DayRail } from "@/features/agenda/day-rail";
 import { DetaineeAlerts } from "@/features/agenda/detainee-alerts";
+import { hasModule } from "@/features/practice-areas/practice-area-format";
 import { useNow } from "@/features/agenda/use-now";
 import { WeekList } from "@/features/agenda/week-list";
 import { localDay } from "@/features/agenda/agenda-dates";
 import type { HearingDetail } from "@/features/hearings/hearing-api";
 import { HearingEditContext } from "@/features/hearings/hearing-edit-context";
 import { HearingFormDialog } from "@/features/hearings/hearing-form-dialog";
+import { AreaFilter } from "@/features/practice-areas/area-filter";
+import { useAreaDirectory } from "@/features/practice-areas/practice-area-queries";
 
 /** Which hearing form is open: a new one, or the edit of one hearing. */
 type HearingDialog = { mode: "new" } | { mode: "edit"; hearingId: string } | null;
@@ -75,13 +78,25 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
         vista: next.vista,
         fecha: next.fecha === today ? undefined : next.fecha,
         abogado: next.abogado,
+        fuero: next.fuero,
       },
     });
   };
   const step = view === "semana" ? 7 : 1;
-  const current = { vista: search.vista, fecha: anchor, abogado: search.abogado };
+  const current = {
+    vista: search.vista,
+    fecha: anchor,
+    abogado: search.abogado,
+    fuero: search.fuero,
+  };
 
-  const items = agenda.data?.items ?? [];
+  // The area filter only exists when the firm works in more than one; an area it no longer works
+  // in is ignored. The agenda is one request per range, so the filter applies here.
+  const directory = useAreaDirectory();
+  const area = directory.multiple ? directory.find(search.fuero) : undefined;
+  const items = (agenda.data?.items ?? []).filter(
+    (item) => !area || item.practiceArea === area.code,
+  );
   const meId = me?.id;
   const personal = !search.abogado || (meId !== undefined && search.abogado === meId);
   const otherLawyer = personal
@@ -105,7 +120,7 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
   return (
     <HearingEditContext.Provider value={(hearingId) => setDialog({ mode: "edit", hearingId })}>
       <div className="grid gap-5 lg:flex lg:items-end lg:justify-between lg:gap-8">
-        <header className="grid gap-1">
+        <header className="grid gap-1 lg:shrink-0">
           <p className="text-meta text-muted-foreground">
             {view === "semana" ? (
               formatWeekLabel(range.from, range.to)
@@ -138,11 +153,22 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
             lawyer={search.abogado ?? ""}
             lawyerOptions={lawyerOptions(meId, cache.lawyers, search.abogado)}
             onLawyerChange={(abogado) => go({ ...current, abogado: abogado || undefined })}
+            filters={
+              directory.multiple && (
+                <AreaFilter
+                  areas={directory.areas}
+                  value={area?.code ?? ""}
+                  onChange={(code) => go({ ...current, fuero: code || undefined })}
+                  className="sm:w-56"
+                />
+              )
+            }
           />
         </div>
       </div>
 
-      <DetaineeAlerts />
+      {/* The alerts are about criminal defendants: an area without them filters them out. */}
+      {(!area || hasModule(area.modules, "detainee-alerts")) && <DetaineeAlerts />}
 
       {agenda.isPending ? (
         <AgendaSkeleton />
@@ -150,7 +176,7 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
         <AgendaError error={agenda.error} onRetry={() => void agenda.refetch()} />
       ) : items.length === 0 ? (
         <AgendaEmpty
-          title={`${personal ? "No tenés" : "No hay"} audiencias ${scope}`}
+          title={`${personal ? "No tenés" : "No hay"} audiencias ${area ? `de ${area.name} ` : ""}${scope}`}
           description={
             view === "semana"
               ? "Cuando cargues una audiencia o la Oficina Judicial fije una fecha, la vas a ver acá, en su día."
@@ -175,6 +201,11 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
               Mirá todo el estudio
             </Button>
           )}
+          {area && (
+            <Button variant="ghost" onClick={() => go({ ...current, fuero: undefined })}>
+              Mirá todos los fueros
+            </Button>
+          )}
         </AgendaEmpty>
       ) : view === "semana" ? (
         <WeekList
@@ -184,6 +215,7 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
           timeZone={timeZone}
           today={today}
           lawyerId={search.abogado}
+          areaCode={area?.code}
         />
       ) : (
         <div className="max-w-4xl">

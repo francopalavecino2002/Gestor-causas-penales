@@ -13,6 +13,8 @@ export interface CaseQuery {
   /** Caption, internal number, MPF legajo or OFIJU number. */
   q?: string;
   includeArchived: boolean;
+  /** Only the cases of this practice area. */
+  area?: string;
   /** From 0. */
   page: number;
 }
@@ -24,6 +26,7 @@ export function fetchCases(query: CaseQuery, signal?: AbortSignal): Promise<Case
   });
   if (query.q) params.set("q", query.q);
   if (query.includeArchived) params.set("includeArchived", "true");
+  if (query.area) params.set("area", query.area);
   return apiFetch<CasePage>(`/api/v1/cases?${params.toString()}`, { signal });
 }
 

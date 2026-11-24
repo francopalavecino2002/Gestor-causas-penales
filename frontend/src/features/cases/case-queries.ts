@@ -10,7 +10,13 @@ import {
 
 export function casesQueryOptions(query: CaseQuery) {
   return queryOptions({
-    queryKey: ["cases", query.q ?? "", query.includeArchived, query.page] as const,
+    queryKey: [
+      "cases",
+      query.q ?? "",
+      query.includeArchived,
+      query.area ?? "",
+      query.page,
+    ] as const,
     queryFn: ({ signal }) => fetchCases(query, signal),
   });
 }

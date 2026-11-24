@@ -70,9 +70,9 @@ describe("Nueva causa", () => {
     fill(dialog, "Número de la OFIJU", "OFI-DEMO 1/2026");
     fireEvent.change(circumscription, { target: { value: "ii-comarca" } });
     fireEvent.change(within(dialog).getByLabelText("Tipo de acción"), {
-      target: { value: "PRIVATE" },
+      target: { value: "private" },
     });
-    fireEvent.click(within(dialog).getByRole("radio", { name: "La querella" }));
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Querella" }));
     fireEvent.click(within(dialog).getByRole("checkbox", { name: "Causa reservada" }));
     fireEvent.change(within(dialog).getByLabelText("Responsable de la causa"), {
       target: { value: "00000000-0000-4000-8000-000000000002" },
@@ -88,10 +88,11 @@ describe("Nueva causa", () => {
       ofijuNumber: "OFI-DEMO 1/2026",
       pehuenNumber: null,
       circumscriptionCode: "ii-comarca",
-      actionType: "PRIVATE",
-      represents: "PRIVATE_PROSECUTION",
+      actionType: "private",
+      represents: "private-prosecution",
       reserved: true,
       responsibleUserId: "00000000-0000-4000-8000-000000000002",
+      practiceArea: "penal",
     });
     expect(
       await screen.findByRole("heading", { level: 1, name: "Prueba, Lisandro s/ hurto" }),

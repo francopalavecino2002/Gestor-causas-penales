@@ -26,6 +26,7 @@ import { AiAssistSection } from "@/features/ai-assist/ai-assist-section";
 import { CatalogsSection } from "@/features/settings/catalogs-section";
 import { CustomFieldsSection } from "@/features/settings/custom-fields-section";
 import { DeadlineRulesSection } from "@/features/settings/deadline-rules-section";
+import { PracticeAreasSection } from "@/features/settings/practice-areas-section";
 import { SettingsHomePage } from "@/features/settings/settings-layout";
 import { parseCatalogSearch, parseFieldSearch } from "@/features/settings/settings-search";
 import { UsersSection } from "@/features/settings/users-section";
@@ -169,6 +170,13 @@ const settingsFieldsRoute = createRoute({
   },
 });
 
+/** The practice areas the firm works in (ADR-0032). */
+const settingsAreasRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ajustes/fueros",
+  component: PracticeAreasSection,
+});
+
 const settingsRulesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/ajustes/plazos",
@@ -204,6 +212,7 @@ const routeTree = rootRoute.addChildren([
     deadlinesRoute,
     personsRoute,
     settingsRoute,
+    settingsAreasRoute,
     settingsCatalogsRoute,
     settingsFieldsRoute,
     settingsRulesRoute,

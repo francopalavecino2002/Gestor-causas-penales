@@ -23,6 +23,16 @@ class PracticeAreaProblemHandler {
         return problem(HttpStatus.CONFLICT, "practice-area-not-enabled", "Practice area not enabled", exception.getMessage());
     }
 
+    @ExceptionHandler(InvalidPracticeAreasException.class)
+    ProblemDetail invalid(InvalidPracticeAreasException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "invalid-practice-areas", "Invalid practice areas", exception.getMessage());
+    }
+
+    @ExceptionHandler(PracticeAreaInUseException.class)
+    ProblemDetail inUse(PracticeAreaInUseException exception) {
+        return problem(HttpStatus.CONFLICT, "practice-area-in-use", "Practice area in use", exception.getMessage());
+    }
+
     @ExceptionHandler(ModuleNotEnabledException.class)
     ProblemDetail moduleNotEnabled(ModuleNotEnabledException exception) {
         return problem(HttpStatus.CONFLICT, "module-not-enabled", "Module not enabled", exception.getMessage());

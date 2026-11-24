@@ -15,16 +15,22 @@ function DaySection({
   timeZone,
   today,
   lawyerId,
+  areaCode,
 }: {
   day: IsoDate;
   items: AgendaItem[];
   timeZone: string;
   today: IsoDate;
   lawyerId: string | undefined;
+  areaCode: string | undefined;
 }) {
   const headingId = useId();
   const isToday = day === today;
-  const search: AgendaSearch = { fecha: isToday ? undefined : day, abogado: lawyerId };
+  const search: AgendaSearch = {
+    fecha: isToday ? undefined : day,
+    abogado: lawyerId,
+    fuero: areaCode,
+  };
   return (
     <section aria-labelledby={headingId} className="grid gap-2.5" data-day={day}>
       {/* Sticky under the top bar on phones and tablets, so the day stays in sight while scrolling. */}
@@ -66,6 +72,7 @@ export function WeekList({
   timeZone,
   today,
   lawyerId,
+  areaCode,
 }: {
   from: IsoDate;
   to: IsoDate;
@@ -73,6 +80,8 @@ export function WeekList({
   timeZone: string;
   today: IsoDate;
   lawyerId: string | undefined;
+  /** The area filter, kept when a day is opened. */
+  areaCode?: string;
 }) {
   return (
     <div className="grid gap-7">
@@ -84,6 +93,7 @@ export function WeekList({
           timeZone={timeZone}
           today={today}
           lawyerId={lawyerId}
+          areaCode={areaCode}
         />
       ))}
     </div>

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { FIRM_TIME_ZONE } from "@/features/agenda/agenda-dates";
 import { useAgendaCache } from "@/features/agenda/agenda-queries";
-import { useCatalogItems, useCatalogsSettled } from "@/features/catalogs/catalog-queries";
+import { useCatalogItemsByArea, useCatalogsSettled } from "@/features/catalogs/catalog-queries";
 import type { CatalogId } from "@/features/catalogs/catalog-types";
 import { CASE_PAGE_SIZE } from "@/features/cases/case-api";
 import { CaseFormDialog } from "@/features/cases/case-form-dialog";
@@ -18,6 +18,9 @@ import { useCases } from "@/features/cases/case-queries";
 import type { CaseListSearch } from "@/features/cases/case-search";
 import { CaseListSkeleton, CasesEmpty, LoadError } from "@/features/cases/case-states";
 import { useCanImport } from "@/features/imports/import-hooks";
+import { AreaFilter } from "@/features/practice-areas/area-filter";
+import { DEFAULT_AREA } from "@/features/practice-areas/practice-area-format";
+import { useAreaDirectory } from "@/features/practice-areas/practice-area-queries";
 import { cn } from "@/lib/utils";
 
 const LIST_CATALOGS: CatalogId[] = ["stages", "hearing-types"];
@@ -30,8 +33,15 @@ function countCases(count: number): string {
   return `${count} ${count === 1 ? "causa" : "causas"}`;
 }
 
-function resultSummary(total: number, q: string | undefined, archived: boolean): string {
-  const scope = archived ? ", archivadas incluidas" : "";
+function resultSummary(
+  total: number,
+  q: string | undefined,
+  archived: boolean,
+  areaName: string | undefined,
+): string {
+  const scope = [areaName && ` de ${areaName}`, archived && ", archivadas incluidas"]
+    .filter(Boolean)
+    .join("");
   if (q) {
     return total === 0
       ? `No hay resultados para «${q}»${scope}.`
@@ -166,10 +176,14 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
   const includeArchived = search.archivadas === "si";
   const canImport = useCanImport();
   const [creating, setCreating] = useState(false);
-  const cases = useCases({ q: search.q, includeArchived, page: page - 1 });
+  const directory = useAreaDirectory();
+  // A filter for an area the firm no longer works in is ignored, as if it were not in the URL.
+  const area = directory.multiple ? directory.find(search.fuero) : undefined;
+  const cases = useCases({ q: search.q, includeArchived, area: area?.code, page: page - 1 });
+  const areasInPage = [DEFAULT_AREA, ...(cases.data?.items ?? []).map((item) => item.practiceArea)];
   const catalogs = {
-    stages: useCatalogItems("stages"),
-    hearingTypes: useCatalogItems("hearing-types"),
+    stages: useCatalogItemsByArea("stages", areasInPage),
+    hearingTypes: useCatalogItemsByArea("hearing-types", areasInPage),
   };
   const catalogsSettled = useCatalogsSettled(LIST_CATALOGS);
   const timeZone = useAgendaCache().timeZone ?? FIRM_TIME_ZONE;
@@ -178,10 +192,11 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
 
   // A new search always starts on the first page; replace, so typing does not fill the history.
   const archivadas = search.archivadas;
+  const fuero = search.fuero;
   const onSearch = useCallback(
     (q: string | undefined) =>
-      void navigate({ to: "/causas", search: { q, archivadas }, replace: true }),
-    [navigate, archivadas],
+      void navigate({ to: "/causas", search: { q, archivadas, fuero }, replace: true }),
+    [navigate, archivadas, fuero],
   );
 
   const data = cases.data;
@@ -194,7 +209,7 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <PageHeader title="Causas">
           <p aria-live="polite" className="empty:hidden">
-            {data ? resultSummary(total, search.q, includeArchived) : null}
+            {data ? resultSummary(total, search.q, includeArchived, area?.name) : null}
           </p>
         </PageHeader>
         <Button onClick={() => setCreating(true)}>
@@ -205,12 +220,20 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
 
       <div className="grid gap-4 md:flex md:items-start md:gap-6">
         <CaseSearchBox value={search.q} onSearch={onSearch} />
-        <div className="flex min-h-11 items-center gap-3 md:mt-8">
+        {directory.multiple && (
+          <AreaFilter
+            areas={directory.areas}
+            value={area?.code ?? ""}
+            onChange={(code) => go({ ...search, pagina: undefined, fuero: code || undefined })}
+            className="md:w-56 md:shrink-0"
+          />
+        )}
+        <div className="flex min-h-11 items-center gap-3 md:mt-8 md:shrink-0">
           <Switch
             id={switchId}
             checked={includeArchived}
             onCheckedChange={(checked) =>
-              go({ q: search.q, archivadas: checked ? "si" : undefined })
+              go({ q: search.q, fuero: search.fuero, archivadas: checked ? "si" : undefined })
             }
           />
           <Label htmlFor={switchId} className="cursor-pointer">
@@ -242,14 +265,33 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
             title={`No encontramos causas con «${search.q}»`}
             description="Probá con otra parte de la carátula, o con el legajo del MPF como figura en el expediente, por ejemplo MPFNQ 12345/2026."
           >
-            <Button variant="outline" onClick={() => go({ archivadas: search.archivadas })}>
+            <Button
+              variant="outline"
+              onClick={() => go({ archivadas: search.archivadas, fuero: search.fuero })}
+            >
               Borrá la búsqueda
             </Button>
             {!includeArchived && (
-              <Button variant="ghost" onClick={() => go({ q: search.q, archivadas: "si" })}>
+              <Button
+                variant="ghost"
+                onClick={() => go({ q: search.q, fuero: search.fuero, archivadas: "si" })}
+              >
                 Buscá también en las archivadas
               </Button>
             )}
+          </CasesEmpty>
+        ) : area ? (
+          <CasesEmpty
+            title={`No hay causas de ${area.name}`}
+            description="Cargá la primera de este fuero, o mirá las causas de todos los fueros."
+          >
+            <Button onClick={() => setCreating(true)}>
+              <Plus aria-hidden="true" />
+              Cargá una causa
+            </Button>
+            <Button variant="outline" onClick={() => go({ archivadas: search.archivadas })}>
+              Mirá todos los fueros
+            </Button>
           </CasesEmpty>
         ) : (
           <CasesEmpty
@@ -283,7 +325,12 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
           )}
         >
           <div className="lg:hidden">
-            <CaseCards items={items} catalogs={catalogs} timeZone={timeZone} />
+            <CaseCards
+              items={items}
+              catalogs={catalogs}
+              timeZone={timeZone}
+              multipleAreas={directory.multiple}
+            />
           </div>
           <div className="hidden lg:block">
             <CaseTable
@@ -291,13 +338,14 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
               catalogs={catalogs}
               timeZone={timeZone}
               caption={`Causas, página ${page} de ${pageCount}`}
+              multipleAreas={directory.multiple}
             />
           </div>
           <Pagination page={page} pageCount={pageCount} search={search} />
         </div>
       )}
 
-      {creating && <CaseFormDialog onClose={() => setCreating(false)} />}
+      {creating && <CaseFormDialog area={area?.code} onClose={() => setCreating(false)} />}
     </>
   );
 }

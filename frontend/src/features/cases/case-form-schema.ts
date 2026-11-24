@@ -23,19 +23,38 @@ export const FIRST_STAGE = "averiguacion-preliminar";
 
 const optionalNumber = z.string().trim().max(NUMBER_MAX, `Hasta ${NUMBER_MAX} caracteres.`);
 
+/** What the case's area turns on, as far as the case form is concerned. */
+export interface CaseFormArea {
+  /** Defendants, each with their own course; without it the case has its own stage and status. */
+  defendants: boolean;
+  /** MPF legajo, OFIJU and Pehuén numbers (criminal procedure). */
+  mpfLegajo: boolean;
+}
+
+/** The criminal area: what the form assumes until the firm's areas load. */
+export const CRIMINAL_FORM_AREA: CaseFormArea = { defendants: true, mpfLegajo: true };
+
 /**
  * The case form. `requireResponsible` is set when the signed-in user cannot be the responsible
- * (a paralegal or administrative member), so they have to pick one.
+ * (a paralegal or administrative member), so they have to pick one. `area` says which sections
+ * apply: the first defendant (criminal) or the first party and the case's own course (others).
  */
-export function caseFormSchema(options: { requireResponsible: boolean; creating: boolean }) {
+export function caseFormSchema(options: {
+  requireResponsible: boolean;
+  creating: boolean;
+  area?: CaseFormArea;
+}) {
+  const area = options.area ?? CRIMINAL_FORM_AREA;
   return z
     .object({
+      practiceArea: z.string().min(1, "Elegí el fuero."),
       caption: z
         .string()
         .trim()
         .min(1, "Escribí la carátula.")
         .max(CAPTION_MAX, `La carátula tiene como máximo ${CAPTION_MAX} caracteres.`),
       internalNumber: optionalNumber,
+      // Only shown, and so only filled in, when the area has the MPF legajo.
       mpfLegajo: optionalNumber.refine(
         (value) => value === "" || MPF_LEGAJO.test(value),
         "Escribilo como figura en el legajo, por ejemplo MPFNQ 12345/2026.",
@@ -43,13 +62,21 @@ export function caseFormSchema(options: { requireResponsible: boolean; creating:
       ofijuNumber: optionalNumber,
       pehuenNumber: optionalNumber,
       circumscriptionCode: z.string().min(1, "Elegí la circunscripción."),
-      actionType: z.enum(["PUBLIC", "PUBLIC_ON_COMPLAINT", "PRIVATE"]),
-      represents: z.enum(["DEFENCE", "PRIVATE_PROSECUTION"]),
+      actionType: z.string().min(1, "Elegí el tipo."),
+      represents: z.string().min(1, "Elegí a quién representa el estudio."),
       responsibleUserId: z.string(),
       reserved: z.boolean(),
       withDefendant: z.boolean(),
       person: personChoiceSchema,
+      /** The first defendant's stage (criminal, on creation). */
       stageCode: z.string(),
+      /** The case's own course (areas without defendants). */
+      caseStageCode: z.string(),
+      caseStatus: z.enum(["ACTIVE", "SUSPENDED", "IN_MEDIATION", "CLOSED"]),
+      caseOutcomeCode: z.string(),
+      /** The first party (areas without defendants, on creation). */
+      withParty: z.boolean(),
+      partyRoleCode: z.string(),
     })
     .superRefine((value, ctx) => {
       if (options.creating && options.requireResponsible && !value.responsibleUserId) {
@@ -59,10 +86,30 @@ export function caseFormSchema(options: { requireResponsible: boolean; creating:
           message: "Elegí quién es responsable de la causa: tiene que ser titular o abogado/a.",
         });
       }
-      if (options.creating && value.withDefendant) {
+      if (area.defendants) {
+        if (options.creating && value.withDefendant) {
+          checkPersonChoice(value.person, ctx, ["person"]);
+          if (!value.stageCode) {
+            ctx.addIssue({ code: "custom", path: ["stageCode"], message: "Elegí la etapa." });
+          }
+        }
+        return;
+      }
+      if (value.caseStatus === "CLOSED") {
+        if (!value.caseOutcomeCode) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["caseOutcomeCode"],
+            message: "Elegí cómo terminó la causa.",
+          });
+        }
+      } else if (!value.caseStageCode) {
+        ctx.addIssue({ code: "custom", path: ["caseStageCode"], message: "Elegí la etapa." });
+      }
+      if (options.creating && value.withParty) {
         checkPersonChoice(value.person, ctx, ["person"]);
-        if (!value.stageCode) {
-          ctx.addIssue({ code: "custom", path: ["stageCode"], message: "Elegí la etapa." });
+        if (!value.partyRoleCode) {
+          ctx.addIssue({ code: "custom", path: ["partyRoleCode"], message: "Elegí el rol." });
         }
       }
     });
@@ -72,6 +119,7 @@ export type CaseFormValues = z.output<ReturnType<typeof caseFormSchema>>;
 
 /** Field names of the form that a server problem can point at. */
 export const CASE_FORM_FIELDS = [
+  "practiceArea",
   "caption",
   "internalNumber",
   "mpfLegajo",
@@ -82,43 +130,74 @@ export const CASE_FORM_FIELDS = [
   "represents",
   "responsibleUserId",
   "reserved",
+  "caseStageCode",
+  "caseStatus",
+  "caseOutcomeCode",
 ] as const;
 export type CaseFormField = (typeof CASE_FORM_FIELDS)[number];
 
-export function caseFormDefaults(detail?: CaseDetail): CaseFormValues {
+/**
+ * The form's starting values: the case's, or a new one in `area`. The action type, the side and
+ * the stages start empty for a new case: the form fills them with the first option of the area's
+ * catalogs once they load.
+ */
+export function caseFormDefaults(detail?: CaseDetail, area: string = "penal"): CaseFormValues {
   return {
+    practiceArea: detail?.practiceArea ?? area,
     caption: detail?.caption ?? "",
     internalNumber: detail?.internalNumber ?? "",
     mpfLegajo: detail?.mpfLegajo ?? "",
     ofijuNumber: detail?.ofijuNumber ?? "",
     pehuenNumber: detail?.pehuenNumber ?? "",
     circumscriptionCode: detail?.circumscriptionCode ?? "",
-    actionType: detail?.actionType ?? "PUBLIC",
-    represents: detail?.represents ?? "DEFENCE",
+    actionType: detail?.actionType ?? "",
+    represents: detail?.represents ?? "",
     responsibleUserId: "",
     reserved: detail?.reserved ?? false,
     withDefendant: false,
     person: EMPTY_PERSON_CHOICE,
     stageCode: FIRST_STAGE,
+    caseStageCode: detail?.stageCode && detail.stageCode !== CLOSED_STAGE ? detail.stageCode : "",
+    caseStatus: detail?.status ?? "ACTIVE",
+    caseOutcomeCode: detail?.closingOutcomeCode ?? "",
+    withParty: false,
+    partyRoleCode: "",
   };
 }
 
 const orNull = (value: string) => value || null;
 
-/** The body of `POST /cases` or `PUT /cases/{id}`; the responsible only goes on creation. */
-export function caseDataOf(values: CaseFormValues, creating: boolean): CaseData {
+/**
+ * The body of `POST /cases` or `PUT /cases/{id}`; the responsible and the area only go on
+ * creation. The criminal numbers only go when the area has them, and the case's own course only
+ * in an area without defendants (a closed case is in the closed stage with its outcome).
+ */
+export function caseDataOf(
+  values: CaseFormValues,
+  creating: boolean,
+  area: CaseFormArea = CRIMINAL_FORM_AREA,
+): CaseData {
   const data: CaseData = {
     caption: values.caption,
     internalNumber: orNull(values.internalNumber),
-    mpfLegajo: orNull(values.mpfLegajo),
-    ofijuNumber: orNull(values.ofijuNumber),
-    pehuenNumber: orNull(values.pehuenNumber),
+    mpfLegajo: area.mpfLegajo ? orNull(values.mpfLegajo) : null,
+    ofijuNumber: area.mpfLegajo ? orNull(values.ofijuNumber) : null,
+    pehuenNumber: area.mpfLegajo ? orNull(values.pehuenNumber) : null,
     circumscriptionCode: values.circumscriptionCode,
     actionType: values.actionType,
     represents: values.represents,
     reserved: values.reserved,
   };
-  if (creating) data.responsibleUserId = orNull(values.responsibleUserId);
+  if (creating) {
+    data.responsibleUserId = orNull(values.responsibleUserId);
+    data.practiceArea = values.practiceArea;
+  }
+  if (!area.defendants) {
+    const closed = values.caseStatus === "CLOSED";
+    data.stageCode = closed ? CLOSED_STAGE : values.caseStageCode;
+    data.status = values.caseStatus;
+    data.closingOutcomeCode = closed ? values.caseOutcomeCode : null;
+  }
   return data;
 }
 

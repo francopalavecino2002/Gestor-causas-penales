@@ -1,9 +1,12 @@
 package ar.gestorpenal.tenancy;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -14,9 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class TenantService {
 
     private final TenantRepository tenants;
+    private final EntityManager entityManager;
 
-    TenantService(TenantRepository tenants) {
+    TenantService(TenantRepository tenants, EntityManager entityManager) {
         this.tenants = tenants;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -61,6 +66,44 @@ public class TenantService {
     @Transactional(readOnly = true)
     public List<String> currentEnabledPracticeAreas() {
         return currentTenant().getEnabledPracticeAreas();
+    }
+
+    /**
+     * The practice areas of the firm in scope, read again from the database with the firm's row locked
+     * {@code FOR UPDATE} until the caller's transaction ends: two changes of the areas run one after the
+     * other, and a case being opened (which holds {@link #currentEnabledPracticeAreasForNewWork} meanwhile)
+     * finishes first, so the in-use check sees it.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<String> lockCurrentEnabledPracticeAreas() {
+        return lockedCurrentTenant(LockModeType.PESSIMISTIC_WRITE).getEnabledPracticeAreas();
+    }
+
+    /**
+     * The practice areas of the firm in scope, read again with the firm's row locked {@code FOR SHARE}
+     * until the caller's transaction ends, so the areas cannot change while new work is opened in one.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<String> currentEnabledPracticeAreasForNewWork() {
+        return lockedCurrentTenant(LockModeType.PESSIMISTIC_READ).getEnabledPracticeAreas();
+    }
+
+    /** Refresh, not a query: a query would hand back the copy already in the session, possibly stale. */
+    private Tenant lockedCurrentTenant(LockModeType lock) {
+        Tenant tenant = currentTenant();
+        entityManager.refresh(tenant, lock);
+        return tenant;
+    }
+
+    /**
+     * Replaces the practice areas of the firm in scope, already validated by the caller, and returns the
+     * id of the firm. Fails closed when no firm is in scope.
+     */
+    @Transactional
+    public UUID changeCurrentEnabledPracticeAreas(List<String> codes) {
+        Tenant tenant = currentTenant();
+        tenant.changeEnabledPracticeAreas(codes);
+        return tenant.getId();
     }
 
     public record TenantSummary(UUID id, String name, String slug) {

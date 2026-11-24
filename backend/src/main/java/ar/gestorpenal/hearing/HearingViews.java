@@ -84,6 +84,7 @@ class HearingViews {
                             hearing.getId(),
                             hearing.getCaseId(),
                             caseRef == null ? null : caseRef.caption(),
+                            areaOf(caseRef),
                             hearing.getTypeCode(),
                             type == null ? hearing.getTypeCode() : type.name(),
                             type == null ? null : type.article(),

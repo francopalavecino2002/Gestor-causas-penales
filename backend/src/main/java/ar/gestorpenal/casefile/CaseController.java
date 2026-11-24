@@ -37,15 +37,19 @@ class CaseController {
         return ResponseEntity.created(URI.create("/api/v1/cases/" + created.id())).body(created);
     }
 
-    /** Searches by caption, internal number, MPF legajo (typed in any case, with or without the space) or OFIJU number. */
+    /**
+     * Searches by caption, internal number, MPF legajo (typed in any case, with or without the space) or OFIJU number.
+     * {@code area} keeps only the cases of that practice area.
+     */
     @GetMapping
     CasePage search(
             @AuthenticationPrincipal AuthenticatedUser user,
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean includeArchived,
+            @RequestParam(required = false) String area,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return cases.search(user, q, includeArchived, page, size);
+        return cases.search(user, q, includeArchived, area, page, size);
     }
 
     @GetMapping("/{id}")

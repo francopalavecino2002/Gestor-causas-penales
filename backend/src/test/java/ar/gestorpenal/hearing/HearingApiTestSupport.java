@@ -102,13 +102,13 @@ abstract class HearingApiTestSupport {
     /** A case body with the required fields; {@code extraFields} is raw JSON starting with a comma, or empty. */
     static String caseJson(String caption, String extraFields) {
         return """
-                {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "PUBLIC", "represents": "DEFENCE"%s}
+                {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "public", "represents": "defence"%s}
                 """.formatted(caption, extraFields);
     }
 
     static String privateActionCaseJson(String caption) {
         return """
-                {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "PRIVATE", "represents": "DEFENCE"}
+                {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "private", "represents": "defence"}
                 """.formatted(caption);
     }
 

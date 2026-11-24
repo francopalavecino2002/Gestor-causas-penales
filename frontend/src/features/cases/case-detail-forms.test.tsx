@@ -74,8 +74,8 @@ describe("case detail: edit forms", () => {
       ofijuNumber: "OFI-DEMO 4521/2026",
       pehuenNumber: "PEH-DEMO 7788",
       circumscriptionCode: "confluencia",
-      actionType: "PUBLIC",
-      represents: "DEFENCE",
+      actionType: "public",
+      represents: "defence",
       reserved: false,
     });
   });

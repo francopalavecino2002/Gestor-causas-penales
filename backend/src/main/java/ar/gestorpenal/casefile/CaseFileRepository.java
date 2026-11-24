@@ -15,6 +15,8 @@ interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
 
     Optional<CaseFile> findByInternalNumber(String internalNumber);
 
+    boolean existsByPracticeAreaAndArchivedAtIsNull(String practiceArea);
+
     /**
      * Cases the user may see that match the text: caption, internal number or OFIJU number
      * ({@code textPattern}, a lower-case SQL LIKE pattern) or MPF legajo ({@code legajoPattern},
@@ -24,6 +26,7 @@ interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
     @Query("""
             select c from CaseFile c
             where (:includeArchived = true or c.archivedAt is null)
+              and (:area = '' or c.practiceArea = :area)
               and (:seesEveryCase = true or c.reserved = false
                    or exists (select 1 from CaseTeamMember m
                               where m.caseId = c.id and m.userId = :userId and m.archivedAt is null))
@@ -37,6 +40,7 @@ interface CaseFileRepository extends JpaRepository<CaseFile, UUID> {
             @Param("textPattern") String textPattern,
             @Param("legajoPattern") String legajoPattern,
             @Param("includeArchived") boolean includeArchived,
+            @Param("area") String area,
             @Param("seesEveryCase") boolean seesEveryCase,
             @Param("userId") UUID userId,
             Pageable pageable);

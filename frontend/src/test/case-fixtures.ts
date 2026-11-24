@@ -66,15 +66,28 @@ export const CATALOGS: Record<CatalogId, CatalogView> = {
 
 function caseView(overrides: Partial<CaseView> & Pick<CaseView, "id" | "caption">): CaseView {
   return {
+    practiceArea: "penal",
+    modules: [
+      "defendants",
+      "coercive-measures",
+      "detainee-alerts",
+      "alternative-outcomes",
+      "mpf-legajo",
+    ],
     internalNumber: null,
     mpfLegajo: null,
     ofijuNumber: null,
     pehuenNumber: null,
     circumscriptionCode: "confluencia",
     circumscriptionName: "I Circunscripción, Confluencia",
-    actionType: "PUBLIC",
+    actionType: "public",
     actionArticle: "99",
-    represents: "DEFENCE",
+    represents: "defence",
+    stageCode: null,
+    stageName: null,
+    status: null,
+    closingOutcomeCode: null,
+    closingOutcomeName: null,
     reserved: false,
     archived: false,
     createdAt: "2026-05-10T14:00:00Z",
@@ -119,7 +132,7 @@ export const CASE_EJEMPLAR: CaseView = caseView({
   caption: "Ejemplar, Diego y otra s/ defraudación",
   mpfLegajo: "MPFNQ 8812/2025",
   reserved: true,
-  actionType: "PUBLIC_ON_COMPLAINT",
+  actionType: "public-on-complaint",
   actionArticle: "100",
   summary: {
     defendantCount: 2,
@@ -342,6 +355,7 @@ function caseHearing(overrides: Partial<CaseHearing> & Pick<CaseHearing, "id" | 
   return {
     caseId: CASE_MODELO.id,
     caseCaption: CASE_MODELO.caption,
+    practiceArea: "penal",
     typeCode: "formulacion-de-cargos",
     typeName: "Formulación de cargos",
     typeArticle: "133",
@@ -391,7 +405,13 @@ export const HEARINGS_BY_CASE: Record<string, CaseHearing[]> = {
 /** What `GET /api/v1/cases` answers, filtered and paged like the real search. */
 export function casePageFor(
   cases: CaseView[],
-  query: { q?: string | null; includeArchived?: boolean; page?: number; size?: number },
+  query: {
+    q?: string | null;
+    includeArchived?: boolean;
+    area?: string | null;
+    page?: number;
+    size?: number;
+  },
 ): CasePage {
   const size = query.size ?? 20;
   const page = query.page ?? 0;
@@ -399,6 +419,7 @@ export function casePageFor(
   const matches = cases.filter(
     (item) =>
       (query.includeArchived || !item.archived) &&
+      (!query.area || item.practiceArea === query.area) &&
       (!text ||
         item.caption.toLocaleLowerCase("es-AR").includes(text) ||
         (item.mpfLegajo ?? "").toLocaleLowerCase("es-AR").includes(text)),

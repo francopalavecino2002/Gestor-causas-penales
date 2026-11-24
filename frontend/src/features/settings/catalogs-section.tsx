@@ -18,6 +18,9 @@ import { settingsErrorMessage } from "@/features/settings/settings-errors";
 import { useAnnouncement, useCanEditSettings } from "@/features/settings/settings-hooks";
 import { SavedStatus, SettingsPage } from "@/features/settings/settings-layout";
 import { useAllCatalogs, useUpdateCatalogItem } from "@/features/settings/settings-queries";
+import { AreaDraftNote } from "@/features/practice-areas/area-choice";
+import { DEFAULT_AREA, initialArea } from "@/features/practice-areas/practice-area-format";
+import { useAreaDirectory } from "@/features/practice-areas/practice-area-queries";
 import {
   catalogOf,
   DEFAULT_CATALOG,
@@ -122,12 +125,20 @@ function CatalogSkeleton() {
 }
 
 /** The chosen catalog: where it comes from, what can change, and its items. */
-function CatalogPanel({ view, canEdit }: { view: CatalogView; canEdit: boolean }) {
+function CatalogPanel({
+  view,
+  area,
+  canEdit,
+}: {
+  view: CatalogView;
+  area: string;
+  canEdit: boolean;
+}) {
   const titleId = useId();
   const [message, announce] = useAnnouncement();
   const [renaming, setRenaming] = useState<CatalogItem | null>(null);
   const [adding, setAdding] = useState(false);
-  const update = useUpdateCatalogItem(view.catalog);
+  const update = useUpdateCatalogItem(view.catalog, area);
   const title = CATALOG_TITLES[view.catalog];
 
   const toggleHidden = (item: CatalogItem) => {
@@ -209,6 +220,7 @@ function CatalogPanel({ view, canEdit }: { view: CatalogView; canEdit: boolean }
       {renaming && (
         <RenameItemDialog
           catalog={view.catalog}
+          area={area}
           item={renaming}
           onClose={() => setRenaming(null)}
           onSaved={(name) => announce(`Guardado: ahora se llama ${name}.`)}
@@ -217,6 +229,7 @@ function CatalogPanel({ view, canEdit }: { view: CatalogView; canEdit: boolean }
       {adding && (
         <AddItemDialog
           catalog={view.catalog}
+          area={area}
           title={title}
           onClose={() => setAdding(false)}
           onSaved={(name) => announce(`Agregado: ${name}.`)}
@@ -226,19 +239,29 @@ function CatalogPanel({ view, canEdit }: { view: CatalogView; canEdit: boolean }
   );
 }
 
-/** `/ajustes/catalogos`: one catalog at a time, picked from a list (`?catalogo=`). */
+/**
+ * `/ajustes/catalogos`: one catalog at a time, picked from a list (`?catalogo=`), of one practice
+ * area (`?fuero=`, offered only when the firm works in more than one).
+ */
 export function CatalogsSection({ search }: { search: CatalogSearch }) {
   const navigate = useNavigate();
   const selectId = useId();
+  const areaSelectId = useId();
   const canEdit = useCanEditSettings();
-  const catalogs = useAllCatalogs();
+  const directory = useAreaDirectory();
+  const area = directory.find(search.fuero) ?? directory.find(initialArea(directory.areas));
+  const areaCode = area?.code ?? DEFAULT_AREA;
+  const catalogs = useAllCatalogs(areaCode);
   const current = catalogOf(search);
   const view = catalogs.data?.find((catalog) => catalog.catalog === current);
 
-  const choose = (id: AnyCatalogId) =>
+  const choose = (next: { catalogo: AnyCatalogId; fuero: string }) =>
     void navigate({
       to: "/ajustes/catalogos",
-      search: { catalogo: id === DEFAULT_CATALOG ? undefined : id },
+      search: {
+        catalogo: next.catalogo === DEFAULT_CATALOG ? undefined : next.catalogo,
+        fuero: next.fuero === initialArea(directory.areas) ? undefined : next.fuero,
+      },
       replace: true,
     });
 
@@ -247,7 +270,7 @@ export function CatalogsSection({ search }: { search: CatalogSearch }) {
       section="/ajustes/catalogos"
       intro="Las listas que usás para cargar causas y audiencias. Vienen del paquete de Neuquén y las podés adaptar a cómo habla tu estudio."
     >
-      {catalogs.isPending ? (
+      {catalogs.isPending || (search.fuero && directory.isPending) ? (
         <CatalogSkeleton />
       ) : catalogs.isError ? (
         <LoadError
@@ -257,25 +280,53 @@ export function CatalogsSection({ search }: { search: CatalogSearch }) {
         />
       ) : (
         <div className="grid max-w-3xl gap-6">
-          <div className="grid max-w-sm gap-1.5">
-            <Label htmlFor={selectId}>Catálogo</Label>
-            <Select
-              id={selectId}
-              value={current}
-              onChange={(event) => choose(event.target.value as AnyCatalogId)}
-            >
-              {catalogs.data.map((catalog) => (
-                <option key={catalog.catalog} value={catalog.catalog}>
-                  {CATALOG_TITLES[catalog.catalog] ?? catalog.catalog}
-                </option>
-              ))}
-            </Select>
+          <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
+            {directory.multiple && (
+              <div className="grid gap-1.5">
+                <Label htmlFor={areaSelectId}>Fuero</Label>
+                <Select
+                  id={areaSelectId}
+                  value={areaCode}
+                  onChange={(event) => choose({ catalogo: current, fuero: event.target.value })}
+                >
+                  {directory.areas.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
+            <div className="grid max-w-sm gap-1.5">
+              <Label htmlFor={selectId}>Catálogo</Label>
+              <Select
+                id={selectId}
+                value={current}
+                onChange={(event) =>
+                  choose({ catalogo: event.target.value as AnyCatalogId, fuero: areaCode })
+                }
+              >
+                {catalogs.data.map((catalog) => (
+                  <option key={catalog.catalog} value={catalog.catalog}>
+                    {CATALOG_TITLES[catalog.catalog] ?? catalog.catalog}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
+          {directory.multiple && area && area.flags.length > 0 && <AreaDraftNote area={area} />}
           {view ? (
-            <CatalogPanel key={view.catalog} view={view} canEdit={canEdit} />
+            <CatalogPanel
+              key={`${areaCode}-${view.catalog}`}
+              view={view}
+              area={areaCode}
+              canEdit={canEdit}
+            />
           ) : (
             <p className="text-body text-muted-foreground">
-              Este catálogo no está en el paquete de tu jurisdicción. Elegí otro de la lista.
+              {directory.multiple
+                ? "Este fuero no usa este catálogo. Elegí otro de la lista."
+                : "Este catálogo no está en el paquete de tu jurisdicción. Elegí otro de la lista."}
             </p>
           )}
         </div>

@@ -9,19 +9,29 @@ import type {
 } from "@/features/settings/settings-types";
 import { apiFetch } from "@/lib/api";
 
-/** Every catalog of the firm, hidden items included: the settings screen manages them. */
-export function fetchAllCatalogs(signal?: AbortSignal): Promise<CatalogView[]> {
-  return apiFetch<CatalogView[]>("/api/v1/catalogs?includeHidden=true", { signal });
+/**
+ * Every catalog of one practice area of the firm (the shared ones included), hidden items
+ * included: the settings screen manages them.
+ */
+export function fetchAllCatalogs(area: string, signal?: AbortSignal): Promise<CatalogView[]> {
+  return apiFetch<CatalogView[]>(
+    `/api/v1/catalogs?area=${encodeURIComponent(area)}&includeHidden=true`,
+    { signal },
+  );
 }
 
 export function addCatalogItem(
   catalog: AnyCatalogId,
+  area: string,
   item: { name: string; article: string | null },
 ): Promise<CatalogItem> {
-  return apiFetch<CatalogItem>(`/api/v1/catalogs/${catalog}/items`, {
-    method: "POST",
-    body: item,
-  });
+  return apiFetch<CatalogItem>(
+    `/api/v1/catalogs/${catalog}/items?area=${encodeURIComponent(area)}`,
+    {
+      method: "POST",
+      body: item,
+    },
+  );
 }
 
 /**
@@ -30,10 +40,12 @@ export function addCatalogItem(
  */
 export function updateCatalogItem(
   catalog: AnyCatalogId,
+  area: string,
   code: string,
   change: { name: string | null; hidden: boolean },
 ): Promise<CatalogItem> {
-  return apiFetch<CatalogItem>(`/api/v1/catalogs/${catalog}/items/${encodeURIComponent(code)}`, {
+  const path = `/api/v1/catalogs/${catalog}/items/${encodeURIComponent(code)}`;
+  return apiFetch<CatalogItem>(`${path}?area=${encodeURIComponent(area)}`, {
     method: "PUT",
     body: change,
   });
