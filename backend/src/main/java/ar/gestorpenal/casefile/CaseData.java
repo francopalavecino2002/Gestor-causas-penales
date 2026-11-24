@@ -13,8 +13,8 @@ import java.util.UUID;
  * {@code practiceArea} is the code of an area the firm has enabled; omitted, a new case is penal. It is
  * chosen when the case is created and never changes.
  *
- * <p>{@code actionType} and {@code represents} are codes of the area's catalogs; the API also accepts the
- * old enum-like spelling ({@code PUBLIC_ON_COMPLAINT}), see {@link CatalogCodes}. {@code stageCode},
+ * <p>{@code actionType} and {@code represents} are codes of the area's catalogs ({@code public-on-complaint},
+ * {@code defence}, {@code ordinario}). {@code stageCode},
  * {@code status} and {@code closingOutcomeCode} only apply to an area without the {@code defendants}
  * module: its case has its own course (a new case starts in the area's first stage); in a criminal case
  * they must be omitted because each defendant has them.
@@ -35,11 +35,6 @@ record CaseData(
         @Size(max = 60) String stageCode,
         CaseStatus status,
         @Size(max = 60) String closingOutcomeCode) {
-
-    CaseData {
-        actionType = CatalogCodes.fromWire(actionType);
-        represents = CatalogCodes.fromWire(represents);
-    }
 
     /**
      * The reserved flag to store: omitted keeps the current value (not reserved on a new case), so a

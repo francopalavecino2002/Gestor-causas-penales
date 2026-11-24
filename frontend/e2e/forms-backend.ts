@@ -1,25 +1,25 @@
 import type { AgendaItem } from "../src/features/agenda/agenda-types";
-import type { CaseData, DefendantData } from "../src/features/cases/case-write-api";
+import type { CaseData, DefendantData, PartyData } from "../src/features/cases/case-write-api";
 import type { CaseDetail, CaseView, DefendantView } from "../src/features/cases/case-types";
 import type { HearingData, HearingDetail } from "../src/features/hearings/hearing-api";
 import type { NewHumanPerson, PersonView } from "../src/features/persons/person-api";
+import { areaCatalog, CIVIL_AREA, DETAIL_CIVIL, PENAL_AREA } from "../src/test/area-fixtures";
 import { CATALOGS, DETAILS, HEARINGS_BY_CASE } from "../src/test/case-fixtures";
 import { FORM_CATALOGS, MEMBERS, PERSONS } from "../src/test/form-fixtures";
 
 type Answer = { status: number; json?: unknown } | undefined;
 
-const catalogName = (catalog: string, code: string | null): string | null => {
-  if (!code) return null;
-  const views = [...Object.values(CATALOGS), ...FORM_CATALOGS];
-  return (
-    views.find((view) => view.catalog === catalog)?.items.find((item) => item.code === code)
-      ?.name ?? code
-  );
-};
-const catalogArticle = (catalog: string, code: string): string | null =>
-  Object.values(CATALOGS)
-    .find((view) => view.catalog === catalog)
-    ?.items.find((item) => item.code === code)?.article ?? null;
+/** The criminal catalogs the fixtures serve. */
+export const CRIMINAL_CATALOGS = [...Object.values(CATALOGS), ...FORM_CATALOGS];
+
+const catalogItem = (catalog: string, code: string | null, area: string) =>
+  code
+    ? areaCatalog(catalog, area, CRIMINAL_CATALOGS)?.items.find((item) => item.code === code)
+    : undefined;
+const catalogName = (catalog: string, code: string | null, area = "penal"): string | null =>
+  code ? (catalogItem(catalog, code, area)?.name ?? code) : null;
+const catalogArticle = (catalog: string, code: string, area = "penal"): string | null =>
+  catalogItem(catalog, code, area)?.article ?? null;
 
 const memberName = (id: string) => MEMBERS.find((member) => member.id === id)?.displayName ?? id;
 
@@ -36,47 +36,66 @@ export function formsBackend() {
   const newId = (group: string) =>
     `00000000-0000-4000-${group}-${String(next++).padStart(12, "0")}`;
 
-  const view = (data: CaseData, id: string, previous?: CaseDetail): CaseDetail => ({
-    id,
-    caption: data.caption,
-    internalNumber: data.internalNumber,
-    mpfLegajo: data.mpfLegajo?.toUpperCase() ?? null,
-    ofijuNumber: data.ofijuNumber,
-    pehuenNumber: data.pehuenNumber,
-    circumscriptionCode: data.circumscriptionCode,
-    circumscriptionName: catalogName("circumscriptions", data.circumscriptionCode) ?? "",
-    actionType: data.actionType,
-    actionArticle: { PUBLIC: "99", PUBLIC_ON_COMPLAINT: "100", PRIVATE: "101" }[data.actionType],
-    represents: data.represents,
-    reserved: data.reserved,
-    archived: false,
-    createdAt: previous?.createdAt ?? new Date().toISOString(),
-    summary: previous?.summary ?? {
-      defendantCount: 0,
-      openDefendantCount: 0,
-      mostDelayedStage: null,
-      detaineeCount: 0,
-      nextHearing: null,
-    },
-    customFields: {},
-    team: previous?.team ?? [
-      {
-        userId: data.responsibleUserId ?? MEMBERS[1]!.id,
-        displayName: memberName(data.responsibleUserId ?? MEMBERS[1]!.id),
-        role: "RESPONSIBLE",
+  const view = (data: CaseData, id: string, previous?: CaseDetail): CaseDetail => {
+    const area = previous?.practiceArea ?? data.practiceArea ?? "penal";
+    const modules = area === "penal" ? PENAL_AREA.modules : CIVIL_AREA.modules;
+    const ownCourse = !modules.includes("defendants");
+    const stageCode = ownCourse ? (data.stageCode ?? "inicio") : null;
+    return {
+      id,
+      practiceArea: area,
+      modules,
+      caption: data.caption,
+      internalNumber: data.internalNumber,
+      mpfLegajo: data.mpfLegajo?.toUpperCase() ?? null,
+      ofijuNumber: data.ofijuNumber,
+      pehuenNumber: data.pehuenNumber,
+      circumscriptionCode: data.circumscriptionCode,
+      circumscriptionName: catalogName("circumscriptions", data.circumscriptionCode) ?? "",
+      actionType: data.actionType,
+      actionArticle: catalogArticle("action-types", data.actionType, area),
+      represents: data.represents,
+      stageCode,
+      stageName: catalogName("stages", stageCode, area),
+      status: ownCourse ? (data.status ?? "ACTIVE") : null,
+      closingOutcomeCode: ownCourse ? (data.closingOutcomeCode ?? null) : null,
+      closingOutcomeName: ownCourse
+        ? catalogName("closing-outcomes", data.closingOutcomeCode ?? null, area)
+        : null,
+      reserved: data.reserved,
+      archived: false,
+      createdAt: previous?.createdAt ?? new Date().toISOString(),
+      summary: {
+        ...(previous?.summary ?? {
+          defendantCount: 0,
+          openDefendantCount: 0,
+          mostDelayedStage: null,
+          detaineeCount: 0,
+          nextHearing: null,
+        }),
+        ...(ownCourse ? { mostDelayedStage: stageCode } : {}),
       },
-    ],
-    parties: [],
-    defendants: previous?.defendants ?? [],
-  });
+      customFields: {},
+      team: previous?.team ?? [
+        {
+          userId: data.responsibleUserId ?? MEMBERS[1]!.id,
+          displayName: memberName(data.responsibleUserId ?? MEMBERS[1]!.id),
+          role: "RESPONSIBLE",
+        },
+      ],
+      parties: previous?.parties ?? [],
+      defendants: previous?.defendants ?? [],
+    };
+  };
 
   const hearingOf = (caseFile: CaseDetail, data: HearingData, id: string): HearingDetail => ({
     id,
     caseId: caseFile.id,
     caseCaption: caseFile.caption,
+    practiceArea: caseFile.practiceArea,
     typeCode: data.typeCode,
-    typeName: catalogName("hearing-types", data.typeCode) ?? data.typeCode,
-    typeArticle: catalogArticle("hearing-types", data.typeCode),
+    typeName: catalogName("hearing-types", data.typeCode, caseFile.practiceArea) ?? data.typeCode,
+    typeArticle: catalogArticle("hearing-types", data.typeCode, caseFile.practiceArea),
     startsAt: new Date(data.startsAt).toISOString(),
     durationMinutes: data.durationMinutes,
     room: data.room,
@@ -84,9 +103,14 @@ export function formsBackend() {
     ofijuReference: data.ofijuReference,
     requestedBy: data.requestedBy,
     statusCode: data.statusCode,
-    statusName: catalogName("hearing-statuses", data.statusCode) ?? data.statusCode,
+    statusName:
+      catalogName("hearing-statuses", data.statusCode, caseFile.practiceArea) ?? data.statusCode,
     cancellationReasonCode: data.cancellationReasonCode,
-    cancellationReasonName: catalogName("cancellation-reasons", data.cancellationReasonCode),
+    cancellationReasonName: catalogName(
+      "cancellation-reasons",
+      data.cancellationReasonCode,
+      caseFile.practiceArea,
+    ),
     heldAsTypeCode: null,
     heldAsTypeName: null,
     resultSummary: data.resultSummary,
@@ -105,14 +129,15 @@ export function formsBackend() {
   });
 
   const findCase = (id: string) =>
-    cases.find((candidate) => candidate.id === id) ?? DETAILS.find((detail) => detail.id === id);
+    cases.find((candidate) => candidate.id === id) ??
+    [...DETAILS, DETAIL_CIVIL].find((detail) => detail.id === id);
 
   const answer = (method: string, url: URL, body: () => unknown): Answer => {
     const path = url.pathname;
     if (method === "GET" && path === "/api/v1/users") return { status: 200, json: MEMBERS };
     const catalog = /^\/api\/v1\/catalogs\/([a-z-]+)$/.exec(path)?.[1];
     if (method === "GET" && catalog) {
-      const found = FORM_CATALOGS.find((candidate) => candidate.catalog === catalog);
+      const found = areaCatalog(catalog, url.searchParams.get("area"), CRIMINAL_CATALOGS);
       if (found) return { status: 200, json: found };
     }
 
@@ -153,7 +178,7 @@ export function formsBackend() {
       Object.assign(own, view(body() as CaseData, own.id, own));
       return { status: 200, json: own };
     }
-    const sub = /^\/api\/v1\/cases\/([^/]+)\/(hearings|deadlines|defendants)$/.exec(path);
+    const sub = /^\/api\/v1\/cases\/([^/]+)\/(hearings|deadlines|defendants|parties)$/.exec(path);
     const subCase = sub ? cases.find((candidate) => candidate.id === sub[1]) : undefined;
     if (sub && method === "GET" && subCase) {
       return {
@@ -163,6 +188,20 @@ export function formsBackend() {
             ? hearings.filter((hearing) => hearing.caseId === subCase.id).reverse()
             : [],
       };
+    }
+    if (sub?.[2] === "parties" && method === "POST" && subCase) {
+      const data = body() as PartyData;
+      const party = {
+        id: newId("d000"),
+        personId: data.personId,
+        displayName:
+          persons.find((candidate) => candidate.id === data.personId)?.displayName ?? data.personId,
+        personArchived: false,
+        roleCode: data.roleCode,
+        roleName: catalogName("party-roles", data.roleCode, subCase.practiceArea) ?? data.roleCode,
+      };
+      subCase.parties.push(party);
+      return { status: 201, json: party };
     }
     if (sub?.[2] === "defendants" && method === "POST" && subCase) {
       const data = body() as DefendantData & { personId: string };
@@ -230,6 +269,7 @@ export function formsBackend() {
       hearingId: hearing.id,
       caseId: hearing.caseId,
       caseCaption: hearing.caseCaption,
+      practiceArea: hearing.practiceArea,
       typeCode: hearing.typeCode,
       typeName: hearing.typeName,
       typeArticle: hearing.typeArticle,

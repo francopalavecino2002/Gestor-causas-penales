@@ -1,25 +1,13 @@
 import { formatDayLabel, formatTime, localDay } from "@/features/agenda/agenda-dates";
 import type { IsoDate } from "@/features/agenda/agenda-types";
 import type {
-  ActionType,
   CaseHearing,
+  CaseStatus,
   CoerciveMeasure,
   DefendantStatus,
   DefendantView,
-  Representation,
   TeamRole,
 } from "@/features/cases/case-types";
-
-export const ACTION_TYPE_LABELS: Record<ActionType, string> = {
-  PUBLIC: "Acción pública",
-  PUBLIC_ON_COMPLAINT: "Acción pública dependiente de instancia privada",
-  PRIVATE: "Acción privada",
-};
-
-export const REPRESENTATION_LABELS: Record<Representation, string> = {
-  DEFENCE: "Defensa",
-  PRIVATE_PROSECUTION: "Querella",
-};
 
 export const DEFENDANT_STATUS_LABELS: Record<DefendantStatus, string> = {
   ACTIVE: "En trámite",
@@ -27,6 +15,9 @@ export const DEFENDANT_STATUS_LABELS: Record<DefendantStatus, string> = {
   IN_MEDIATION: "En mediación",
   CLOSED: "Cerrado",
 };
+
+/** A case of an area without defendants goes through the same states as a defendant. */
+export const CASE_STATUS_LABELS: Record<CaseStatus, string> = DEFENDANT_STATUS_LABELS;
 
 export const TEAM_ROLE_LABELS: Record<TeamRole, string> = {
   RESPONSIBLE: "Responsable",

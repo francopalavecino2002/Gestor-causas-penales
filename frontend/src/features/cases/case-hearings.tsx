@@ -117,8 +117,11 @@ export function CaseHearings({
   caseId,
   timeZone,
   now,
+  scheduledBy = "la Oficina Judicial",
 }: {
   caseId: string;
+  /** Who sets the hearing dates in the case's area, for the empty state. */
+  scheduledBy?: string;
   timeZone: string;
   now: Date;
 }) {
@@ -149,8 +152,8 @@ export function CaseHearings({
   if (hearings.data.length === 0) {
     return (
       <p className="text-body text-muted-foreground">
-        Esta causa todavía no tiene audiencias. Cuando la Oficina Judicial fije una fecha, cargala y
-        la vas a ver acá y en la agenda.
+        Esta causa todavía no tiene audiencias. Cuando {scheduledBy} fije una fecha, cargala y la
+        vas a ver acá y en la agenda.
       </p>
     );
   }

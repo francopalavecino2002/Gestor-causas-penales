@@ -162,7 +162,7 @@ abstract class ImportApiTestSupport {
 
     static String caseJson(String caption, String extraFields) {
         return """
-                {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "PUBLIC", "represents": "DEFENCE"%s}
+                {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "public", "represents": "defence"%s}
                 """.formatted(caption, extraFields);
     }
 

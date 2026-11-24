@@ -12,6 +12,8 @@ export interface AgendaItem {
   hearingId: string;
   caseId: string;
   caseCaption: string;
+  /** Code of the case's practice area ("penal", "civil"...). */
+  practiceArea: string;
   typeCode: string;
   typeName: string;
   /** CPP article(s) of the hearing type, e.g. "118" or "167 a 169"; null for "Otra". */

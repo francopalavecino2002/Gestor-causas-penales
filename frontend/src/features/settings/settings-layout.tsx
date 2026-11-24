@@ -50,7 +50,7 @@ function SectionNav({ current }: { current: string }) {
         <ChevronLeft aria-hidden="true" className="size-5" />
         Ajustes
       </Link>
-      <nav aria-label="Secciones de ajustes" className="hidden md:block">
+      <nav aria-label="Secciones de ajustes" className="hidden max-w-full overflow-x-auto md:block">
         <ul className="inline-flex w-fit rounded-lg border bg-secondary p-0.75">
           {SETTINGS_SECTIONS.map((section) => (
             <li key={section.to}>
@@ -62,7 +62,8 @@ function SectionNav({ current }: { current: string }) {
                   "aria-[current=page]:bg-card aria-[current=page]:text-foreground aria-[current=page]:shadow-segment",
                 )}
               >
-                <section.icon aria-hidden="true" className="size-5" />
+                {/* Icons only where the five sections fit with them on one row. */}
+                <section.icon aria-hidden="true" className="hidden size-5 xl:block" />
                 {section.title}
               </Link>
             </li>

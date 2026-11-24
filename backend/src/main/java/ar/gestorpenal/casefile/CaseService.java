@@ -70,7 +70,7 @@ class CaseService {
         CaseFile caseFile = CaseFile.create(data);
         caseFile.replaceCustomFields(values);
         String area = caseFile.getPracticeArea();
-        areas.requireEnabled(area);
+        areas.requireEnabledForNewCase(area);
         requireCatalogCodes(area, data, null);
         caseFile.applyCourse(courseOf(area, data, null));
         cases.saveAndFlush(caseFile);
@@ -148,14 +148,16 @@ class CaseService {
     }
 
     @Transactional(readOnly = true)
-    CasePage search(AuthenticatedUser user, String query, boolean includeArchived, int page, int size) {
+    CasePage search(AuthenticatedUser user, String query, boolean includeArchived, String area, int page, int size) {
         String text = Text.clean(query) == null ? "" : stripWildcards(query);
         String legajo = text.isEmpty() ? "" : MpfLegajo.searchForm(text);
+        String areaCode = Text.clean(area);
         PageRequest pageRequest = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), MAX_PAGE_SIZE));
         Page<CaseFile> found = cases.search(
                 "%" + text.toLowerCase(Locale.ROOT) + "%",
                 "%" + legajo + "%",
                 includeArchived,
+                areaCode == null ? "" : areaCode,
                 CasePermissions.seesEveryCase(user),
                 user.userId(),
                 pageRequest);

@@ -105,7 +105,7 @@ abstract class CaseApiTestSupport {
 
     static String caseJson(String caption, String circumscription, String extraFields) {
         return """
-                {"caption": "%s", "circumscriptionCode": "%s", "actionType": "PUBLIC", "represents": "DEFENCE"%s}
+                {"caption": "%s", "circumscriptionCode": "%s", "actionType": "public", "represents": "defence"%s}
                 """.formatted(caption, circumscription, extraFields);
     }
 

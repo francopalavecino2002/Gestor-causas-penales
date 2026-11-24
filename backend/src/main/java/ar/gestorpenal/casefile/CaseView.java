@@ -9,8 +9,8 @@ import java.util.UUID;
  * A case as shown in lists and as the head of the detail, with its computed summary.
  *
  * @param modules the optional features of the case's practice area, so the UI shows or hides sections
- * @param actionType the area's action type code in the wire spelling of {@link CatalogCodes}
- * @param represents the area's represented side code in the wire spelling
+ * @param actionType the code of the area's action-types catalog, e.g. {@code public-on-complaint}
+ * @param represents the code of the area's represented-sides catalog, e.g. {@code defence}
  * @param stageCode the case's own stage, status and outcome (with the names of the stage and the
  *     outcome): only for an area without the {@code defendants} module, else all {@code null}
  */
@@ -50,9 +50,9 @@ record CaseView(
                 caseFile.getPehuenNumber(),
                 caseFile.getCircumscriptionCode(),
                 vocabulary.circumscriptionName(caseFile.getCircumscriptionCode()),
-                CatalogCodes.toWire(caseFile.getActionType()),
+                caseFile.getActionType(),
                 vocabulary.actionArticle(caseFile.getActionType()),
-                CatalogCodes.toWire(caseFile.getRepresents()),
+                caseFile.getRepresents(),
                 caseFile.getStageCode(),
                 vocabulary.stageName(caseFile.getStageCode()),
                 caseFile.getStatus(),

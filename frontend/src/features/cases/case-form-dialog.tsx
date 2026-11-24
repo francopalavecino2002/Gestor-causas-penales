@@ -1,4 +1,5 @@
-import { useId, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useId, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "@tanstack/react-router";
 import { CircleAlert, Info, LoaderCircle } from "lucide-react";
@@ -17,7 +18,7 @@ import { catalogOptionLabel } from "@/features/catalogs/catalog-format";
 import { useCatalogOptions, useCatalogsSettled } from "@/features/catalogs/catalog-queries";
 import type { AnyCatalogId } from "@/features/catalogs/catalog-types";
 import { FormSkeleton } from "@/components/forms/form-skeleton";
-import { ACTION_TYPE_LABELS, REPRESENTATION_LABELS } from "@/features/cases/case-format";
+import { CASE_STATUS_LABELS } from "@/features/cases/case-format";
 import {
   CAPTION_MAX,
   caseDataOf,
@@ -27,29 +28,44 @@ import {
   defendantDataOf,
   defendantFormDefaults,
   NUMBER_MAX,
+  type CaseFormArea,
   type CaseFormValues,
 } from "@/features/cases/case-form-schema";
 import {
   caseFormProblem,
   defendantProblem,
+  partyProblem,
   personProblem,
 } from "@/features/cases/case-form-errors";
 import {
   useAddDefendant,
+  useAddParty,
   useCreateCase,
   useCreatePerson,
   useUpdateCase,
 } from "@/features/cases/case-mutations";
-import type { ActionType, CaseDetail, Representation } from "@/features/cases/case-types";
+import type { CaseDetail, CaseStatus } from "@/features/cases/case-types";
 import { canBeResponsible, useFirmMembers } from "@/features/members/member-queries";
 import { PersonFields } from "@/features/persons/person-fields";
 import { newPersonOf } from "@/features/persons/person-schema";
+import { AreaChoice, AreaDraftNote } from "@/features/practice-areas/area-choice";
+import { hasModule, initialArea } from "@/features/practice-areas/practice-area-format";
+import { useAreaDirectory } from "@/features/practice-areas/practice-area-queries";
+import type { PracticeModule } from "@/features/practice-areas/practice-area-types";
+import { useStickyReady } from "@/lib/use-sticky-ready";
 
 /** Wait for them so the selects show the saved value from the first render. */
-const FORM_CATALOGS: AnyCatalogId[] = ["circumscriptions", "stages"];
+const FORM_CATALOGS: AnyCatalogId[] = [
+  "circumscriptions",
+  "stages",
+  "action-types",
+  "represented-sides",
+];
 
-const ACTION_TYPES = Object.keys(ACTION_TYPE_LABELS) as ActionType[];
-const REPRESENTATIONS = Object.keys(REPRESENTATION_LABELS) as Representation[];
+/** What the criminal area turns on: assumed while the firm's areas load or if they fail. */
+const CRIMINAL_MODULES: PracticeModule[] = ["defendants", "mpf-legajo"];
+
+const CASE_STATUSES = Object.keys(CASE_STATUS_LABELS) as CaseStatus[];
 
 /** A text field of the form, with its label, hint and error wired for screen readers. */
 function TextField({
@@ -99,40 +115,69 @@ function SectionTitle({ children }: { children: string }) {
 interface CaseFormProps {
   detail?: CaseDetail;
   canChangeReserved?: boolean;
+  /** The area a new case starts in (the list's filter), when the firm works in it. */
+  area?: string;
   onClose: () => void;
 }
 
+/** First option of a catalog, to fill a select whose value the area does not offer. */
+function useFirstOption(
+  form: ReturnType<typeof useForm<CaseFormValues>>,
+  name: "actionType" | "represents" | "caseStageCode",
+  codes: string[],
+) {
+  const value = useWatch({ control: form.control, name });
+  const first = codes[0];
+  const offered = codes.includes(value);
+  useEffect(() => {
+    if (!offered && first !== undefined) form.setValue(name, first);
+  }, [offered, first, form, name]);
+}
+
 /**
- * "Nueva causa" (`detail` undefined) or "Editá la causa". A new case can bring its first
- * defendant: the new person (if any) is created first, then the case, then the defendant; after
- * saving, the new case opens. The team and the custom fields are not changed here.
+ * "Nueva causa" (`detail` undefined) or "Editá la causa". A new case starts by its practice area
+ * (only asked when the firm works in more than one) and can bring its first defendant (criminal)
+ * or its first party (other areas): the new person (if any) is created first, then the case,
+ * then the defendant or the party; after saving, the new case opens. In an area without
+ * defendants the case carries its own stage and status. The team and the custom fields are not
+ * changed here.
  */
-export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: CaseFormProps) {
+export function CaseFormDialog({
+  detail,
+  canChangeReserved = true,
+  area: preferredArea,
+  onClose,
+}: CaseFormProps) {
   const creating = detail === undefined;
   const formId = useId();
-  const ready = useCatalogsSettled(FORM_CATALOGS);
   const navigate = useNavigate();
   const { data: me } = useMe();
   const meCanBeResponsible = me ? canBeResponsible(me) : false;
   const members = useFirmMembers();
-  const circumscriptions = useCatalogOptions("circumscriptions", detail?.circumscriptionCode);
-  const stages = useCatalogOptions("stages");
+  const directory = useAreaDirectory();
 
   const createCase = useCreateCase();
+  const queryClient = useQueryClient();
   const updateCase = useUpdateCase(detail?.id ?? "");
   const createPerson = useCreatePerson();
   const addDefendant = useAddDefendant();
+  const addParty = useAddParty();
   const [general, setGeneral] = useState<string | null>(null);
-  /** The case was saved but its first defendant was not. */
-  const [partial, setPartial] = useState<{ caseId: string; message: string } | null>(null);
+  /** The case was saved but its first defendant or party was not. */
+  const [partial, setPartial] = useState<{
+    caseId: string;
+    message: string;
+    defendant: boolean;
+  } | null>(null);
 
+  const [areaFlags, setAreaFlags] = useState<CaseFormArea>({ defendants: true, mpfLegajo: true });
   const schema = useMemo(
-    () => caseFormSchema({ requireResponsible: !meCanBeResponsible, creating }),
-    [meCanBeResponsible, creating],
+    () => caseFormSchema({ requireResponsible: !meCanBeResponsible, creating, area: areaFlags }),
+    [meCanBeResponsible, creating, areaFlags],
   );
   const form = useForm<CaseFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: caseFormDefaults(detail),
+    defaultValues: caseFormDefaults(detail, initialArea(directory.areas)),
   });
   const {
     register,
@@ -140,9 +185,72 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
     handleSubmit,
     setError,
     setValue,
+    getFieldState,
     formState: { errors, isSubmitting },
   } = form;
+
+  // A new case starts in the firm's default area once the list of areas is known.
+  const areasLoaded = !directory.isPending;
+  const startingArea = directory.find(preferredArea)?.code ?? initialArea(directory.areas);
+  useEffect(() => {
+    if (creating && areasLoaded && !getFieldState("practiceArea").isDirty) {
+      setValue("practiceArea", startingArea);
+    }
+  }, [creating, areasLoaded, startingArea, getFieldState, setValue]);
+
+  const areaCode = useWatch({ control, name: "practiceArea" });
+  const area = directory.find(areaCode);
+  const modules =
+    detail?.modules ?? area?.modules ?? (directory.areas.length === 0 ? CRIMINAL_MODULES : []);
+  const flags: CaseFormArea = {
+    defendants: hasModule(modules, "defendants"),
+    mpfLegajo: hasModule(modules, "mpf-legajo"),
+  };
+  if (flags.defendants !== areaFlags.defendants || flags.mpfLegajo !== areaFlags.mpfLegajo) {
+    setAreaFlags(flags);
+  }
+
+  const circumscriptions = useCatalogOptions(
+    "circumscriptions",
+    detail?.circumscriptionCode,
+    areaCode,
+  );
+  const actionTypes = useCatalogOptions("action-types", detail?.actionType, areaCode);
+  const sides = useCatalogOptions("represented-sides", detail?.represents, areaCode);
+  const stages = useCatalogOptions("stages", detail?.stageCode, areaCode);
+  const outcomes = useCatalogOptions("closing-outcomes", detail?.closingOutcomeCode, areaCode);
+  const roles = useCatalogOptions("party-roles", undefined, areaCode);
+  const openStages = stages.items.filter((item) => item.code !== CLOSED_STAGE);
+  const catalogsSettled = useCatalogsSettled(FORM_CATALOGS, areaCode);
+  const ready = useStickyReady(catalogsSettled && (!creating || areasLoaded));
+
+  useFirstOption(
+    form,
+    "actionType",
+    actionTypes.items.map((item) => item.code),
+  );
+  useFirstOption(
+    form,
+    "represents",
+    sides.items.map((item) => item.code),
+  );
+  useFirstOption(
+    form,
+    "caseStageCode",
+    flags.defendants ? [] : openStages.map((item) => item.code),
+  );
+
   const withDefendant = useWatch({ control, name: "withDefendant" });
+  const withParty = useWatch({ control, name: "withParty" });
+  const represents = useWatch({ control, name: "represents" });
+  const caseStatus = useWatch({ control, name: "caseStatus" });
+  // The first party is, by default, the one the firm represents (the actor, the demandado...).
+  const representedRole = roles.items.find((item) => item.code === represents)?.code;
+  const firstRole = roles.items[0]?.code;
+  useEffect(() => {
+    const role = representedRole ?? firstRole;
+    if (role && !getFieldState("partyRoleCode").isDirty) setValue("partyRoleCode", role);
+  }, [representedRole, firstRole, getFieldState, setValue]);
 
   const responsibleOptions = (members.data ?? []).filter(
     (member) => canBeResponsible(member) && member.id !== me?.id,
@@ -161,11 +269,13 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
     }
   };
 
+  const showAreaChoice = creating && directory.areas.length > 1;
+
   const submit = handleSubmit(async (values) => {
     setGeneral(null);
     if (!creating) {
       try {
-        await updateCase.mutateAsync(caseDataOf(values, false));
+        await updateCase.mutateAsync(caseDataOf(values, false, flags));
         onClose();
       } catch (error) {
         const problem = caseFormProblem(error);
@@ -175,9 +285,10 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
       return;
     }
 
+    const withPerson = flags.defendants ? values.withDefendant : values.withParty;
     let personId = values.person.personId;
     let personName = values.person.personName;
-    if (values.withDefendant && values.person.mode === "new") {
+    if (withPerson && values.person.mode === "new") {
       try {
         const person = await createPerson.mutateAsync(newPersonOf(values.person));
         personId = person.id;
@@ -194,15 +305,20 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
 
     let created: CaseDetail;
     try {
-      created = await createCase.mutateAsync(caseDataOf(values, true));
+      created = await createCase.mutateAsync(caseDataOf(values, true, flags));
     } catch (error) {
       const problem = caseFormProblem(error);
-      markFields(problem.fields);
-      setGeneral(problem.general ?? null);
+      const { practiceArea: areaProblem, ...fields } = problem.fields;
+      if (areaProblem) {
+        // The firm's areas changed meanwhile (e.g. in Ajustes): reload them for the choice.
+        void queryClient.invalidateQueries({ queryKey: ["practice-areas"] });
+      }
+      markFields(showAreaChoice ? problem.fields : fields);
+      setGeneral(problem.general ?? (showAreaChoice ? undefined : areaProblem) ?? null);
       return;
     }
 
-    if (values.withDefendant) {
+    if (withPerson && flags.defendants) {
       try {
         await addDefendant.mutateAsync({
           caseId: created.id,
@@ -216,7 +332,24 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
         const reason = problem.general ?? Object.values(problem.fields)[0] ?? "";
         setPartial({
           caseId: created.id,
+          defendant: true,
           message: `La causa quedó guardada, pero no pudimos sumar a ${personName} como imputado. ${reason}`,
+        });
+        return;
+      }
+    } else if (withPerson) {
+      try {
+        await addParty.mutateAsync({
+          caseId: created.id,
+          data: { personId, roleCode: values.partyRoleCode },
+        });
+      } catch (error) {
+        const problem = partyProblem(error);
+        const reason = problem.general ?? Object.values(problem.fields)[0] ?? "";
+        setPartial({
+          caseId: created.id,
+          defendant: false,
+          message: `La causa quedó guardada, pero no pudimos sumar a ${personName} como parte. ${reason}`,
         });
         return;
       }
@@ -243,9 +376,12 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
       >
         <Alert variant="error" role="alert">
           <CircleAlert aria-hidden="true" />
-          <AlertTitle>Falta el imputado</AlertTitle>
+          <AlertTitle>{partial.defendant ? "Falta el imputado" : "Falta la parte"}</AlertTitle>
           <AlertDescription>
-            {partial.message} Abrí la causa y agregalo desde «Imputados».
+            {partial.message}{" "}
+            {partial.defendant
+              ? "Abrí la causa y agregalo desde «Imputados»."
+              : "Abrí la causa y agregala desde «Partes»."}
           </AlertDescription>
         </Alert>
       </FormSheet>
@@ -257,7 +393,12 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
     actionType: `${formId}-actionType`,
     responsible: `${formId}-responsible`,
     stage: `${formId}-stage`,
+    caseStage: `${formId}-caseStage`,
+    caseStatus: `${formId}-caseStatus`,
+    caseOutcome: `${formId}-caseOutcome`,
+    partyRole: `${formId}-partyRole`,
   };
+  const caseClosed = caseStatus === "CLOSED";
 
   return (
     <FormSheet
@@ -293,13 +434,29 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
               </Alert>
             )}
 
+            {showAreaChoice && (
+              <section className="grid gap-3">
+                <AreaChoice
+                  areas={directory.areas}
+                  field={register("practiceArea")}
+                  legend="¿De qué fuero es la causa?"
+                />
+                <FieldError>{errors.practiceArea?.message}</FieldError>
+                {area && !flags.defendants && <AreaDraftNote area={area} />}
+              </section>
+            )}
+
             <section className="grid gap-4">
               <SectionTitle>Datos de la causa</SectionTitle>
               <TextField
                 form={form}
                 name="caption"
                 label="Carátula"
-                hint="Como figura en el legajo, por ejemplo «Modelo, Carla s/ robo» (datos ficticios)."
+                hint={
+                  flags.defendants
+                    ? "Como figura en el legajo, por ejemplo «Modelo, Carla s/ robo» (datos ficticios)."
+                    : "Como figura en el expediente, por ejemplo «Ficticio, Juan c/ Ejemplo S.A. s/ cobro» (datos ficticios)."
+                }
                 maxLength={CAPTION_MAX}
               />
               <div className="grid items-start gap-4 sm:grid-cols-2">
@@ -331,50 +488,148 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
                   </FieldError>
                 </Field>
                 <Field>
-                  <Label htmlFor={fieldIds.actionType}>Tipo de acción</Label>
-                  <Select id={fieldIds.actionType} {...register("actionType")}>
-                    {ACTION_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {ACTION_TYPE_LABELS[type]}
+                  <Label htmlFor={fieldIds.actionType}>
+                    {flags.defendants ? "Tipo de acción" : "Tipo de proceso"}
+                  </Label>
+                  <Select
+                    id={fieldIds.actionType}
+                    disabled={actionTypes.isPending}
+                    aria-invalid={errors.actionType ? true : undefined}
+                    aria-describedby={
+                      errors.actionType ? `${fieldIds.actionType}-error` : undefined
+                    }
+                    {...register("actionType")}
+                  >
+                    {actionTypes.isPending && <option value="">Cargando…</option>}
+                    {actionTypes.items.map((item) => (
+                      <option key={item.code} value={item.code}>
+                        {catalogOptionLabel(item)}
                       </option>
                     ))}
                   </Select>
+                  <FieldError id={`${fieldIds.actionType}-error`}>
+                    {errors.actionType?.message}
+                  </FieldError>
                 </Field>
               </div>
               <fieldset className="grid gap-2">
                 <legend className="mb-1.5 text-body font-semibold">El estudio representa a</legend>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {REPRESENTATIONS.map((side) => (
+                  {sides.items.map((side) => (
                     <label
-                      key={side}
+                      key={side.code}
                       className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border bg-card px-3.5 py-2.5 transition-colors duration-fast ease-out hover:bg-accent has-checked:border-primary has-checked:bg-accent has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring"
                     >
                       <input
                         type="radio"
-                        value={side}
+                        value={side.code}
                         className="size-4.5 shrink-0 accent-primary focus-visible:outline-none"
                         {...register("represents")}
                       />
                       <span className="text-body font-semibold">
-                        {side === "DEFENCE" ? "La defensa" : "La querella"}
+                        {catalogOptionLabel(side, { article: false })}
                       </span>
                     </label>
                   ))}
                 </div>
+                <FieldError>{errors.represents?.message}</FieldError>
               </fieldset>
             </section>
+
+            {!flags.defendants && (
+              <section className="grid gap-4">
+                <SectionTitle>{creating ? "Etapa" : "Etapa y estado"}</SectionTitle>
+                <div className="grid items-start gap-4 sm:grid-cols-2">
+                  {!creating && (
+                    <Field>
+                      <Label htmlFor={fieldIds.caseStatus}>Estado de la causa</Label>
+                      <Select id={fieldIds.caseStatus} {...register("caseStatus")}>
+                        {CASE_STATUSES.map((value) => (
+                          <option key={value} value={value}>
+                            {CASE_STATUS_LABELS[value]}
+                          </option>
+                        ))}
+                      </Select>
+                    </Field>
+                  )}
+                  {caseClosed ? (
+                    <Field>
+                      <Label htmlFor={fieldIds.caseOutcome}>Cómo terminó</Label>
+                      <Select
+                        id={fieldIds.caseOutcome}
+                        aria-invalid={errors.caseOutcomeCode ? true : undefined}
+                        aria-describedby={
+                          errors.caseOutcomeCode ? `${fieldIds.caseOutcome}-error` : undefined
+                        }
+                        {...register("caseOutcomeCode")}
+                      >
+                        <option value="">Elegí el resultado</option>
+                        {outcomes.items.map((item) => (
+                          <option key={item.code} value={item.code}>
+                            {catalogOptionLabel(item)}
+                          </option>
+                        ))}
+                      </Select>
+                      <FieldError id={`${fieldIds.caseOutcome}-error`}>
+                        {errors.caseOutcomeCode?.message}
+                      </FieldError>
+                    </Field>
+                  ) : (
+                    <Field>
+                      <Label htmlFor={fieldIds.caseStage}>Etapa</Label>
+                      <Select
+                        id={fieldIds.caseStage}
+                        disabled={stages.isPending}
+                        aria-invalid={errors.caseStageCode ? true : undefined}
+                        aria-describedby={
+                          [
+                            creating ? `${fieldIds.caseStage}-hint` : null,
+                            errors.caseStageCode ? `${fieldIds.caseStage}-error` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" ") || undefined
+                        }
+                        {...register("caseStageCode")}
+                      >
+                        {stages.isPending && <option value="">Cargando…</option>}
+                        {openStages.map((item) => (
+                          <option key={item.code} value={item.code}>
+                            {catalogOptionLabel(item)}
+                          </option>
+                        ))}
+                      </Select>
+                      {creating && (
+                        <FieldDescription id={`${fieldIds.caseStage}-hint`}>
+                          Si recién empieza, dejala en la primera.
+                        </FieldDescription>
+                      )}
+                      <FieldError id={`${fieldIds.caseStage}-error`}>
+                        {errors.caseStageCode?.message}
+                      </FieldError>
+                    </Field>
+                  )}
+                </div>
+                {caseClosed && (
+                  <p className="-mt-2 text-small text-muted-foreground">
+                    Una causa cerrada pasa a la etapa «Cerrada».
+                  </p>
+                )}
+              </section>
+            )}
 
             <section className="grid gap-4">
               <SectionTitle>Números</SectionTitle>
               <div className="grid items-start gap-4 sm:grid-cols-2">
-                <TextField
-                  form={form}
-                  name="mpfLegajo"
-                  label="Legajo del MPF"
-                  hint="Por ejemplo MPFNQ 12345/2026."
-                  maxLength={NUMBER_MAX}
-                  numeric
-                />
+                {flags.mpfLegajo && (
+                  <TextField
+                    form={form}
+                    name="mpfLegajo"
+                    label="Legajo del MPF"
+                    hint="Por ejemplo MPFNQ 12345/2026."
+                    maxLength={NUMBER_MAX}
+                    numeric
+                  />
+                )}
                 <TextField
                   form={form}
                   name="internalNumber"
@@ -382,22 +637,26 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
                   maxLength={NUMBER_MAX}
                   numeric
                 />
-                <TextField
-                  form={form}
-                  name="ofijuNumber"
-                  label="Número de la OFIJU"
-                  hint="Formato a confirmar [validar]."
-                  maxLength={NUMBER_MAX}
-                  numeric
-                />
-                <TextField
-                  form={form}
-                  name="pehuenNumber"
-                  label="Número en Pehuén"
-                  hint="Formato a confirmar [validar]."
-                  maxLength={NUMBER_MAX}
-                  numeric
-                />
+                {flags.mpfLegajo && (
+                  <>
+                    <TextField
+                      form={form}
+                      name="ofijuNumber"
+                      label="Número de la OFIJU"
+                      hint="Formato a confirmar [validar]."
+                      maxLength={NUMBER_MAX}
+                      numeric
+                    />
+                    <TextField
+                      form={form}
+                      name="pehuenNumber"
+                      label="Número en Pehuén"
+                      hint="Formato a confirmar [validar]."
+                      maxLength={NUMBER_MAX}
+                      numeric
+                    />
+                  </>
+                )}
               </div>
             </section>
 
@@ -466,7 +725,7 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
               />
             </section>
 
-            {creating && (
+            {creating && flags.defendants && (
               <section className="grid gap-4">
                 <SectionTitle>Imputado</SectionTitle>
                 <Controller
@@ -496,13 +755,11 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
                         aria-describedby={errors.stageCode ? `${fieldIds.stage}-error` : undefined}
                         {...register("stageCode")}
                       >
-                        {stages.items
-                          .filter((item) => item.code !== CLOSED_STAGE)
-                          .map((item) => (
-                            <option key={item.code} value={item.code}>
-                              {catalogOptionLabel(item)}
-                            </option>
-                          ))}
+                        {openStages.map((item) => (
+                          <option key={item.code} value={item.code}>
+                            {catalogOptionLabel(item)}
+                          </option>
+                        ))}
                       </Select>
                       <FieldError id={`${fieldIds.stage}-error`}>
                         {errors.stageCode?.message}
@@ -513,6 +770,61 @@ export function CaseFormDialog({ detail, canChangeReserved = true, onClose }: Ca
                   <p className="flex items-start gap-2 text-meta text-muted-foreground">
                     <Info aria-hidden="true" className="mt-0.75 size-4.5 shrink-0" />
                     <span>También lo podés agregar después, desde la causa.</span>
+                  </p>
+                )}
+              </section>
+            )}
+
+            {creating && !flags.defendants && (
+              <section className="grid gap-4">
+                <SectionTitle>Partes</SectionTitle>
+                <Controller
+                  control={control}
+                  name="withParty"
+                  render={({ field }) => (
+                    <div className="flex min-h-11 items-center gap-3">
+                      <Checkbox
+                        id={`${formId}-withParty`}
+                        checked={field.value}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                      />
+                      <Label htmlFor={`${formId}-withParty`} className="cursor-pointer">
+                        Agregá ahora a la primera parte
+                      </Label>
+                    </div>
+                  )}
+                />
+                {withParty ? (
+                  <>
+                    <PersonFields legend="¿Quién es?" />
+                    <Field>
+                      <Label htmlFor={fieldIds.partyRole}>Rol en la causa</Label>
+                      <Select
+                        id={fieldIds.partyRole}
+                        aria-invalid={errors.partyRoleCode ? true : undefined}
+                        aria-describedby={
+                          errors.partyRoleCode ? `${fieldIds.partyRole}-error` : undefined
+                        }
+                        {...register("partyRoleCode")}
+                      >
+                        {roles.items.map((item) => (
+                          <option key={item.code} value={item.code}>
+                            {catalogOptionLabel(item)}
+                          </option>
+                        ))}
+                      </Select>
+                      <FieldError id={`${fieldIds.partyRole}-error`}>
+                        {errors.partyRoleCode?.message}
+                      </FieldError>
+                    </Field>
+                  </>
+                ) : (
+                  <p className="flex items-start gap-2 text-meta text-muted-foreground">
+                    <Info aria-hidden="true" className="mt-0.75 size-4.5 shrink-0" />
+                    <span>
+                      Por ejemplo, a quien representa el estudio. Las demás partes las agregás
+                      después, desde la causa.
+                    </span>
                   </p>
                 )}
               </section>

@@ -17,6 +17,7 @@ describe("settings: index and users", () => {
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
     ).toEqual([
+      "/ajustes/fueros",
       "/ajustes/catalogos",
       "/ajustes/campos",
       "/ajustes/plazos",

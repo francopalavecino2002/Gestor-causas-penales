@@ -1,7 +1,8 @@
 /// <reference lib="dom" />
 import { test, type Page } from "@playwright/test";
 
-import { DETAINEE_ALERTS, FIXTURE_NOW, WEEK_HEARINGS } from "../src/test/agenda-fixtures";
+import { DETAINEE_ALERTS, FIXTURE_NOW, hearing, WEEK_HEARINGS } from "../src/test/agenda-fixtures";
+import { CASE_CIVIL } from "../src/test/area-fixtures";
 import { CASE_EJEMPLAR, CASE_MODELO } from "../src/test/case-fixtures";
 import { DEMO_ME, mockBackend } from "./mock-backend";
 
@@ -63,6 +64,29 @@ const agendaWeek =
       agendaFails: extra.fails,
     });
   };
+
+/** The agenda week with a civil hearing, for a firm that works in two areas (T43). */
+const twoAreas = async (page: Page) => {
+  await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+  await mockBackend(page, {
+    signedIn: true,
+    areas: ["penal", "civil"],
+    hearings: [
+      ...WEEK_HEARINGS,
+      hearing("2026-11-23T12:30", {
+        caseId: CASE_CIVIL.id,
+        caseCaption: CASE_CIVIL.caption,
+        practiceArea: "civil",
+        typeCode: "preliminar",
+        typeName: "Audiencia preliminar",
+        typeArticle: null,
+        room: "Sala civil 2 (ficticia)",
+        defendants: [],
+      }),
+    ],
+    detaineeAlerts: DETAINEE_ALERTS,
+  });
+};
 
 const waitForHearings = (page: Page) => page.getByRole("article").first().waitFor();
 
@@ -518,6 +542,67 @@ const SCREENS: Record<string, Screen[]> = {
         await dialog.getByLabel("Motivo de la reprogramación").waitFor();
       },
       fullPage: false,
+    },
+  ],
+  t43: [
+    {
+      path: "/causas",
+      name: "case-new-civil",
+      themes: ["light"],
+      prepare: twoAreas,
+      act: async (page) => {
+        await page.getByRole("button", { name: "Nueva causa" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByRole("radio", { name: /Civil y comercial/ }).check();
+        await dialog.getByLabel("Tipo de proceso").waitFor();
+        await dialog.getByLabel("Carátula").fill("Muestra, Ana c/ Demo, Ramiro s/ daños");
+        await dialog.getByLabel("Circunscripción").selectOption("confluencia");
+        await dialog
+          .getByRole("group", { name: "¿De qué fuero es la causa?" })
+          .scrollIntoViewIfNeeded();
+      },
+      fullPage: false,
+    },
+    {
+      path: "/causas",
+      name: "case-new-civil-party",
+      themes: ["light"],
+      prepare: twoAreas,
+      act: async (page) => {
+        await page.getByRole("button", { name: "Nueva causa" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByRole("radio", { name: /Civil y comercial/ }).check();
+        await dialog.getByLabel("Tipo de proceso").waitFor();
+        await dialog.getByRole("checkbox", { name: "Agregá ahora a la primera parte" }).click();
+        await dialog.getByRole("radio", { name: "Es una persona nueva" }).check();
+        await dialog.getByLabel("Rol en la causa").scrollIntoViewIfNeeded();
+      },
+      fullPage: false,
+    },
+    {
+      path: `/causas/${CASE_CIVIL.id}`,
+      name: "case-detail-civil",
+      prepare: twoAreas,
+      act: (page) => page.getByRole("region", { name: "Etapa y estado" }).waitFor(),
+    },
+    {
+      path: "/?fuero=civil",
+      name: "agenda-area-filter",
+      prepare: twoAreas,
+      act: waitForHearings,
+    },
+    {
+      path: "/causas",
+      name: "case-list-areas",
+      themes: ["light"],
+      prepare: twoAreas,
+      act: waitForArticleOrTable,
+    },
+    {
+      path: "/ajustes/fueros",
+      name: "settings-areas",
+      prepare: twoAreas,
+      act: (page) => page.getByRole("switch").first().waitFor(),
     },
   ],
 };

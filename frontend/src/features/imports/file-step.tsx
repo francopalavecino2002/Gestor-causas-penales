@@ -187,6 +187,7 @@ export function FileStep({
           <li>La fila 1 tiene que ser la de los encabezados, tal como vienen en la plantilla.</li>
           <li>Fechas como 15/03/2026 y horas como 09:30.</li>
           <li>Las columnas que no uses pueden quedar vacías.</li>
+          {option.columnNote && <li>{option.columnNote}</li>}
         </ul>
       </details>
 

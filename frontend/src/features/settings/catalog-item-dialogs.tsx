@@ -55,16 +55,19 @@ function ServerError({ error }: { error: unknown }) {
 /** Renames an item; a built-in one can go back to the name of the norm. */
 export function RenameItemDialog({
   catalog,
+  area,
   item,
   onClose,
   onSaved,
 }: {
   catalog: AnyCatalogId;
+  /** The practice area whose catalog this is; the criminal one when not given. */
+  area?: string;
   item: CatalogItem;
   onClose: () => void;
   onSaved: (name: string) => void;
 }) {
-  const update = useUpdateCatalogItem(catalog);
+  const update = useUpdateCatalogItem(catalog, area);
   const {
     register,
     handleSubmit,
@@ -139,16 +142,18 @@ export function RenameItemDialog({
 /** Adds a firm item to an extensible catalog. */
 export function AddItemDialog({
   catalog,
+  area,
   title,
   onClose,
   onSaved,
 }: {
   catalog: AnyCatalogId;
+  area?: string;
   title: string;
   onClose: () => void;
   onSaved: (name: string) => void;
 }) {
-  const add = useAddCatalogItem(catalog);
+  const add = useAddCatalogItem(catalog, area);
   const {
     register,
     handleSubmit,

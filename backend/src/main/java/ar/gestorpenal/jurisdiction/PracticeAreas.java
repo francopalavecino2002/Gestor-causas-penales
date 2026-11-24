@@ -4,6 +4,7 @@ import ar.gestorpenal.tenancy.TenantService;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -48,6 +49,19 @@ public class PracticeAreas {
     public PracticeArea requireEnabled(String areaCode) {
         PracticeArea area = get(areaCode);
         if (!tenants.currentEnabledPracticeAreas().contains(areaCode)) {
+            throw new PracticeAreaNotEnabledException(areaCode);
+        }
+        return area;
+    }
+
+    /**
+     * As {@link #requireEnabled}, for opening a case: the firm's row stays locked {@code FOR SHARE} until the
+     * caller's transaction ends, so the area cannot be turned off before the new case is saved.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public PracticeArea requireEnabledForNewCase(String areaCode) {
+        PracticeArea area = get(areaCode);
+        if (!tenants.currentEnabledPracticeAreasForNewWork().contains(areaCode)) {
             throw new PracticeAreaNotEnabledException(areaCode);
         }
         return area;

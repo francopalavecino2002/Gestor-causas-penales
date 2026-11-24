@@ -1,6 +1,7 @@
 import {
   FolderCog,
   Hourglass,
+  Landmark,
   ListChecks,
   Sparkles,
   UsersRound,
@@ -20,6 +21,7 @@ import type {
 /** The settings sections, in the order of the index and the section links. */
 export interface SettingsSection {
   to:
+    | "/ajustes/fueros"
     | "/ajustes/catalogos"
     | "/ajustes/campos"
     | "/ajustes/plazos"
@@ -32,6 +34,12 @@ export interface SettingsSection {
 }
 
 export const SETTINGS_SECTIONS: SettingsSection[] = [
+  {
+    to: "/ajustes/fueros",
+    title: "Fueros",
+    summary: "En qué fueros trabaja el estudio: penal, civil, laboral, familia.",
+    icon: Landmark,
+  },
   {
     to: "/ajustes/catalogos",
     title: "Catálogos",
@@ -77,6 +85,8 @@ export const CATALOG_TITLES: Record<AnyCatalogId, string> = {
   "alternative-outcomes": "Salidas alternativas",
   circumscriptions: "Circunscripciones judiciales",
   "party-roles": "Roles en la causa",
+  "action-types": "Tipos de acción o de proceso",
+  "represented-sides": "A quién representa el estudio",
 };
 
 /** What the firm may do with a catalog, in one sentence. */
@@ -133,7 +143,7 @@ export const FIELD_TYPE_LABELS = Object.fromEntries(
 export const ROLE_DESCRIPTIONS: Record<Role, string[]> = {
   OWNER: [
     "Ve todas las causas, también las reservadas.",
-    "Cambia la configuración del estudio: catálogos, campos propios y reglas de plazos.",
+    "Cambia la configuración del estudio: fueros, catálogos, campos propios y reglas de plazos.",
     "Puede ser responsable de causas, archivarlas y restaurarlas.",
     "Archiva y restaura personas, e importa planillas.",
   ],

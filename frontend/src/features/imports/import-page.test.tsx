@@ -46,6 +46,7 @@ describe("ImportPage", () => {
       "href",
       "/api/v1/imports/cases/template",
     );
+    expect(screen.getByText(/Columna opcional «fuero»/)).toBeInTheDocument();
     const steps = screen.getByRole("list", { name: "Pasos de la importación" });
     expect(within(steps).getAllByRole("listitem")[0]).toHaveAttribute("aria-current", "step");
 
