@@ -1,4 +1,5 @@
 import {
+  CalendarSync,
   FolderCog,
   Hourglass,
   Landmark,
@@ -26,7 +27,8 @@ export interface SettingsSection {
     | "/ajustes/campos"
     | "/ajustes/plazos"
     | "/ajustes/ia"
-    | "/ajustes/usuarios";
+    | "/ajustes/usuarios"
+    | "/ajustes/calendario";
   title: string;
   /** One line under the title in the index. */
   summary: string;
@@ -70,7 +72,19 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     summary: "Tu cuenta, la verificación en dos pasos y qué puede hacer cada rol.",
     icon: UsersRound,
   },
+  {
+    to: "/ajustes/calendario",
+    title: "Tu calendario",
+    summary: "Sumá tus audiencias a Google Calendar, Outlook o el iPhone con un enlace privado.",
+    icon: CalendarSync,
+  },
 ];
+
+/** Sections about the signed-in member, not the firm: every role changes them. */
+export const PERSONAL_SECTIONS: ReadonlySet<SettingsSection["to"]> = new Set([
+  "/ajustes/usuarios",
+  "/ajustes/calendario",
+]);
 
 /** How each catalog reads in the screen. */
 export const CATALOG_TITLES: Record<AnyCatalogId, string> = {

@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { addMinutes, formatTime } from "@/features/agenda/agenda-dates";
 import { cppArticle, joinNames } from "@/features/agenda/agenda-format";
 import type { AgendaItem } from "@/features/agenda/agenda-types";
+import { AddToCalendarButton } from "@/features/calendar-feed/add-to-calendar-button";
 import { useHearingEdit } from "@/features/hearings/hearing-edit-context";
 import { AreaBadge } from "@/features/practice-areas/area-badge";
 import { cn } from "@/lib/utils";
@@ -195,39 +196,35 @@ export function HearingCard({
             className="md:grid-cols-2 md:gap-x-6"
           />
         )}
-        {(finished || edit) && (
-          <div className="-mx-2 -mb-2 flex flex-wrap items-center gap-x-2">
-            {finished && (
-              <Button
-                variant="ghost"
-                className="px-2 text-primary"
-                aria-expanded={open}
-                aria-controls={open ? detailId : undefined}
-                onClick={() => setOpen((value) => !value)}
-              >
-                {open ? "Ocultá el detalle" : "Mirá el detalle"}
-                <ChevronDown
-                  aria-hidden="true"
-                  className={cn(
-                    "transition-transform duration-fast ease-out",
-                    open && "rotate-180",
-                  )}
-                />
-              </Button>
-            )}
-            {edit && (
-              <Button
-                variant="ghost"
-                className="px-2 text-primary"
-                aria-label={`Editá la audiencia ${item.typeName}`}
-                onClick={() => edit(item.hearingId)}
-              >
-                <Pencil aria-hidden="true" />
-                Editá
-              </Button>
-            )}
-          </div>
-        )}
+        <div className="-mx-2 -mb-2 flex flex-wrap items-center gap-x-2">
+          {finished && (
+            <Button
+              variant="ghost"
+              className="px-2 text-primary"
+              aria-expanded={open}
+              aria-controls={open ? detailId : undefined}
+              onClick={() => setOpen((value) => !value)}
+            >
+              {open ? "Ocultá el detalle" : "Mirá el detalle"}
+              <ChevronDown
+                aria-hidden="true"
+                className={cn("transition-transform duration-fast ease-out", open && "rotate-180")}
+              />
+            </Button>
+          )}
+          {edit && (
+            <Button
+              variant="ghost"
+              className="px-2 text-primary"
+              aria-label={`Editá la audiencia ${item.typeName}`}
+              onClick={() => edit(item.hearingId)}
+            >
+              <Pencil aria-hidden="true" />
+              Editá
+            </Button>
+          )}
+          <AddToCalendarButton hearingId={item.hearingId} typeName={item.typeName} />
+        </div>
       </article>
     </Card>
   );

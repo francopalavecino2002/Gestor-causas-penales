@@ -1,6 +1,7 @@
 import type { Page, Route } from "@playwright/test";
 
 import type { AgendaItem, DetaineeAlert } from "../src/features/agenda/agenda-types";
+import type { CalendarFeedStatus } from "../src/features/calendar-feed/calendar-feed-api";
 import type { CaseView } from "../src/features/cases/case-types";
 import { agendaFor } from "../src/test/agenda-fixtures";
 import { CRIMINAL_CATALOGS, formsBackend } from "./forms-backend";
@@ -75,6 +76,8 @@ interface MockBackendOptions {
   areas?: string[];
   /** The firm turned the AI assistance on (it is off by default, as in the backend). */
   aiAssist?: boolean;
+  /** The member already has a calendar link, created at this instant; none by default. */
+  calendarFeedSince?: string;
 }
 
 /**
@@ -224,6 +227,11 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
     pendingSecondFactor: false,
     areas: options.areas ?? ["penal"],
     aiAssist: options.aiAssist ?? false,
+    calendarFeed: {
+      active: options.calendarFeedSince !== undefined,
+      createdAt: options.calendarFeedSince ?? null,
+    } as CalendarFeedStatus,
+    calendarFeedCount: 0,
   };
   const calls: string[] = [];
   const settings = settingsBackend();
@@ -266,7 +274,45 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
       });
     }
 
+    const hearingIcs = /^\/api\/v1\/hearings\/([0-9a-f-]+)\/calendar\.ics$/.exec(path);
+    if (method === "GET" && hearingIcs && state.signedIn) {
+      return route.fulfill({
+        status: 200,
+        contentType: "text/calendar;charset=UTF-8",
+        headers: { "Content-Disposition": 'attachment; filename="audiencia.ics"' },
+        body: [
+          "BEGIN:VCALENDAR",
+          "VERSION:2.0",
+          "PRODID:-//Gestor de causas (e2e)//ES",
+          "BEGIN:VEVENT",
+          `UID:${hearingIcs[1]}@e2e`,
+          "DTSTAMP:20261123T132000Z",
+          "DTSTART:20261123T140000Z",
+          "DTEND:20261123T150000Z",
+          "SUMMARY:Audiencia ficticia",
+          "END:VEVENT",
+          "END:VCALENDAR",
+          "",
+        ].join("\r\n"),
+      });
+    }
+
     switch (`${method} ${path}`) {
+      case "GET /api/v1/me/calendar-feed":
+        return route.fulfill({ status: 200, json: state.calendarFeed });
+      case "POST /api/v1/me/calendar-feed": {
+        const createdAt = "2026-11-23T13:20:00Z";
+        state.calendarFeed = { active: true, createdAt };
+        // A fictitious secret: the real one is 256 random bits, base64url.
+        const secret = `e2e-secreto-ficticio-${++state.calendarFeedCount}`;
+        return route.fulfill({
+          status: 201,
+          json: { path: `/api/v1/calendar-feed/${secret}.ics`, createdAt },
+        });
+      }
+      case "POST /api/v1/me/calendar-feed/revoke":
+        state.calendarFeed = { active: false, createdAt: null };
+        return route.fulfill({ status: 204 });
       case "GET /api/v1/ai-assist":
         return route.fulfill({
           status: 200,

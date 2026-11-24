@@ -23,6 +23,7 @@ describe("settings: index and users", () => {
       "/ajustes/plazos",
       "/ajustes/ia",
       "/ajustes/usuarios",
+      "/ajustes/calendario",
     ]);
     expect(nav).toHaveTextContent("Plantillas por tipo de causa");
     expect(nav).toHaveTextContent("Todavía no disponible");

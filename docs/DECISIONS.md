@@ -1692,3 +1692,25 @@ Superseded decisions are marked, never deleted.
   `Referrer-Policy: no-referrer` and `Cache-Control: no-store`, and allows HEAD as well as GET; the
   reverse proxy chosen at hosting time must not log request paths of `/api/v1/calendar-feed/`. Two
   simultaneous "new link" requests of one member answer 409 (`calendar-feed-conflict`) for one of them.
+
+## ADR-0035: Agenda export screens (T45)
+
+- **Date:** 2026-11-24
+- **Status:** accepted
+- **Context:** T44 (ADR-0034) exposes the calendar feed and the one-hearing `.ics`; the secret is
+  returned only once, when the link is created.
+- **Decision:**
+  - "Tu calendario" is its own Ajustes section (`/ajustes/calendario`) open to every role: each
+    member manages only their own link. The full URL is `window.location.origin` + the returned path,
+    because the SPA and the API share one origin behind the reverse proxy (in local dev the Vite
+    proxy forwards it to 8081). A `webcal://` link with the same address opens the calendar app.
+  - The secret lives only in component state: the create mutation keeps no cached data, so leaving
+    the screen and coming back shows "tenés un enlace activo" and offers "Generá un enlace nuevo".
+  - Feedback is inline (the existing "Guardado" text and alerts): the app has no toast component and
+    one was not added for this.
+  - "Agregá al calendario" sits on the agenda day cards and the case-detail hearing cards. It
+    downloads through a new `apiFetchBlob` (session, `Accept: text/calendar`, same problem+json error
+    handling as `apiFetch`) and a temporary object URL that is revoked right after. The compact
+    desktop week list has no per-hearing actions and stays as is.
+- **Consequences:** Subscribing still needs the hosted HTTPS app (ADR-0034); on the LAN demo the
+  one-off download is the part that works.

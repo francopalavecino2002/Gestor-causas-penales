@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { cppArticle, joinNames } from "@/features/agenda/agenda-format";
 import { AgendaStatusBadge } from "@/features/agenda/hearing-card";
+import { AddToCalendarButton } from "@/features/calendar-feed/add-to-calendar-button";
 import { formatLongDateTime, groupCaseHearings } from "@/features/cases/case-format";
 import { useCaseHearings } from "@/features/cases/case-queries";
 import { LoadError } from "@/features/cases/case-states";
@@ -46,20 +47,7 @@ function HearingItem({ hearing, timeZone }: { hearing: CaseHearing; timeZone: st
               <CardDescription>Se hizo como {hearing.heldAsTypeName}</CardDescription>
             )}
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <AgendaStatusBadge item={hearing} />
-            {edit && (
-              <Button
-                variant="ghost"
-                className="-mr-2 px-2 text-primary"
-                aria-label={`Editá la audiencia ${hearing.typeName}`}
-                onClick={() => edit(hearing.id)}
-              >
-                <Pencil aria-hidden="true" />
-                Editá
-              </Button>
-            )}
-          </div>
+          <AgendaStatusBadge item={hearing} />
         </CardHeader>
         {meta.length > 0 && (
           <CardContent asChild>
@@ -77,6 +65,20 @@ function HearingItem({ hearing, timeZone }: { hearing: CaseHearing; timeZone: st
             </dl>
           </CardContent>
         )}
+        <div className="-mx-2 -mb-2 flex flex-wrap items-center gap-x-2">
+          {edit && (
+            <Button
+              variant="ghost"
+              className="px-2 text-primary"
+              aria-label={`Editá la audiencia ${hearing.typeName}`}
+              onClick={() => edit(hearing.id)}
+            >
+              <Pencil aria-hidden="true" />
+              Editá
+            </Button>
+          )}
+          <AddToCalendarButton hearingId={hearing.id} typeName={hearing.typeName} />
+        </div>
       </article>
     </Card>
   );
