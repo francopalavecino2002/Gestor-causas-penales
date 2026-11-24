@@ -605,6 +605,79 @@ const SCREENS: Record<string, Screen[]> = {
       act: (page) => page.getByRole("switch").first().waitFor(),
     },
   ],
+  t45: [
+    {
+      path: "/ajustes/calendario",
+      name: "calendar-link-created",
+      prepare: agendaWeek(),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Creá tu enlace" }).click();
+        await page.getByLabel("Tu enlace privado").waitFor();
+        await page.evaluate(() => window.scrollTo(0, 0));
+      },
+    },
+    {
+      path: "/ajustes/calendario",
+      name: "calendar-link-none",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: (page) => page.getByRole("button", { name: "Creá tu enlace" }).waitFor(),
+    },
+    {
+      path: "/ajustes/calendario",
+      name: "calendar-link-active",
+      themes: ["light"],
+      prepare: async (page) => {
+        await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+        await mockBackend(page, { signedIn: true, calendarFeedSince: "2026-11-20T12:05:00Z" });
+      },
+      act: (page) => page.getByText(/Tenés un enlace activo/).waitFor(),
+    },
+    {
+      path: "/ajustes/calendario",
+      name: "calendar-link-regenerate",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: async (page) => {
+        await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+        await mockBackend(page, { signedIn: true, calendarFeedSince: "2026-11-20T12:05:00Z" });
+      },
+      act: async (page) => {
+        await page.getByRole("button", { name: "Generá un enlace nuevo" }).click();
+        await page.getByRole("dialog").waitFor();
+      },
+      fullPage: false,
+    },
+    {
+      path: "/",
+      name: "agenda-add-to-calendar",
+      prepare: agendaWeek(),
+      act: async (page) => {
+        const button = page
+          .getByRole("button", { name: /^Agregá al calendario la audiencia Revisión/ })
+          .first();
+        await button.waitFor();
+        await button.evaluate((element) =>
+          window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 420),
+        );
+      },
+      fullPage: false,
+    },
+    {
+      path: `/causas/${CASE_MODELO.id}`,
+      name: "case-hearings-add-to-calendar",
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: async (page) => {
+        const button = page.getByRole("button", { name: /^Agregá al calendario/ }).first();
+        await button.waitFor();
+        await button.evaluate((element) =>
+          window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 300),
+        );
+      },
+      fullPage: false,
+    },
+  ],
 };
 
 async function chooseImportKind(page: Page, title: string) {
