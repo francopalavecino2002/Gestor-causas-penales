@@ -173,6 +173,31 @@ class CalendarFeedApiTests extends HearingApiTestSupport {
     }
 
     @Test
+    void theFeedShouldFollowItsOwnersCurrentRole() throws Exception {
+        String reservedCase = createCase(lawyer, caseJson("Caso reservado ficticio", ", \"reserved\": true"));
+        String reserved = createHearing(lawyer, reservedCase,
+                hearingJson("2035-05-10", "13:00", ", \"lawyerIds\": [\"" + ownerId + "\"]"));
+        String path = issue(owner);
+        assertThat(fetchBody(path)).contains(reserved);
+
+        // The owner is no longer the owner, and is not on the reserved case's team.
+        jdbc.update("update app_user set role = 'LAWYER' where id = ?", ownerId);
+
+        assertThat(fetchBody(path)).doesNotContain(reserved);
+    }
+
+    @Test
+    void anArchivedHearingShouldDownloadAsCancelled() throws Exception {
+        String hearing = createHearing(lawyer, caseId, hearingJson("2035-05-10", "13:00", ""));
+        postEmpty(lawyer, "/api/v1/hearings/" + hearing + "/archive").andExpect(status().isNoContent());
+
+        String file = getAs(lawyer, "/api/v1/hearings/" + hearing + "/calendar.ics")
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(file).contains("UID:" + hearing + "@gestor-causas").contains("STATUS:CANCELLED");
+    }
+
+    @Test
     void theFeedShouldStopWhenItsFirmIsArchived() throws Exception {
         String path = issue(lawyer);
         jdbc.update("update tenant set archived_at = now() where id = (select tenant_id from app_user where id = ?)", lawyerId);

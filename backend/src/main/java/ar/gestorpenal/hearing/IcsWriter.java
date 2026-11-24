@@ -6,6 +6,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Writes an iCalendar object (RFC 5545) by hand: the format is small and a library would add a
@@ -20,6 +21,8 @@ final class IcsWriter {
     private static final int MAX_LINE_OCTETS = 75;
     private static final DateTimeFormatter UTC_DATE_TIME =
             DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
+    /** Controls other than tab and line breaks (RFC 5545 §3.3.11 excludes them from TEXT). */
+    private static final Pattern CONTROL_CHARACTERS = Pattern.compile("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]");
 
     /** How an event is shown: a cancelled event is removed or struck out by the calendar app. */
     enum Status {
@@ -70,9 +73,13 @@ final class IcsWriter {
         return out.toString();
     }
 
-    /** A TEXT value (RFC 5545 §3.3.11): backslash, semicolon, comma and line breaks are escaped. */
+    /**
+     * A TEXT value (RFC 5545 §3.3.11): backslash, semicolon, comma and line breaks are escaped, and
+     * the other control characters, which a TEXT value may not hold, are dropped.
+     */
     static String escape(String text) {
-        return text.replace("\\", "\\\\")
+        return CONTROL_CHARACTERS.matcher(text).replaceAll("")
+                .replace("\\", "\\\\")
                 .replace(";", "\\;")
                 .replace(",", "\\,")
                 .replace("\r\n", "\n")

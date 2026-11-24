@@ -19,6 +19,11 @@ class IcsWriterTests {
     }
 
     @Test
+    void shouldDropControlCharactersButKeepTabsAndLineBreaks() {
+        assertThat(IcsWriter.escape("Sala\u0000 3\u001b\tB\u007f\nC")).isEqualTo("Sala 3\tB\\nC");
+    }
+
+    @Test
     void shouldLeaveAShortLineAlone() {
         assertThat(IcsWriter.fold("SUMMARY:corta")).isEqualTo("SUMMARY:corta");
     }

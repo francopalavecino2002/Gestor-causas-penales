@@ -34,6 +34,20 @@ class HearingIcsEventTests {
     }
 
     @Test
+    void aHearingWithoutRoomJudgeOrOfijuReferenceShouldLeaveThoseLinesOut() {
+        HearingView bare = hearing(HearingRules.SCHEDULED, false, null, null, null);
+
+        IcsWriter.Event event = HearingIcsExport.event(bare, false);
+
+        assertThat(event.location()).isNull();
+        assertThat(event.description())
+                .startsWith("Formulación de cargos (art. 168)\nEstado: Estado ficticio\n")
+                .doesNotContain("Juez/a")
+                .doesNotContain("Referencia OFIJU")
+                .doesNotContain("null");
+    }
+
+    @Test
     void shouldMapTheStatusToTheCalendarsStatus() {
         assertThat(statusOf(HearingRules.REQUESTED, false)).isEqualTo(IcsWriter.Status.TENTATIVE);
         assertThat(statusOf(HearingRules.SCHEDULED, false)).isEqualTo(IcsWriter.Status.CONFIRMED);
@@ -48,18 +62,24 @@ class HearingIcsEventTests {
     }
 
     private static HearingView hearing(String statusCode, boolean archived) {
+        return hearing(statusCode, archived, "Sala 3", "Juez Ficticio", "OFJ-1-FICT");
+    }
+
+    private static HearingView hearing(
+            String statusCode, boolean archived, String room, String judge, String ofijuReference) {
         return new HearingView(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 "Caso ficticio",
+                "penal",
                 "formulacion-de-cargos",
                 "Formulación de cargos",
                 "art. 168",
                 Instant.parse("2035-05-10T13:00:00Z"),
                 45,
-                "Sala 3",
-                "Juez Ficticio",
-                "OFJ-1-FICT",
+                room,
+                judge,
+                ofijuReference,
                 null,
                 statusCode,
                 "Estado ficticio",
