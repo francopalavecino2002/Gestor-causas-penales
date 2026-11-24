@@ -168,3 +168,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   only a generic court-set deadline rule), action type and represented side as catalog codes of the
   case's area (V13), a case-level stage, status and closing outcome for areas without defendants,
   and an optional `fuero` column in the cases import. The criminal wire format and the demo are unchanged.
+- Practice areas in the UI (T43): area choice in "Nueva causa", case detail and forms driven by the
+  area's modules (defendants, detainees, MPF legajo), area badges and filters in the case list and the
+  agenda when more than one area is enabled, a "Fueros" section in Ajustes (owner only, audited, with
+  a row lock against concurrent changes) and per-area catalog settings. The case API now uses plain
+  catalog codes. Penal-only firms see the same screens as before.
