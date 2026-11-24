@@ -6,6 +6,7 @@ import ar.gestorpenal.demo.DemoData.DemoPerson;
 import ar.gestorpenal.demo.DemoData.DemoUser;
 import ar.gestorpenal.hearing.HearingSeeding;
 import ar.gestorpenal.person.Persons;
+import ar.gestorpenal.task.TaskSeeding;
 import ar.gestorpenal.tenancy.TenantContext;
 import ar.gestorpenal.tenancy.TenantService;
 import ar.gestorpenal.user.UserRepository;
@@ -46,6 +47,7 @@ class DemoDataSeeder implements ApplicationRunner {
     private final CaseSeeding caseSeeding;
     private final HearingSeeding hearingSeeding;
     private final DeadlineSeeding deadlineSeeding;
+    private final TaskSeeding taskSeeding;
     private final DemoPortfolio portfolio;
     private final DemoProperties properties;
 
@@ -57,6 +59,7 @@ class DemoDataSeeder implements ApplicationRunner {
             CaseSeeding caseSeeding,
             HearingSeeding hearingSeeding,
             DeadlineSeeding deadlineSeeding,
+            TaskSeeding taskSeeding,
             DemoPortfolio portfolio,
             DemoProperties properties) {
         this.tenants = tenants;
@@ -66,6 +69,7 @@ class DemoDataSeeder implements ApplicationRunner {
         this.caseSeeding = caseSeeding;
         this.hearingSeeding = hearingSeeding;
         this.deadlineSeeding = deadlineSeeding;
+        this.taskSeeding = taskSeeding;
         this.portfolio = portfolio;
         this.properties = properties;
     }
@@ -76,6 +80,7 @@ class DemoDataSeeder implements ApplicationRunner {
             createMissingUsers();
             createMissingCases();
             createMissingAgenda();
+            createMissingTasks();
             portfolio.createMissingCases();
         }));
     }
@@ -194,6 +199,29 @@ class DemoDataSeeder implements ApplicationRunner {
                 today.minusMonths(4).plusDays(10), null);
         deadlineSeeding.createDeadline(caseId, null, "impugnacion-ordinaria", today.minusDays(1), null);
         log.info("Demo deadlines created for {}", DemoData.OPEN_CASE_NUMBER);
+    }
+
+    /**
+     * Tasks relative to today: two overdue, two due today and two later, some tied to the open case.
+     * The demo firm has no tasks until the first run; after that it leaves them alone.
+     */
+    private void createMissingTasks() {
+        if (taskSeeding.hasTasks()) {
+            return;
+        }
+        UUID ownerId = users.findByEmail(DemoData.OWNER.email()).orElseThrow().getId();
+        UUID lawyerId = users.findByEmail(DemoData.LAWYER.email()).orElseThrow().getId();
+        UUID paralegalId = users.findByEmail(DemoData.PARALEGAL.email()).orElseThrow().getId();
+        UUID openCaseId = caseSeeding.findCaseId(DemoData.OPEN_CASE_NUMBER).orElseThrow();
+        LocalDate today = taskSeeding.today();
+
+        taskSeeding.createTask(lawyerId, paralegalId, "Pedir copias del legajo en mesa de entradas", today.minusDays(2), openCaseId);
+        taskSeeding.createTask(lawyerId, lawyerId, "Preparar el alegato de la audiencia", today.minusDays(1), openCaseId);
+        taskSeeding.createTask(ownerId, lawyerId, "Llamar al cliente para confirmar la audiencia", today, openCaseId);
+        taskSeeding.createTask(ownerId, paralegalId, "Presentar el escrito de prórroga", today, openCaseId);
+        taskSeeding.createTask(lawyerId, paralegalId, "Actualizar el cuaderno de notificaciones", today.plusDays(3), null);
+        taskSeeding.createTask(ownerId, ownerId, "Renovar el seguro de responsabilidad profesional", today.plusDays(20), null);
+        log.info("Demo tasks created");
     }
 
     private UUID personId(DemoPerson person) {

@@ -176,10 +176,31 @@ class DemoDataSeederTests {
                 .isEqualTo(1);
     }
 
+    @Test
+    void shouldSeedTasksRelativeToTodayAndKeepThemOnARerun() {
+        UUID tenantId = tenants.findActiveIdBySlug("estudio-demo").orElseThrow();
+
+        seeder.run(new DefaultApplicationArguments());
+        seeder.run(new DefaultApplicationArguments());
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM task WHERE tenant_id = ?", Integer.class, tenantId))
+                .isEqualTo(6);
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM task WHERE tenant_id = ? AND status = 'PENDING'"
+                                + " AND due_date < (now() AT TIME ZONE 'America/Argentina/Salta')::date",
+                        Integer.class,
+                        tenantId))
+                .isEqualTo(2);
+        assertThat(jdbc.queryForObject(
+                        "SELECT count(*) FROM task WHERE tenant_id = ? AND case_id IS NOT NULL", Integer.class, tenantId))
+                .isEqualTo(4);
+    }
+
     /** Simulates a run that failed after creating the firm; raw SQL because the app never deletes. */
     @Test
     void shouldCreateOnlyTheMissingUsersOfAPartiallySeededFirm() {
         UUID tenantId = tenants.findActiveIdBySlug("estudio-demo").orElseThrow();
+        jdbc.update("DELETE FROM task WHERE tenant_id = ?", tenantId);
         jdbc.update("DELETE FROM app_user WHERE tenant_id = ? AND email = ?", tenantId, "sofia.ficticia@example.com");
 
         seeder.run(new DefaultApplicationArguments());
