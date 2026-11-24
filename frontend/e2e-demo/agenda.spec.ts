@@ -40,11 +40,11 @@ for (const viewport of VIEWPORTS) {
     await expect(
       page.getByRole("heading", { level: 1, name: /^Audiencias de (esta|la) semana$/ }),
     ).toBeVisible();
-    await expect(page.getByRole("heading", { level: 2 })).toHaveCount(7);
+    await expect(page.getByRole("heading", { level: 2, name: /Ver el día$/ })).toHaveCount(7);
     // Hearings spread across the days of the week, not only one.
     const daysWithHearings = page
       .getByRole("region")
-      .filter({ has: page.getByRole("heading", { level: 2 }) })
+      .filter({ has: page.getByRole("heading", { level: 2, name: /Ver el día$/ }) })
       .filter({ has: page.getByRole("article") });
     await expect.poll(() => daysWithHearings.count()).toBeGreaterThanOrEqual(2);
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
@@ -55,7 +55,7 @@ test("the week filtered by another lawyer of the firm", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openTodayWithHearings(page);
   await page.getByRole("button", { name: "Semana", exact: true }).click();
-  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(7);
+  await expect(page.getByRole("heading", { level: 2, name: /Ver el día$/ })).toHaveCount(7);
 
   const lawyer = page.getByLabel("Abogado o abogada");
   await expect(lawyer.locator("option", { hasText: "Julián Muestra" })).toHaveCount(1);
