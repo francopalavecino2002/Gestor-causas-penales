@@ -1,0 +1,9 @@
+# Resultados de cierre de una causa de familia (neuquen-otros-fueros.md §2).
+catalog: closing-outcomes
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: resolucion, name: Resolución, flags: [validar]}
+  - {code: acuerdo-homologado, name: Acuerdo homologado, flags: [validar]}
+  - {code: desistimiento, name: Desistimiento, flags: [validar]}
+  - {code: otro, name: Otro, flags: [validar]}

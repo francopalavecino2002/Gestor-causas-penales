@@ -1,0 +1,14 @@
+# Estados de una audiencia. The codes drive the hearing lifecycle, so every area keeps the same eight
+# (copied from the criminal package, neuquen-review.md §2.2). Draft to validate.
+catalog: hearing-statuses
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: solicitada, name: Solicitada, flags: [validar]}
+  - {code: programada, name: Programada, flags: [validar]}
+  - {code: reprogramada, name: Reprogramada, flags: [validar]}
+  - {code: efectiva, name: Realizada (efectiva), flags: [validar]}
+  - {code: reconvertida, name: Reconvertida, note: "Se hizo, pero como otro tipo de audiencia.", flags: [validar]}
+  - {code: cuarto-intermedio, name: Cuarto intermedio o continuación, flags: [validar]}
+  - {code: suspendida, name: Suspendida por el juez, flags: [validar]}
+  - {code: cancelada, name: Cancelada, flags: [validar]}

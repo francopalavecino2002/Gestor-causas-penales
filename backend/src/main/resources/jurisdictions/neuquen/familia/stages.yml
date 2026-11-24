@@ -1,0 +1,13 @@
+# Etapas de la causa de familia, en orden procesal (neuquen-otros-fueros.md §2). Sin artículos citados.
+catalog: stages
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: mediacion-previa, name: Mediación previa, flags: [validar]}
+  - {code: inicio, name: Inicio, flags: [validar]}
+  - {code: audiencia, name: Audiencia, flags: [validar]}
+  - {code: prueba, name: Prueba, flags: [validar]}
+  - {code: resolucion, name: Resolución, flags: [validar]}
+  - {code: recursos, name: Recursos, flags: [validar]}
+  - {code: ejecucion-o-seguimiento, name: Ejecución o seguimiento, flags: [validar]}
+  - {code: cerrada, name: Cerrada, note: Con su resultado de cierre., flags: [validar]}

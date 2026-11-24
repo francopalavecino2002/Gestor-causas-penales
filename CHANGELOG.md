@@ -164,3 +164,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `practiceArea` (existing ones migrated to `penal`), firms have enabled areas, catalogs are served
   and customized per area (`?area=`, default `penal`), every code is validated against the case's
   area, and criminal-only features answer 409 for other areas. New `GET /api/v1/practice-areas`.
+- Non-criminal cases (T42): basic Neuquén civil, laboral and familia packages (all flagged `[validar]`,
+  only a generic court-set deadline rule), action type and represented side as catalog codes of the
+  case's area (V13), a case-level stage, status and closing outcome for areas without defendants,
+  and an optional `fuero` column in the cases import. The criminal wire format and the demo are unchanged.

@@ -1,0 +1,8 @@
+# Tipos de audiencia laboral (neuquen-otros-fueros.md §2). "Otra" goes last.
+catalog: hearing-types
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar, no-verificado]
+items:
+  - {code: de-conciliacion, name: Audiencia de conciliación, flags: [validar, no-verificado]}
+  - {code: de-prueba, name: Audiencia de prueba o vista de causa, flags: [validar, no-verificado]}
+  - {code: otra, name: Otra audiencia, flags: [validar, no-verificado]}

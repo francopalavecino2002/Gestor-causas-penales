@@ -1,0 +1,10 @@
+# Resultados de cierre de una causa civil (neuquen-otros-fueros.md §2).
+catalog: closing-outcomes
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: sentencia, name: Sentencia, flags: [validar]}
+  - {code: acuerdo, name: Acuerdo, flags: [validar]}
+  - {code: desistimiento, name: Desistimiento, flags: [validar]}
+  - {code: caducidad, name: Caducidad, flags: [validar]}
+  - {code: otro, name: Otro, flags: [validar]}

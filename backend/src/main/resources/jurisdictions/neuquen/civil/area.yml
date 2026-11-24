@@ -1,0 +1,16 @@
+# Practice area manifest: civil y comercial de Neuquén (ADR-0032, T42). DRAFT to validate with a lawyer.
+# The catalogs are short and generic, taken from docs/domain/neuquen-otros-fueros.md §2. The law was
+# not read from an official source (press only), and no deadline rule ships: lawyers load their
+# deadlines by hand as judicial deadlines. Item codes are stable identifiers: never rename or remove one.
+code: civil
+name: Civil y comercial
+law: CPCyC de Neuquén (Ley 3551)
+reviewedOn: "2026-11-24"
+source: docs/domain/neuquen-otros-fueros.md
+flags: [validar, no-verificado]
+note: >-
+  Borrador sin validar. La Ley 3551 (código procesal civil y comercial adversarial) rige desde el
+  1/8/2026 según la prensa y no se leyó su texto oficial. Los catálogos son genéricos y no hay plazos
+  calculados: cargá los plazos a mano como plazos judiciales hasta que un abogado revise el fuero.
+# No criminal modules: a civil case has no defendants, so its stage, status and outcome live on the case.
+modules: []

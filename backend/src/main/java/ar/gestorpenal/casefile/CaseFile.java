@@ -22,8 +22,9 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * A case file, the legajo (ADR-0015). It holds what is common to the case; the stage, status and
- * outcome belong to each {@link Defendant}. It belongs to one practice area (ADR-0032). Archived,
+ * A case file, the legajo (ADR-0015). It holds what is common to the case; in an area with defendants
+ * (criminal) the stage, status and outcome belong to each {@link Defendant}, and in any other area to
+ * the case itself (ADR-0032). It belongs to one practice area (ADR-0032). Archived,
  * never deleted.
  */
 @Entity
@@ -61,13 +62,24 @@ class CaseFile extends TenantScopedEntity {
     @Column(name = "circumscription_code", nullable = false, length = 60)
     private String circumscriptionCode;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "action_type", nullable = false, length = 30)
-    private ActionType actionType;
+    /** Item of the area's {@code action-types} catalog. */
+    @Column(name = "action_type", nullable = false, length = 60)
+    private String actionType;
+
+    /** Item of the area's {@code represented-sides} catalog. */
+    @Column(nullable = false, length = 60)
+    private String represents;
+
+    /** The case's own stage, status and outcome: only in an area without defendants, else all {@code null}. */
+    @Column(name = "stage_code", length = 60)
+    private String stageCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private Representation represents;
+    @Column(length = 20)
+    private CaseStatus status;
+
+    @Column(name = "closing_outcome_code", length = 60)
+    private String closingOutcomeCode;
 
     @Column(nullable = false)
     private boolean reserved;
@@ -99,6 +111,9 @@ class CaseFile extends TenantScopedEntity {
         if (caption == null || circumscription == null) {
             throw new InvalidCaseDataException("A case needs a caption and a circumscription");
         }
+        if (Text.clean(data.actionType()) == null || Text.clean(data.represents()) == null) {
+            throw new InvalidCaseDataException("A case needs an action type and whom the firm represents");
+        }
         String legajo = MpfLegajo.normalize(data.mpfLegajo());
         String area = Text.clean(data.practiceArea());
         if (area != null && !area.equals(practiceArea)) {
@@ -111,9 +126,16 @@ class CaseFile extends TenantScopedEntity {
         this.ofijuNumber = Text.clean(data.ofijuNumber());
         this.pehuenNumber = Text.clean(data.pehuenNumber());
         this.circumscriptionCode = circumscription;
-        this.actionType = data.actionType();
-        this.represents = data.represents();
+        this.actionType = Text.clean(data.actionType());
+        this.represents = Text.clean(data.represents());
         this.reserved = data.reservedOr(this.reserved);
+    }
+
+    /** Sets the case's own course, already checked against the area's catalogs; {@code null} for a criminal case. */
+    void applyCourse(CaseCourse course) {
+        this.stageCode = course == null ? null : course.stageCode();
+        this.status = course == null ? null : course.status();
+        this.closingOutcomeCode = course == null ? null : course.closingOutcomeCode();
     }
 
     /** Stores values already validated by {@code CustomFields}. */

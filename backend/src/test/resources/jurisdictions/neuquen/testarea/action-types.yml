@@ -1,9 +1,7 @@
 catalog: action-types
 source: Prueba automatizada
 items:
-  - code: public
-    name: Acción de prueba
-  - code: public-on-complaint
-    name: Acción de prueba a instancia
-  - code: private
-    name: Acción privada de prueba
+  - code: proceso-de-prueba
+    name: Proceso de prueba
+  - code: proceso-especial-de-prueba
+    name: Proceso especial de prueba

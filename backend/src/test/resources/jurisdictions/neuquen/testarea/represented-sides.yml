@@ -1,7 +1,7 @@
 catalog: represented-sides
 source: Prueba automatizada
 items:
-  - code: defence
+  - code: parte-de-prueba
     name: Parte de prueba
-  - code: private-prosecution
+  - code: otra-parte-de-prueba
     name: Otra parte de prueba

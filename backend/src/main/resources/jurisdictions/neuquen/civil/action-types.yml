@@ -1,0 +1,10 @@
+# Tipo de proceso (neuquen-otros-fueros.md §2). Closed list until a legal review confirms it.
+catalog: action-types
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: ordinario, name: Proceso ordinario, flags: [validar]}
+  - {code: sumarisimo, name: Proceso sumarísimo, flags: [validar]}
+  - {code: ejecutivo, name: Proceso ejecutivo, flags: [validar]}
+  - {code: sucesorio, name: Sucesorio, flags: [validar]}
+  - {code: cautelar, name: Medida cautelar, flags: [validar]}

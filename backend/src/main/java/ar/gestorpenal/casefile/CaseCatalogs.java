@@ -45,6 +45,23 @@ class CaseCatalogs {
         return names;
     }
 
+    /** Legal source (article) of every item that has one, by code. */
+    Map<String, String> articles(String area, Catalog catalog) {
+        Map<String, String> articles = new LinkedHashMap<>();
+        catalogs.view(area, catalog, true).items().stream()
+                .filter(item -> item.article() != null)
+                .forEach(item -> articles.put(item.code(), item.article()));
+        return articles;
+    }
+
+    /** The first stage of the area's catalog that the firm offers (not hidden) for new records. */
+    String firstOfferedStage(String area) {
+        return catalogs.view(area, Catalog.STAGES, false).items().stream()
+                .map(CatalogItem::code)
+                .findFirst()
+                .orElseThrow(() -> new InvalidCaseDataException("This practice area offers no stage for a new case"));
+    }
+
     /** The codes of the area's stages catalog in procedural order. */
     List<String> stageOrder(String area) {
         return List.copyOf(names(area, Catalog.STAGES).keySet());

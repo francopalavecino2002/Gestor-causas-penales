@@ -1,0 +1,9 @@
+# Tipos de audiencia civil (neuquen-otros-fueros.md §2). "Otra" goes last.
+catalog: hearing-types
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: preliminar, name: Audiencia preliminar, flags: [validar]}
+  - {code: de-prueba, name: Audiencia de prueba o vista de causa, flags: [validar]}
+  - {code: de-conciliacion-o-acuerdo, name: Audiencia de conciliación o acuerdo, flags: [validar]}
+  - {code: otra, name: Otra audiencia, flags: [validar]}

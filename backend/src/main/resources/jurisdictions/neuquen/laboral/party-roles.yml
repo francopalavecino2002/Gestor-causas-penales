@@ -1,0 +1,11 @@
+# Roles que una persona puede tener en una causa laboral (neuquen-otros-fueros.md §2).
+catalog: party-roles
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar, no-verificado]
+items:
+  - {code: actor, name: Actor (trabajador), flags: [validar, no-verificado], attributes: {side: actor}}
+  - {code: demandado, name: Demandado (empleador), flags: [validar, no-verificado], attributes: {side: demandado}}
+  - {code: aseguradora, name: Aseguradora (ART), flags: [validar, no-verificado], attributes: {side: demandado}}
+  - {code: tercero, name: Tercero, flags: [validar, no-verificado], attributes: {side: neutral}}
+  - {code: perito, name: Perito, flags: [validar, no-verificado], attributes: {side: neutral}}
+  - {code: testigo, name: Testigo, flags: [validar, no-verificado], attributes: {side: neutral}}

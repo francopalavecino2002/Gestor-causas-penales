@@ -1,0 +1,7 @@
+# A quién representa el estudio en la causa (genérico, neuquen-otros-fueros.md §2).
+catalog: represented-sides
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: actor, name: Parte actora, flags: [validar]}
+  - {code: demandado, name: Parte demandada, flags: [validar]}

@@ -1,0 +1,10 @@
+# Tipos de audiencia de familia (neuquen-otros-fueros.md §2). "Otra" goes last.
+catalog: hearing-types
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: multiproposito, name: Audiencia multipropósito, flags: [validar]}
+  - {code: de-escucha-del-nino, name: Audiencia de escucha del niño, flags: [validar]}
+  - {code: de-conciliacion, name: Audiencia de conciliación, flags: [validar]}
+  - {code: de-prueba, name: Audiencia de prueba, flags: [validar]}
+  - {code: otra, name: Otra audiencia, flags: [validar]}

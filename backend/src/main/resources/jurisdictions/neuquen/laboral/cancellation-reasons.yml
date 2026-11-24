@@ -1,0 +1,12 @@
+# Motivos de cancelación de una audiencia, sin los propios de la Oficina Judicial penal.
+catalog: cancellation-reasons
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar, no-verificado]
+items:
+  - {code: pedido-de-una-parte, name: Pedido de una de las partes, flags: [validar, no-verificado]}
+  - {code: acuerdo-de-las-partes, name: Acuerdo de las partes, flags: [validar, no-verificado]}
+  - {code: ausencia-de-una-parte, name: Ausencia de una de las partes, flags: [validar, no-verificado]}
+  - {code: domicilio-inexacto, name: Domicilio inexacto, flags: [validar, no-verificado]}
+  - {code: notificacion-incorrecta, name: Notificación incorrecta, flags: [validar, no-verificado]}
+  - {code: medidas-de-fuerza, name: Medidas de fuerza, flags: [validar, no-verificado]}
+  - {code: fallas-tecnicas, name: Fallas técnicas, flags: [validar, no-verificado]}

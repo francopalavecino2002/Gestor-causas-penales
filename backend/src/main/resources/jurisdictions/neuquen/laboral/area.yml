@@ -1,0 +1,16 @@
+# Practice area manifest: laboral de Neuquén (ADR-0032, T42). DRAFT to validate with a lawyer.
+# The text of the labour procedure law could not be read from an official source, so its number,
+# hearings and deadlines are unknown: everything here is a generic proposal from
+# docs/domain/neuquen-otros-fueros.md §2. No deadline rule ships. Item codes are stable identifiers:
+# never rename or remove one.
+code: laboral
+name: Laboral
+law: Procedimiento laboral de Neuquén (ley sin identificar)
+reviewedOn: "2026-11-24"
+source: docs/domain/neuquen-otros-fueros.md
+flags: [validar, no-verificado]
+note: >-
+  Borrador sin validar. No se pudo leer el texto oficial de la ley de procedimiento laboral: no se
+  sabe qué ley rige ni cuáles son sus audiencias y plazos. Los catálogos son genéricos y no hay plazos
+  calculados: cargá los plazos a mano como plazos judiciales.
+modules: []

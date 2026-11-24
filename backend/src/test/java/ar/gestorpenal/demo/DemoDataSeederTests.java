@@ -101,7 +101,7 @@ class DemoDataSeederTests {
                         "SELECT count(*) FROM defendant WHERE tenant_id = ?" + ORIGINAL_CASES, Integer.class, tenantId))
                 .isEqualTo(3);
         assertThat(jdbc.queryForObject(
-                        "SELECT count(DISTINCT stage_code) FROM defendant d JOIN case_file c ON c.id = d.case_id"
+                        "SELECT count(DISTINCT d.stage_code) FROM defendant d JOIN case_file c ON c.id = d.case_id"
                                 + " WHERE d.tenant_id = ? AND c.internal_number = 'DEMO-001'",
                         Integer.class,
                         tenantId))

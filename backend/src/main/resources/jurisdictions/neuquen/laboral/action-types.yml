@@ -1,0 +1,7 @@
+# Tipo de proceso (neuquen-otros-fueros.md §2). Everything is unverified.
+catalog: action-types
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar, no-verificado]
+items:
+  - {code: ordinario, name: Proceso ordinario, flags: [validar, no-verificado]}
+  - {code: sumarisimo, name: Proceso sumarísimo, flags: [validar, no-verificado]}

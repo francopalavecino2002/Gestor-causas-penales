@@ -23,8 +23,8 @@ class PracticeAreaApiTests extends CaseApiTestSupport {
     private JdbcTemplate jdbc;
 
     private static final String TEST_AREA_CASE = """
-            {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "PUBLIC",
-             "represents": "DEFENCE", "practiceArea": "testarea"%s}
+            {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "PROCESO_DE_PRUEBA",
+             "represents": "PARTE_DE_PRUEBA", "practiceArea": "testarea"%s}
             """;
 
     private void enableTestArea() {
@@ -86,6 +86,39 @@ class PracticeAreaApiTests extends CaseApiTestSupport {
                 .andExpect(jsonPath("$.practiceArea").value("testarea"))
                 .andExpect(jsonPath("$.modules", hasSize(0)))
                 .andExpect(jsonPath("$.circumscriptionName").value("I Circunscripción (Confluencia)"));
+    }
+
+    @Test
+    void aCaseCannotUseTheActionTypeOrTheSideOfAnotherArea() throws Exception {
+        enableTestArea();
+        String penalCodesInTestArea = TEST_AREA_CASE.formatted("Causa ficticia", "")
+                .replace("PROCESO_DE_PRUEBA", "PUBLIC");
+        String penalSideInTestArea = TEST_AREA_CASE.formatted("Causa ficticia", "")
+                .replace("PARTE_DE_PRUEBA", "DEFENCE");
+
+        postJson(owner, "/api/v1/cases", penalCodesInTestArea)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("The catalog action-types has no item 'public'"));
+        postJson(owner, "/api/v1/cases", penalSideInTestArea)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("The catalog represented-sides has no item 'defence'"));
+        postJson(owner, "/api/v1/cases", caseJson("Causa penal ficticia", "").replace("PUBLIC", "PROCESO_DE_PRUEBA"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("The catalog action-types has no item 'proceso-de-prueba'"));
+        postJson(owner, "/api/v1/cases", caseJson("Causa penal ficticia", "").replace("DEFENCE", "PARTE_DE_PRUEBA"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void aCaseOfAnAreaWithoutDefendantsShouldHaveItsOwnStageAndStatus() throws Exception {
+        String id = createTestAreaCase("Causa de prueba ficticia");
+
+        mockMvc.perform(get("/api/v1/cases/" + id).with(owner))
+                .andExpect(jsonPath("$.actionType").value("PROCESO_DE_PRUEBA"))
+                .andExpect(jsonPath("$.stageCode").value("inicio-de-prueba"))
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.closingOutcomeCode").doesNotExist())
+                .andExpect(jsonPath("$.summary.mostDelayedStage").value("inicio-de-prueba"));
     }
 
     @Test

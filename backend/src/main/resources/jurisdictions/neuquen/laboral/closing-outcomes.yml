@@ -1,0 +1,9 @@
+# Resultados de cierre de una causa laboral (neuquen-otros-fueros.md §2).
+catalog: closing-outcomes
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar, no-verificado]
+items:
+  - {code: sentencia, name: Sentencia, flags: [validar, no-verificado]}
+  - {code: acuerdo-homologado, name: Acuerdo homologado, flags: [validar, no-verificado]}
+  - {code: desistimiento, name: Desistimiento, flags: [validar, no-verificado]}
+  - {code: otro, name: Otro, flags: [validar, no-verificado]}

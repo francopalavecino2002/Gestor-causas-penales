@@ -1,0 +1,5 @@
+# Fixture: an area without defendants whose stages have no 'cerrada' item.
+code: fuero
+name: Fuero ficticio
+law: Código ficticio
+modules: []

@@ -1,0 +1,11 @@
+# Roles que una persona puede tener en una causa civil (neuquen-otros-fueros.md §2).
+# Attribute "side": actor, demandado or neutral.
+catalog: party-roles
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: actor, name: Actor, flags: [validar], attributes: {side: actor}}
+  - {code: demandado, name: Demandado, flags: [validar], attributes: {side: demandado}}
+  - {code: tercero, name: Tercero, flags: [validar], attributes: {side: neutral}}
+  - {code: perito, name: Perito, flags: [validar], attributes: {side: neutral}}
+  - {code: testigo, name: Testigo, flags: [validar], attributes: {side: neutral}}
