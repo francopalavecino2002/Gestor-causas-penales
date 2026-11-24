@@ -186,3 +186,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   confirmation, step-by-step instructions for Google Calendar, Outlook and iPhone and what data the
   calendar receives; "Agregá al calendario" downloads one hearing as `.ics` from the agenda and the
   case detail (ADR-0035).
+- Tasks per responsible (T46): firm tasks with title, notes, optional due date, responsible member,
+  optional case or hearing link and status pendiente/hecha, archived instead of deleted and audited
+  (`/api/v1/tasks`); list filters for "mis tareas", member, case, hearing, status, due day and overdue,
+  overdue first; tasks of reserved cases follow the case visibility; six demo tasks (ADR-0036).

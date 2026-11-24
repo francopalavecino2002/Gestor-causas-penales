@@ -1714,3 +1714,28 @@ Superseded decisions are marked, never deleted.
     desktop week list has no per-hearing actions and stays as is.
 - **Consequences:** Subscribing still needs the hosted HTTPS app (ADR-0034); on the LAN demo the
   one-off download is the part that works.
+
+## ADR-0036: Tasks per responsible (T46)
+
+- **Date:** 2026-11-24
+- **Status:** accepted
+- **Context:** Small firms need to know who does what outside the hearing agenda, and T47 will show
+  the tasks due today on the agenda home.
+- **Decision:**
+  - A `task` is tenant-scoped, `@Audited` and archived instead of deleted. It has a title, optional
+    notes and due date, one responsible active member, an optional case and an optional hearing; a
+    hearing without a case derives the case, a hearing of another case is rejected (400).
+  - Permissions: any member creates tasks and marks any task done or pending again (status is the
+    everyday action of a small team); editing, archiving and restoring belong to the creator, the
+    responsible, the owner and lawyers. An archived task is read-only (409).
+  - Visibility follows the linked case: tasks of a reserved case the user cannot see are filtered
+    inside the query (so page totals do not leak) and answer 404 by id, like deadlines, with the
+    same detail as a missing task or hearing. A responsible who cannot see the reserved case does
+    not see that task in "mis tareas" either: assign tasks of reserved cases to its team.
+  - "Overdue" means pending, not archived and due before today in the firm's zone
+    (America/Argentina/Salta, the same as the agenda and the deadline engine). Lists order overdue
+    first, then due date ascending with undated tasks last, then creation time.
+  - One list endpoint with filters (`scope=mine`, `responsible`, `caseId`, `hearingId`, `status`,
+    `dueOn`, `overdue`, `includeArchived`) instead of nested routes per case or member.
+- **Consequences:** `created_by` is a column because the edit rule needs it; the last-change time
+  lives in the audit log. Tasks have no reminders or notifications yet.

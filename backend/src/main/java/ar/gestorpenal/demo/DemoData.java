@@ -21,6 +21,9 @@ final class DemoData {
     /** The lawyer who is the responsible of the first two demo cases. */
     static final DemoUser LAWYER = USERS.get(1);
 
+    /** The firm's paralegal: she is given the routine tasks. */
+    static final DemoUser PARALEGAL = USERS.get(2);
+
     /** The third lawyer of the firm. */
     static final DemoUser SECOND_LAWYER = USERS.get(3);
 
