@@ -76,6 +76,12 @@ class HearingService {
         return detail(user, find(user, id).hearing());
     }
 
+    /** One visible hearing, archived or not, as shown in lists (for the calendar export). */
+    @Transactional(readOnly = true)
+    HearingView view(AuthenticatedUser user, UUID id) {
+        return views.heads(user, List.of(find(user, id).hearing())).get(0);
+    }
+
     @Transactional(readOnly = true)
     List<HearingView> listByCase(AuthenticatedUser user, UUID caseId, boolean includeArchived) {
         requireVisibleCase(user, caseId);

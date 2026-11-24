@@ -46,6 +46,27 @@ interface HearingRepository extends JpaRepository<Hearing, UUID> {
             @Param("lawyerId") UUID lawyerId);
 
     /**
+     * Hearings that start at or after {@code since}, that {@code userId} attends, in cases that are not
+     * archived and that the user may see (same rule as {@link #findAgenda}): their calendar feed.
+     */
+    @Query("""
+            select h from Hearing h, CaseFile c
+            where c.id = h.caseId
+              and h.archivedAt is null and c.archivedAt is null
+              and h.startsAt >= :since
+              and (:seesEveryCase = true or c.reserved = false
+                   or exists (select 1 from CaseTeamMember m
+                              where m.caseId = c.id and m.userId = :userId and m.archivedAt is null))
+              and exists (select 1 from HearingLawyer l
+                          where l.hearingId = h.id and l.userId = :userId and l.archivedAt is null)
+            order by h.startsAt, h.id
+            """)
+    List<Hearing> findAttendedSince(
+            @Param("since") Instant since,
+            @Param("seesEveryCase") boolean seesEveryCase,
+            @Param("userId") UUID userId);
+
+    /**
      * Hearings of cases that are not archived, attended by one of {@code userIds}, that start in
      * {@code (windowStart, windowEnd)} and whose status can clash. The window is wide enough to hold any hearing
      * that overlaps the interval; the exact overlap is decided by {@link ClashDetector}.
