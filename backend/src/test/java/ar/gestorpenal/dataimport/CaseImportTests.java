@@ -305,6 +305,7 @@ class CaseImportTests extends ImportApiTestSupport {
 
         getAs(lawyer, "/api/v1/cases/" + caseIdOf("Actor Ficticio"))
                 .andExpect(jsonPath("$.practiceArea").value("civil"))
+<<<<<<< HEAD
                 .andExpect(jsonPath("$.actionType").value("ordinario"))
                 .andExpect(jsonPath("$.represents").value("actor"))
                 .andExpect(jsonPath("$.stageCode").value("inicio"));
@@ -315,6 +316,18 @@ class CaseImportTests extends ImportApiTestSupport {
                 .andExpect(jsonPath("$.practiceArea").value("penal"))
                 .andExpect(jsonPath("$.actionType").value("private"))
                 .andExpect(jsonPath("$.represents").value("private-prosecution"));
+=======
+                .andExpect(jsonPath("$.actionType").value("ORDINARIO"))
+                .andExpect(jsonPath("$.represents").value("ACTOR"))
+                .andExpect(jsonPath("$.stageCode").value("inicio"));
+        getAs(lawyer, "/api/v1/cases/" + caseIdOf("Otra Causa"))
+                .andExpect(jsonPath("$.practiceArea").value("penal"))
+                .andExpect(jsonPath("$.actionType").value("PUBLIC"));
+        getAs(lawyer, "/api/v1/cases/" + caseIdOf("Sin Fuero"))
+                .andExpect(jsonPath("$.practiceArea").value("penal"))
+                .andExpect(jsonPath("$.actionType").value("PRIVATE"))
+                .andExpect(jsonPath("$.represents").value("PRIVATE_PROSECUTION"));
+>>>>>>> origin/main
     }
 
     @Test

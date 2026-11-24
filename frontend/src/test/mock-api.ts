@@ -135,6 +135,9 @@ export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {})
     "GET /api/v1/deadlines": () => json(200, []),
     "GET /api/v1/users": () => json(200, MEMBERS),
     "GET /api/v1/practice-areas": () => json(200, [PENAL_AREA]),
+    // The optional AI assistance is off unless a test turns it on.
+    "GET /api/v1/ai-assist": () =>
+      json(200, { available: true, enabled: false, provider: "Google Gemini" }),
     ...catalogRoutes(),
     ...routes,
   });

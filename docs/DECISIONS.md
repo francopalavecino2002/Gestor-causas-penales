@@ -1554,6 +1554,7 @@ Superseded decisions are marked, never deleted.
     area. Hearing imports use the area of the row's case. There are no case-level stage columns in the
     file yet: a non-criminal case imported starts in the first stage.
   - The demo firm still has only `penal` enabled.
+<<<<<<< HEAD
 - **Implementation notes (T43):**
   - Plain catalog codes on the wire: the case API takes and returns `public-on-complaint`, `defence`,
     `ordinario`... and `CatalogCodes` with its enum-like translation is gone (an old spelling is now a
@@ -1588,3 +1589,55 @@ Superseded decisions are marked, never deleted.
     validates against the areas it read first; the real import re-checks each case under the lock.
   - Each code in the request is bounded (`@NotBlank`, at most 50 characters) and the 400 for an unknown code
     does not echo it.
+=======
+
+## ADR-0033: Optional AI assistance, starting with hearings read from a notification (T52)
+
+- **Date:** 2026-11-24
+- **Status:** accepted
+- **Context:** Franco wants AI in the product (the friend's own prototype tried it, and competitors
+  such as Veredicta advertise it). Constraints: CLAUDE.md rule 6 (any AI feature is optional and
+  reviewed by the lawyer), lawyers in Neuquén were reported to the bar for filings with invented
+  case law, criminal-record data is sensitive (Ley 25.326, art. 7) and only fictitious data is
+  allowed until the legal consultation, and Franco pays for no API unless he decides to. Prices
+  checked on 2026-11-24: Gemini 3.1 Flash-Lite has a free tier (texts may be used to improve Google's
+  products) and costs USD 0.25 / 1.50 per million input/output tokens paid (texts not used); Claude
+  Haiku 5.5 costs USD 0.10 / 0.50. One notification is about 2,000 input and 300 output tokens, so a
+  firm's monthly use costs cents.
+- **Decision:**
+  - **First feature only: "Completá desde una notificación".** In "Nueva audiencia", once a case is
+    chosen, the lawyer pastes the OFIJU or SINE text and the form is filled (type, day, time,
+    duration, room, judge, OFIJU reference). Nothing is saved by the AI: the lawyer reviews and saves
+    the form as usual. No drafting of filings and no case-law search.
+  - **Two switches, both off by default.** The installation needs `GEMINI_API_KEY`
+    (`app.ai.gemini-api-key`); without it the feature is unavailable everywhere. Each firm's owner
+    turns it on in Ajustes > Asistente de IA (`ai_assist_setting`, audited; no row means off).
+  - **Data minimisation.** Only the pasted text and the names of the firm's hearing types are sent;
+    neither the text nor the answer is stored or logged. `ai_assist_use` records who used it, when,
+    for which case and whether it worked.
+  - **Untrusted answer.** The provider's JSON is checked before it reaches the form: a type the firm
+    does not offer, an impossible date or time, an out-of-range duration or a text too long for its
+    field is dropped and listed in `missing`. The prompt tells the model the notification is data,
+    not instructions; a prompt injection can at most fill wrong values that the lawyer sees.
+  - **Replaceable provider.** The service depends on `HearingNotificationReader`; Gemini
+    (`generateContent` with `responseMimeType: application/json`, key in the `x-goog-api-key` header)
+    is one implementation. Default model `gemini-3.1-flash-lite`, overridable with `GEMINI_MODEL`.
+  - **No transaction during the call.** The draft endpoint is not transactional, so no database
+    connection waits on the provider and a failure is still logged.
+  - **Who and how often.** Any member who can see the case may ask for a draft (it saves nothing;
+    saving goes through the hearing permissions). At most 10 requests per firm and minute
+    (`ai-assist-rate-limited`, 429), counted from `ai_assist_use`, so a loop cannot burn the
+    installation's quota. Two simultaneous first-time switches can race on the unique index and one
+    answers 500; accepted for now (owner-only and rare).
+  - Errors are problem+json: `ai-assist-unavailable` (503), `ai-assist-disabled` (409),
+    `ai-provider-busy` (503, the free tier's rate limit), `ai-provider-failed` (502), `not-found`.
+- **Alternatives considered:** a regex parser for OFIJU notifications (free and private, but no real
+  samples to build it from yet; worth revisiting once real formats are known); Claude Haiku 5.5
+  (cheaper per token than paid Gemini, but no free tier, and Franco wants a zero-cost demo); a local
+  model (no API cost, but it needs a bigger server than the hosting budget allows).
+- **Consequences:** The demo works for free with fictitious data. Before real data: a paid plan whose
+  terms exclude training on the texts, and the legal consultation must cover sending case text to a
+  provider abroad (Ley 25.326, art. 12). The free tier's per-minute limit can answer "busy": the UI
+  says to wait a minute or type the data by hand. Next candidates, same rules: a case summary to
+  prepare a hearing, and column mapping in the import.
+>>>>>>> origin/main

@@ -23,8 +23,13 @@ class PracticeAreaApiTests extends CaseApiTestSupport {
     private JdbcTemplate jdbc;
 
     private static final String TEST_AREA_CASE = """
+<<<<<<< HEAD
             {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "proceso-de-prueba",
              "represents": "parte-de-prueba", "practiceArea": "testarea"%s}
+=======
+            {"caption": "%s", "circumscriptionCode": "i-confluencia", "actionType": "PROCESO_DE_PRUEBA",
+             "represents": "PARTE_DE_PRUEBA", "practiceArea": "testarea"%s}
+>>>>>>> origin/main
             """;
 
     private void enableTestArea() {
@@ -92,9 +97,15 @@ class PracticeAreaApiTests extends CaseApiTestSupport {
     void aCaseCannotUseTheActionTypeOrTheSideOfAnotherArea() throws Exception {
         enableTestArea();
         String penalCodesInTestArea = TEST_AREA_CASE.formatted("Causa ficticia", "")
+<<<<<<< HEAD
                 .replace("proceso-de-prueba", "public");
         String penalSideInTestArea = TEST_AREA_CASE.formatted("Causa ficticia", "")
                 .replace("parte-de-prueba", "defence");
+=======
+                .replace("PROCESO_DE_PRUEBA", "PUBLIC");
+        String penalSideInTestArea = TEST_AREA_CASE.formatted("Causa ficticia", "")
+                .replace("PARTE_DE_PRUEBA", "DEFENCE");
+>>>>>>> origin/main
 
         postJson(owner, "/api/v1/cases", penalCodesInTestArea)
                 .andExpect(status().isBadRequest())
@@ -102,10 +113,17 @@ class PracticeAreaApiTests extends CaseApiTestSupport {
         postJson(owner, "/api/v1/cases", penalSideInTestArea)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("The catalog represented-sides has no item 'defence'"));
+<<<<<<< HEAD
         postJson(owner, "/api/v1/cases", caseJson("Causa penal ficticia", "").replace("\"public\"", "\"proceso-de-prueba\""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("The catalog action-types has no item 'proceso-de-prueba'"));
         postJson(owner, "/api/v1/cases", caseJson("Causa penal ficticia", "").replace("\"defence\"", "\"parte-de-prueba\""))
+=======
+        postJson(owner, "/api/v1/cases", caseJson("Causa penal ficticia", "").replace("PUBLIC", "PROCESO_DE_PRUEBA"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value("The catalog action-types has no item 'proceso-de-prueba'"));
+        postJson(owner, "/api/v1/cases", caseJson("Causa penal ficticia", "").replace("DEFENCE", "PARTE_DE_PRUEBA"))
+>>>>>>> origin/main
                 .andExpect(status().isBadRequest());
     }
 
@@ -114,7 +132,11 @@ class PracticeAreaApiTests extends CaseApiTestSupport {
         String id = createTestAreaCase("Causa de prueba ficticia");
 
         mockMvc.perform(get("/api/v1/cases/" + id).with(owner))
+<<<<<<< HEAD
                 .andExpect(jsonPath("$.actionType").value("proceso-de-prueba"))
+=======
+                .andExpect(jsonPath("$.actionType").value("PROCESO_DE_PRUEBA"))
+>>>>>>> origin/main
                 .andExpect(jsonPath("$.stageCode").value("inicio-de-prueba"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.closingOutcomeCode").doesNotExist())

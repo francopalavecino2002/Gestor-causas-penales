@@ -21,6 +21,7 @@ describe("settings: index and users", () => {
       "/ajustes/catalogos",
       "/ajustes/campos",
       "/ajustes/plazos",
+      "/ajustes/ia",
       "/ajustes/usuarios",
     ]);
     expect(nav).toHaveTextContent("Plantillas por tipo de causa");

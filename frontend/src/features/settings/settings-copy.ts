@@ -3,6 +3,7 @@ import {
   Hourglass,
   Landmark,
   ListChecks,
+  Sparkles,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -24,6 +25,7 @@ export interface SettingsSection {
     | "/ajustes/catalogos"
     | "/ajustes/campos"
     | "/ajustes/plazos"
+    | "/ajustes/ia"
     | "/ajustes/usuarios";
   title: string;
   /** One line under the title in the index. */
@@ -55,6 +57,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: "Reglas de plazos",
     summary: "Qué plazos calcula el sistema y con cuántos días de aviso.",
     icon: Hourglass,
+  },
+  {
+    to: "/ajustes/ia",
+    title: "Asistente de IA",
+    summary: "Opcional: completá audiencias pegando la notificación. Viene desactivado.",
+    icon: Sparkles,
   },
   {
     to: "/ajustes/usuarios",

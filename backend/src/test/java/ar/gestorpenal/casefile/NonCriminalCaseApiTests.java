@@ -45,9 +45,15 @@ class NonCriminalCaseApiTests extends CaseApiTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.practiceArea").value("civil"))
                 .andExpect(jsonPath("$.modules", hasSize(0)))
+<<<<<<< HEAD
                 .andExpect(jsonPath("$.actionType").value("ordinario"))
                 .andExpect(jsonPath("$.actionArticle").doesNotExist())
                 .andExpect(jsonPath("$.represents").value("actor"))
+=======
+                .andExpect(jsonPath("$.actionType").value("ORDINARIO"))
+                .andExpect(jsonPath("$.actionArticle").doesNotExist())
+                .andExpect(jsonPath("$.represents").value("ACTOR"))
+>>>>>>> origin/main
                 .andExpect(jsonPath("$.stageCode").value("inicio"))
                 .andExpect(jsonPath("$.stageName").value("Inicio"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
@@ -173,9 +179,15 @@ class NonCriminalCaseApiTests extends CaseApiTestSupport {
         postJson(owner, "/api/v1/cases", civilCase("Causa civil ficticia", ", \"mpfLegajo\": \"MPFNQ 123/2026\""))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.type").value("/problems/module-not-enabled"));
+<<<<<<< HEAD
         postJson(owner, "/api/v1/cases", civilCase("Causa civil ficticia", "").replace("ordinario", "public"))
                 .andExpect(status().isBadRequest());
         postJson(owner, "/api/v1/cases", civilCase("Causa civil ficticia", "").replace("\"actor\"", "\"defence\""))
+=======
+        postJson(owner, "/api/v1/cases", civilCase("Causa civil ficticia", "").replace("ordinario", "PUBLIC"))
+                .andExpect(status().isBadRequest());
+        postJson(owner, "/api/v1/cases", civilCase("Causa civil ficticia", "").replace("\"actor\"", "\"DEFENCE\""))
+>>>>>>> origin/main
                 .andExpect(status().isBadRequest());
         String id = createCase(owner, civilCase("Causa civil ficticia", ""));
         String person = createPerson(owner, humanJson("Persona", "Ficticia", null));
@@ -193,15 +205,24 @@ class NonCriminalCaseApiTests extends CaseApiTestSupport {
                 """;
         String family = """
                 {"caption": "Requirente Ficticio s/ medida", "circumscriptionCode": "i-confluencia",
+<<<<<<< HEAD
                  "actionType": "cautelar", "represents": "requerido", "practiceArea": "familia"}
+=======
+                 "actionType": "CAUTELAR", "represents": "requerido", "practiceArea": "familia"}
+>>>>>>> origin/main
                 """;
 
         postJson(owner, "/api/v1/cases", labour).andExpect(status().isCreated())
                 .andExpect(jsonPath("$.stageCode").value("inicio"));
         postJson(owner, "/api/v1/cases", family).andExpect(status().isCreated())
                 .andExpect(jsonPath("$.stageCode").value("mediacion-previa"))
+<<<<<<< HEAD
                 .andExpect(jsonPath("$.actionType").value("cautelar"));
         postJson(owner, "/api/v1/cases", family.replace("cautelar", "ordinario"))
+=======
+                .andExpect(jsonPath("$.actionType").value("CAUTELAR"));
+        postJson(owner, "/api/v1/cases", family.replace("cautelar", "ordinario").replace("CAUTELAR", "ORDINARIO"))
+>>>>>>> origin/main
                 .andExpect(status().isBadRequest());
         postJson(owner, "/api/v1/cases", labour.replace("\"actor\"", "\"requerido\""))
                 .andExpect(status().isBadRequest());
@@ -226,13 +247,17 @@ class NonCriminalCaseApiTests extends CaseApiTestSupport {
                 .andExpect(jsonPath("$.items", hasSize(2)))
                 .andExpect(jsonPath("$.items[0].hearingId").value(hearing))
                 .andExpect(jsonPath("$.items[0].caseCaption").value("Causa civil ficticia"))
+<<<<<<< HEAD
                 .andExpect(jsonPath("$.items[0].practiceArea").value("civil"))
                 .andExpect(jsonPath("$.items[1].practiceArea").value("penal"))
+=======
+>>>>>>> origin/main
                 .andExpect(jsonPath("$.items[0].hasClash").value(true))
                 .andExpect(jsonPath("$.items[1].hasClash").value(true));
     }
 
     @Test
+<<<<<<< HEAD
     void theCaseListShouldKeepOnlyTheCasesOfTheChosenArea() throws Exception {
         createCase(owner, civilCase("Causa civil ficticia", ""));
         createCase(owner, caseJson("Causa penal ficticia", ""));
@@ -247,6 +272,8 @@ class NonCriminalCaseApiTests extends CaseApiTestSupport {
     }
 
     @Test
+=======
+>>>>>>> origin/main
     void aCivilCaseShouldTakeManualDeadlinesAndNoComputedRule() throws Exception {
         String id = createCase(owner, civilCase("Causa civil ficticia", ""));
 
@@ -278,6 +305,7 @@ class NonCriminalCaseApiTests extends CaseApiTestSupport {
     }
 
     @Test
+<<<<<<< HEAD
     void aCaseShouldTakeAndAnswerPlainCatalogCodes() throws Exception {
         String id = createCase(owner, caseJson("Causa penal ficticia", "")
                 .replace("\"public\"", "\"public-on-complaint\"").replace("\"defence\"", "\"private-prosecution\""));
@@ -289,5 +317,20 @@ class NonCriminalCaseApiTests extends CaseApiTestSupport {
         putJson(owner, "/api/v1/cases/" + id, caseJson("Causa penal ficticia", "")
                 .replace("\"public\"", "\"PUBLIC_ON_COMPLAINT\""))
                 .andExpect(status().isBadRequest());
+=======
+    void aCriminalCaseShouldKeepTheWireFormatTheFrontendUses() throws Exception {
+        String id = createCase(owner, caseJson("Causa penal ficticia", "")
+                .replace("PUBLIC", "PUBLIC_ON_COMPLAINT").replace("DEFENCE", "PRIVATE_PROSECUTION"));
+
+        mockMvc.perform(get("/api/v1/cases/" + id).with(owner))
+                .andExpect(jsonPath("$.actionType").value("PUBLIC_ON_COMPLAINT"))
+                .andExpect(jsonPath("$.actionArticle").value("100"))
+                .andExpect(jsonPath("$.represents").value("PRIVATE_PROSECUTION"));
+        putJson(owner, "/api/v1/cases/" + id, caseJson("Causa penal ficticia", "")
+                .replace("PUBLIC", "public-on-complaint").replace("DEFENCE", "defence"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.actionType").value("PUBLIC_ON_COMPLAINT"))
+                .andExpect(jsonPath("$.represents").value("DEFENCE"));
+>>>>>>> origin/main
     }
 }

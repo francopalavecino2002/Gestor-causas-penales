@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import type { HearingDraft } from "@/features/ai-assist/ai-assist-api";
+import { NotificationDraftPanel } from "@/features/ai-assist/notification-draft-panel";
 import { FIRM_TIME_ZONE, instantAt, isIsoDate, isLocalTime } from "@/features/agenda/agenda-dates";
 import { cppArticle } from "@/features/agenda/agenda-format";
 import { useAgendaCache } from "@/features/agenda/agenda-queries";
@@ -293,6 +295,18 @@ export function HearingFormDialog({
     }
   });
 
+  /** Fills what the notification says; the lawyer reviews it and saves the form as usual. */
+  const applyDraft = (draft: HearingDraft) => {
+    const options = { shouldDirty: true, shouldValidate: true } as const;
+    if (draft.typeCode) setValue("typeCode", draft.typeCode, options);
+    if (draft.date) setValue("date", draft.date, options);
+    if (draft.time) setValue("time", draft.time, options);
+    if (draft.durationMinutes) setValue("durationMinutes", draft.durationMinutes, options);
+    if (draft.room) setValue("room", draft.room, options);
+    if (draft.judge) setValue("judge", draft.judge, options);
+    if (draft.ofijuReference) setValue("ofijuReference", draft.ofijuReference, options);
+  };
+
   if (saved) {
     return (
       <ClashWarning
@@ -403,6 +417,10 @@ export function HearingFormDialog({
                 setCaseCaption(selected?.caption ?? "");
               }}
             />
+          )}
+
+          {!editing && caseId !== "" && (
+            <NotificationDraftPanel key={caseId} caseId={caseId} onDraft={applyDraft} />
           )}
 
           <Field>
