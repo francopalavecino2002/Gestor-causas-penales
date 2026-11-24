@@ -1,0 +1,14 @@
+# Etapas de la causa civil, en orden procesal (neuquen-otros-fueros.md §2). Sin artículos citados.
+catalog: stages
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: inicio, name: Inicio, flags: [validar]}
+  - {code: contestacion, name: Contestación, flags: [validar]}
+  - {code: audiencia-preliminar, name: Audiencia preliminar o de acuerdo, flags: [validar]}
+  - {code: prueba, name: Prueba, flags: [validar]}
+  - {code: alegatos, name: Alegatos, flags: [validar]}
+  - {code: sentencia, name: Sentencia, flags: [validar]}
+  - {code: recursos, name: Recursos, flags: [validar]}
+  - {code: ejecucion, name: Ejecución, flags: [validar]}
+  - {code: cerrada, name: Cerrada, note: Con su resultado de cierre., flags: [validar]}

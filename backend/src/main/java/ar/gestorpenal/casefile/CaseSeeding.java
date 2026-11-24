@@ -56,7 +56,7 @@ public class CaseSeeding {
             UUID responsibleUserId, String caption, String internalNumber, String circumscriptionCode, boolean reserved) {
         CaseFile caseFile = cases.save(CaseFile.create(new CaseData(
                 caption, internalNumber, null, null, null, circumscriptionCode,
-                ActionType.PUBLIC, Representation.DEFENCE, reserved, null, null, null)));
+                "public", "defence", reserved, null, null, null, null, null, null)));
         team.save(CaseTeamMember.create(caseFile.getId(), responsibleUserId, TeamRole.RESPONSIBLE));
         return caseFile.getId();
     }

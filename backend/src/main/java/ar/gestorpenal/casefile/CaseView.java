@@ -9,6 +9,10 @@ import java.util.UUID;
  * A case as shown in lists and as the head of the detail, with its computed summary.
  *
  * @param modules the optional features of the case's practice area, so the UI shows or hides sections
+ * @param actionType the area's action type code in the wire spelling of {@link CatalogCodes}
+ * @param represents the area's represented side code in the wire spelling
+ * @param stageCode the case's own stage, status and outcome (with the names of the stage and the
+ *     outcome): only for an area without the {@code defendants} module, else all {@code null}
  */
 record CaseView(
         UUID id,
@@ -21,30 +25,39 @@ record CaseView(
         String pehuenNumber,
         String circumscriptionCode,
         String circumscriptionName,
-        ActionType actionType,
+        String actionType,
         String actionArticle,
-        Representation represents,
+        String represents,
+        String stageCode,
+        String stageName,
+        CaseStatus status,
+        String closingOutcomeCode,
+        String closingOutcomeName,
         boolean reserved,
         boolean archived,
         Instant createdAt,
         CaseSummary summary) {
 
-    static CaseView of(
-            CaseFile caseFile, List<PracticeModule> modules, String circumscriptionName, CaseSummary summary) {
+    static CaseView of(CaseFile caseFile, CaseVocabulary vocabulary, CaseSummary summary) {
         return new CaseView(
                 caseFile.getId(),
                 caseFile.getPracticeArea(),
-                modules,
+                vocabulary.modules(),
                 caseFile.getCaption(),
                 caseFile.getInternalNumber(),
                 caseFile.getMpfLegajo(),
                 caseFile.getOfijuNumber(),
                 caseFile.getPehuenNumber(),
                 caseFile.getCircumscriptionCode(),
-                circumscriptionName,
-                caseFile.getActionType(),
-                caseFile.getActionType().article(),
-                caseFile.getRepresents(),
+                vocabulary.circumscriptionName(caseFile.getCircumscriptionCode()),
+                CatalogCodes.toWire(caseFile.getActionType()),
+                vocabulary.actionArticle(caseFile.getActionType()),
+                CatalogCodes.toWire(caseFile.getRepresents()),
+                caseFile.getStageCode(),
+                vocabulary.stageName(caseFile.getStageCode()),
+                caseFile.getStatus(),
+                caseFile.getClosingOutcomeCode(),
+                vocabulary.outcomeName(caseFile.getClosingOutcomeCode()),
                 caseFile.isReserved(),
                 caseFile.isArchived(),
                 caseFile.getCreatedAt(),

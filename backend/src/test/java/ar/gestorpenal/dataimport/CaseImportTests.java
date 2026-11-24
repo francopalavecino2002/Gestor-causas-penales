@@ -2,6 +2,7 @@ package ar.gestorpenal.dataimport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -17,6 +18,7 @@ import com.jayway.jsonpath.JsonPath;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 class CaseImportTests extends ImportApiTestSupport {
 
@@ -26,6 +28,17 @@ class CaseImportTests extends ImportApiTestSupport {
 
     @Autowired
     private AuditTrail auditTrail;
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    /** The fuero column and the case columns: enough for a case of an area without defendants. */
+    private static final String AREA_HEADER = "caratula;fuero;numero_interno;circunscripcion;tipo_accion;representa;"
+            + "imputado_numero_documento";
+
+    private void enableCivil() {
+        jdbc.update("update tenant set enabled_practice_areas = '{penal,civil}' where id = ?", tenantA);
+    }
 
     private String caseIdOf(String caption) throws Exception {
         String body = getAs(lawyer, "/api/v1/cases?q=" + caption).andReturn().getResponse().getContentAsString();
@@ -276,5 +289,79 @@ class CaseImportTests extends ImportApiTestSupport {
 
         assertThat(caseTotal(lawyer, "Ficticio")).isZero();
         assertThat(personTotal(lawyer, "Buena")).isZero();
+    }
+
+    @Test
+    void shouldCreateACivilCaseFromTheAreaColumnWithTheCatalogsOfThatArea() throws Exception {
+        enableCivil();
+
+        commit(lawyer, "cases", csv(AREA_HEADER,
+                        "Actor Ficticio c/ Demandado Ficticio;Civil y comercial;INT-F1;i-confluencia;Proceso ordinario;actor;",
+                        "Otra Causa Ficticia;penal;INT-F2;i-confluencia;publica;defensa;",
+                        "Causa Sin Fuero Ficticia;;INT-F3;i-confluencia;privada;querella;"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.committed").value(true))
+                .andExpect(jsonPath("$.created.cases").value(3));
+
+        getAs(lawyer, "/api/v1/cases/" + caseIdOf("Actor Ficticio"))
+                .andExpect(jsonPath("$.practiceArea").value("civil"))
+                .andExpect(jsonPath("$.actionType").value("ORDINARIO"))
+                .andExpect(jsonPath("$.represents").value("ACTOR"))
+                .andExpect(jsonPath("$.stageCode").value("inicio"));
+        getAs(lawyer, "/api/v1/cases/" + caseIdOf("Otra Causa"))
+                .andExpect(jsonPath("$.practiceArea").value("penal"))
+                .andExpect(jsonPath("$.actionType").value("PUBLIC"));
+        getAs(lawyer, "/api/v1/cases/" + caseIdOf("Sin Fuero"))
+                .andExpect(jsonPath("$.practiceArea").value("penal"))
+                .andExpect(jsonPath("$.actionType").value("PRIVATE"))
+                .andExpect(jsonPath("$.represents").value("PRIVATE_PROSECUTION"));
+    }
+
+    @Test
+    void shouldRefuseAnAreaTheFirmHasNotEnabledOrDoesNotExist() throws Exception {
+        preview(lawyer, "cases", csv(AREA_HEADER,
+                        "Causa Civil Ficticia;civil;INT-F4;i-confluencia;ordinario;actor;",
+                        "Causa Rara Ficticia;inexistente;INT-F5;i-confluencia;ordinario;actor;"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.errorRows").value(2))
+                .andExpect(jsonPath("$.rows[0].errors[?(@.column == 'fuero')].message")
+                        .value(hasItem(containsString("no está habilitado"))))
+                .andExpect(jsonPath("$.rows[1].errors[?(@.column == 'fuero')]").isNotEmpty());
+    }
+
+    @Test
+    void shouldRefuseTheCatalogItemsOfAnotherAreaAndDefendantsInAnAreaWithoutThem() throws Exception {
+        enableCivil();
+
+        preview(lawyer, "cases", csv(AREA_HEADER,
+                        "Causa Civil Uno;civil;INT-F6;i-confluencia;publica;defensa;",
+                        "Causa Civil Dos;civil;INT-F7;i-confluencia;ordinario;actor;10000301"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.errorRows").value(2))
+                .andExpect(jsonPath("$.rows[0].errors[?(@.column == 'tipo_accion')]").isNotEmpty())
+                .andExpect(jsonPath("$.rows[0].errors[?(@.column == 'representa')]").isNotEmpty())
+                .andExpect(jsonPath("$.rows[1].errors[0].column").value("imputado_numero_documento"))
+                .andExpect(jsonPath("$.rows[1].errors[0].message").value(containsString("no tiene imputados")));
+    }
+
+    @Test
+    void aLaterRowOfACaseShouldKeepTheAreaOfTheFirstRow() throws Exception {
+        enableCivil();
+
+        preview(lawyer, "cases", csv(AREA_HEADER,
+                        "Causa Civil Tres;civil;INT-F8;i-confluencia;ordinario;actor;",
+                        ";;INT-F8;;;;",
+                        ";penal;INT-F8;;;;"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rows[1].status").value("VALID"))
+                .andExpect(jsonPath("$.rows[2].errors[0].column").value("fuero"));
+    }
+
+    @Test
+    void theCasesTemplateShouldIncludeTheAreaColumn() throws Exception {
+        getAs(lawyer, "/api/v1/imports/cases/template")
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(";fuero;")))
+                .andExpect(content().string(containsString(";penal;")));
     }
 }

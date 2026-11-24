@@ -134,8 +134,6 @@ class JurisdictionPackageLoaderTests {
                 "fuero/area.yml: the module 'detainee-alerts' needs the module 'coercive-measures'",
                 "fuero/closing-outcomes.yml is missing",
                 "fuero/party-roles.yml is missing",
-                "fuero/action-types.yml: the item 'private' is required (cases still store it)",
-                "fuero/action-types.yml: the item 'public-on-complaint' is required (cases still store it)",
                 "fuero/represented-sides.yml is missing",
                 "fuero/liberty-situations.yml is missing",
                 "fuero/alternative-outcomes.yml is not used: the area does not declare the module 'alternative-outcomes'");
@@ -182,16 +180,55 @@ class JurisdictionPackageLoaderTests {
     }
 
     @Test
-    void theItemsTheCaseEnumsNeedShouldBeRequiredOfEveryArea() {
-        assertThat(JurisdictionPackageLoader.ENUM_ITEMS)
-                .containsEntry(Catalog.ACTION_TYPES, List.of("public", "public-on-complaint", "private"))
-                .containsEntry(Catalog.REPRESENTED_SIDES, List.of("defence", "private-prosecution"));
+    void shouldShipTheCriminalAndTheThreeNonCriminalAreasOfNeuquen() {
+        assertThat(neuquen.areas()).containsKeys("penal", "civil", "laboral", "familia");
+        for (String code : List.of("civil", "laboral", "familia")) {
+            PracticeArea area = neuquen.area(code).orElseThrow();
+            assertThat(area.modules()).as(code + " has no criminal module").isEmpty();
+            assertThat(area.flags()).as(code + " is flagged as a draft").contains(ReviewFlag.VALIDAR);
+            assertThat(area.note()).as(code + " says it is a draft").contains("Borrador sin validar");
+            assertThat(area.source()).isEqualTo("docs/domain/neuquen-otros-fueros.md");
+            assertThat(area.catalogs()).containsOnlyKeys(
+                    Catalog.STAGES, Catalog.CLOSING_OUTCOMES, Catalog.HEARING_TYPES, Catalog.HEARING_STATUSES,
+                    Catalog.CANCELLATION_REASONS, Catalog.PARTY_ROLES, Catalog.ACTION_TYPES, Catalog.REPRESENTED_SIDES);
+        }
+        assertThat(neuquen.area("civil").orElseThrow().law()).isEqualTo("CPCyC de Neuquén (Ley 3551)");
+        assertThat(neuquen.area("civil").orElseThrow().flags()).contains(ReviewFlag.NO_VERIFICADO);
+    }
+
+    @Test
+    void everyItemOfANonCriminalAreaShouldBeFlaggedToValidateAndCiteNoArticle() {
+        for (String code : List.of("civil", "laboral", "familia")) {
+            neuquen.area(code).orElseThrow().catalogs().values().forEach(catalog -> {
+                assertThat(catalog.items()).isNotEmpty().allSatisfy(item -> {
+                    assertThat(item.flags()).as(code + "/" + item.code()).contains(ReviewFlag.VALIDAR);
+                    assertThat(item.article()).as(code + "/" + item.code() + " cites no invented article").isNull();
+                });
+            });
+        }
+        neuquen.area("laboral").orElseThrow().catalogs().values().forEach(catalog ->
+                assertThat(catalog.items()).allSatisfy(item -> assertThat(item.flags()).contains(ReviewFlag.NO_VERIFICADO)));
+    }
+
+    @Test
+    void everyAreaShouldHaveTheStageAndHearingStatusesTheCoreDrivesBehaviorFrom() {
         assertThat(neuquen.areas().values()).allSatisfy(area -> {
-            assertThat(area.catalog(Catalog.ACTION_TYPES).items()).extracting(CatalogItemDefinition::code)
-                    .containsAll(JurisdictionPackageLoader.ENUM_ITEMS.get(Catalog.ACTION_TYPES));
-            assertThat(area.catalog(Catalog.REPRESENTED_SIDES).items()).extracting(CatalogItemDefinition::code)
-                    .containsAll(JurisdictionPackageLoader.ENUM_ITEMS.get(Catalog.REPRESENTED_SIDES));
+            assertThat(area.catalog(Catalog.STAGES).item("cerrada")).isPresent();
+            assertThat(area.catalog(Catalog.HEARING_STATUSES).items()).extracting(CatalogItemDefinition::code)
+                    .contains("programada", "reprogramada", "efectiva", "suspendida", "cancelada");
         });
+    }
+
+    @Test
+    void theNonCriminalAreasShouldNotShareItemsWithPenalOrWithEachOther() {
+        PracticeArea civil = neuquen.area("civil").orElseThrow();
+        PracticeArea familia = neuquen.area("familia").orElseThrow();
+
+        assertThat(civil.catalog(Catalog.PARTY_ROLES).item("imputado")).isEmpty();
+        assertThat(civil.catalog(Catalog.ACTION_TYPES).item("public")).isEmpty();
+        assertThat(penal.catalog(Catalog.ACTION_TYPES).item("ordinario")).isEmpty();
+        assertThat(civil.catalog(Catalog.ACTION_TYPES).item("contencioso")).isEmpty();
+        assertThat(familia.catalog(Catalog.ACTION_TYPES).item("contencioso")).isPresent();
     }
 
     @Test

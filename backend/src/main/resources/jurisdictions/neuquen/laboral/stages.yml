@@ -1,0 +1,13 @@
+# Etapas de la causa laboral, en orden procesal (neuquen-otros-fueros.md §2). Sin artículos citados.
+catalog: stages
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar, no-verificado]
+items:
+  - {code: inicio, name: Inicio, flags: [validar, no-verificado]}
+  - {code: conciliacion, name: Conciliación, flags: [validar, no-verificado]}
+  - {code: contestacion, name: Contestación, flags: [validar, no-verificado]}
+  - {code: prueba, name: Prueba, flags: [validar, no-verificado]}
+  - {code: sentencia, name: Sentencia, flags: [validar, no-verificado]}
+  - {code: recursos, name: Recursos, flags: [validar, no-verificado]}
+  - {code: ejecucion, name: Ejecución, flags: [validar, no-verificado]}
+  - {code: cerrada, name: Cerrada, note: Con su resultado de cierre., flags: [validar, no-verificado]}

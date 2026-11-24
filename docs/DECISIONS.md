@@ -1529,3 +1529,28 @@ Superseded decisions are marked, never deleted.
   - The module list is a closed set in code (`PracticeModule`), and a module may require another
     (detainee alerts need coercive measures, which need defendants). An area folder must provide the
     catalogs of its modules and no others.
+- **Implementation notes (T42):**
+  - Civil, labour and family ship as `jurisdictions/neuquen/{civil,laboral,familia}/` with no module and
+    the catalogs of `docs/domain/neuquen-otros-fueros.md` §2, every item flagged `validar` (all of labour
+    also `no-verificado`) and no article cited. The hearing statuses keep the eight codes the hearing
+    lifecycle is driven by. Each area ships a `deadline-rules.yml` with only the generic `plazo-judicial`
+    (`SET_BY_COURT`, source "Resolución judicial"), because a deadline always needs a rule: no legal rule
+    ships, lawyers load the date a judge set. Penal keeps its 14 rules.
+  - `case_file.action_type` and `represents` are catalog codes (migration V13 rewrote `PUBLIC_ON_COMPLAINT`
+    to `public-on-complaint`, etc., and replaced the enum checks by a code-format check). The loader no
+    longer requires the enum codes in every area, and an area cannot use another area's action type or side
+    (tested with `testarea`). Wire compatibility: a request may use either spelling and a response always
+    uses the enum-like one (`PUBLIC_ON_COMPLAINT`, `ORDINARIO`; `CatalogCodes`), so the criminal frontend
+    works unchanged. T43 moves the UI to plain codes and then the translation goes away.
+  - Case-level course: `case_file.stage_code`, `status` and `closing_outcome_code` (null for criminal cases).
+    In an area without `defendants` a new case starts in the first stage of the area's catalog with status
+    `ACTIVE`, an update must send stage and status, and the rules are a defendant's (closed status, stage
+    `cerrada` and an outcome go together). A criminal case refuses them (400). The summary's
+    `mostDelayedStage` is the case's own stage in those areas. The case view also shows `stageName`,
+    `closingOutcomeName`, and `actionArticle` now comes from the catalog item.
+  - Imports: `fuero` column (code or name, default penal) in the cases file; the catalogs are those of the
+    row's area, the old words (`publica`, `defensa`...) stay as aliases of the criminal codes, defendant
+    columns are an error in an area without defendants, and a later row of a case must not name another
+    area. Hearing imports use the area of the row's case. There are no case-level stage columns in the
+    file yet: a non-criminal case imported starts in the first stage.
+  - The demo firm still has only `penal` enabled.

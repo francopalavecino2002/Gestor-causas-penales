@@ -1,0 +1,16 @@
+# Practice area manifest: familia de Neuquén (ADR-0032, T42). DRAFT to validate with a lawyer.
+# The Código Procesal de Familia is being reformed (a draft bill was under debate in June 2026), so
+# which rules apply today must be confirmed. The catalogs are generic, from
+# docs/domain/neuquen-otros-fueros.md §2. No deadline rule ships. Item codes are stable identifiers:
+# never rename or remove one.
+code: familia
+name: Familia
+law: Código Procesal de Familia de Neuquén (en reforma)
+reviewedOn: "2026-11-24"
+source: docs/domain/neuquen-otros-fueros.md
+flags: [validar, no-verificado]
+note: >-
+  Borrador sin validar. El código procesal de familia está en reforma y hay que confirmar qué norma
+  rige hoy. Los catálogos son genéricos y no hay plazos calculados: cargá los plazos a mano como
+  plazos judiciales.
+modules: []

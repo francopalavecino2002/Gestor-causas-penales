@@ -1,0 +1,11 @@
+# Roles que una persona puede tener en una causa de familia (neuquen-otros-fueros.md §2).
+catalog: party-roles
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: requirente, name: Requirente, flags: [validar], attributes: {side: requirente}}
+  - {code: requerido, name: Requerido, flags: [validar], attributes: {side: requerido}}
+  - {code: nna, name: "Niño, niña o adolescente", flags: [validar], attributes: {side: neutral}}
+  - {code: defensoria, name: Defensoría, flags: [validar], attributes: {side: neutral}}
+  - {code: perito, name: Perito, flags: [validar], attributes: {side: neutral}}
+  - {code: testigo, name: Testigo, flags: [validar], attributes: {side: neutral}}

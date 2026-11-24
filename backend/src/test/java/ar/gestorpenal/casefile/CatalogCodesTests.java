@@ -2,21 +2,31 @@ package ar.gestorpenal.casefile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
-/** The catalog codes the case enums map to; the package loader requires the same lists of every area. */
+/** The spelling of a case's catalog codes on the wire: plain codes and the old enum-like names. */
 class CatalogCodesTests {
 
     @Test
-    void actionTypesShouldMapToTheirCatalogCodes() {
-        assertThat(Arrays.stream(ActionType.values()).map(ActionType::catalogCode))
-                .containsExactly("public", "public-on-complaint", "private");
+    void shouldReadBothSpellingsAsTheSameCode() {
+        assertThat(CatalogCodes.fromWire("PUBLIC_ON_COMPLAINT")).isEqualTo("public-on-complaint");
+        assertThat(CatalogCodes.fromWire("public-on-complaint")).isEqualTo("public-on-complaint");
+        assertThat(CatalogCodes.fromWire(" DEFENCE ")).isEqualTo("defence");
+        assertThat(CatalogCodes.fromWire(null)).isNull();
     }
 
     @Test
-    void representationsShouldMapToTheirCatalogCodes() {
-        assertThat(Arrays.stream(Representation.values()).map(Representation::catalogCode))
-                .containsExactly("defence", "private-prosecution");
+    void shouldWriteTheEnumLikeSpellingTheFrontendStillReads() {
+        assertThat(CatalogCodes.toWire("public-on-complaint")).isEqualTo("PUBLIC_ON_COMPLAINT");
+        assertThat(CatalogCodes.toWire("private-prosecution")).isEqualTo("PRIVATE_PROSECUTION");
+        assertThat(CatalogCodes.toWire("sumarisimo")).isEqualTo("SUMARISIMO");
+        assertThat(CatalogCodes.toWire(null)).isNull();
+    }
+
+    @Test
+    void shouldRoundTripEveryCode() {
+        for (String code : new String[] {"public", "public-on-complaint", "ordinario", "de-conciliacion-o-acuerdo"}) {
+            assertThat(CatalogCodes.fromWire(CatalogCodes.toWire(code))).isEqualTo(code);
+        }
     }
 }

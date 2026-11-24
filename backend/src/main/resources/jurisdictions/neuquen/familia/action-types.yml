@@ -1,0 +1,8 @@
+# Tipo de proceso (neuquen-otros-fueros.md §2).
+catalog: action-types
+source: docs/domain/neuquen-otros-fueros.md §2
+flags: [validar]
+items:
+  - {code: contencioso, name: Proceso contencioso, flags: [validar]}
+  - {code: voluntario, name: Proceso voluntario, flags: [validar]}
+  - {code: cautelar, name: Medida cautelar, flags: [validar]}

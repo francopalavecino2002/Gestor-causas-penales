@@ -1,0 +1,19 @@
+# Deadline rules of the family area (ADR-0017, ADR-0032). No legal rule ships: none has an article read
+# from the text of the law. The only entry is the generic judicial deadline, whose date the lawyer loads
+# by hand from the resolution, so that deadlines can be tracked in this area meanwhile.
+source: docs/domain/neuquen-otros-fueros.md
+law: Resolución judicial
+rules:
+  - code: plazo-judicial
+    name: Plazo fijado por el juez
+    law: Resolución judicial
+    trigger: Resolución que fija el plazo
+    kind: JUDICIAL
+    computation: SET_BY_COURT
+    scope: CASE
+    detainee: false
+    consequence: La que indique la resolución
+    caseLaw: {status: Plazo judicial; se carga a mano la fecha fijada., reviewedOn: "2026-11-24"}
+    alertDaysBefore: 3
+    flags: [validar]
+    note: Plazo genérico para cargar a mano cualquier plazo judicial hasta que se revisen los plazos del fuero.

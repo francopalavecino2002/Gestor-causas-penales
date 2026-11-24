@@ -34,14 +34,6 @@ final class JurisdictionPackageLoader {
     static final int MAX_NAME_LENGTH = 200;
     static final int MAX_ARTICLE_LENGTH = 120;
 
-    /**
-     * Items every area must offer because the case still stores {@code ActionType} and
-     * {@code Representation} as enums (ADR-0032, T41). T42 replaces the enums and drops this check.
-     */
-    static final Map<Catalog, List<String>> ENUM_ITEMS = Map.of(
-            Catalog.ACTION_TYPES, List.of("public", "public-on-complaint", "private"),
-            Catalog.REPRESENTED_SIDES, List.of("defence", "private-prosecution"));
-
     private static final Pattern CODE = Pattern.compile("^[a-z0-9]+(-[a-z0-9]+)*$");
 
     /**
@@ -127,11 +119,6 @@ final class JurisdictionPackageLoader {
         }
         CatalogDefinition definition = read(file, CatalogDefinition.class, location);
         checkCatalog(catalog, fileName, definition, problems);
-        if (catalog.scope() == Catalog.Scope.AREA) {
-            ENUM_ITEMS.getOrDefault(catalog, List.of()).stream()
-                    .filter(code -> definition.item(code).isEmpty())
-                    .forEach(code -> problems.add(fileName + ": the item '" + code + "' is required (cases still store it)"));
-        }
         return Optional.of(definition);
     }
 

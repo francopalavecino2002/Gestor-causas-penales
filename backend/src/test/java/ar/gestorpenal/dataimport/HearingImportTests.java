@@ -8,11 +8,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 class HearingImportTests extends ImportApiTestSupport {
 
     private static final String HEADER = "legajo_mpf;numero_interno;tipo_audiencia;fecha;hora;duracion_minutos;sala;"
             + "juez;referencia_ofiju;estado;abogados;imputados";
+
+    @Autowired
+    private JdbcTemplate jdbc;
 
     private String caseWithLegajo(String legajo) throws Exception {
         return createCase(lawyer, caseJson("Caso de audiencias ficticio", ", \"mpfLegajo\": \"" + legajo + "\""));
@@ -196,5 +201,28 @@ class HearingImportTests extends ImportApiTestSupport {
         preview(lawyer, "hearings", csv(HEADER, ";;formulacion-de-cargos;16/03/2035;10:00;;;;;;;"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.rows[0].errors[0].column").value("legajo_mpf"));
+    }
+
+    @Test
+    void shouldMatchTheTypeAndStatusAgainstTheCatalogsOfTheCasesArea() throws Exception {
+        jdbc.update("update tenant set enabled_practice_areas = '{penal,civil}' where id = ?", tenantA);
+        String civilCase = createCase(lawyer, """
+                {"caption": "Causa civil ficticia", "circumscriptionCode": "i-confluencia", "actionType": "ordinario",
+                 "represents": "actor", "practiceArea": "civil", "internalNumber": "INT-H9"}
+                """);
+
+        commit(lawyer, "hearings", csv(HEADER,
+                        ";INT-H9;Audiencia preliminar;20/03/2035;09:30;;;;;Programada;;"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.created.hearings").value(1));
+        preview(lawyer, "hearings", csv(HEADER,
+                        ";INT-H9;formulacion-de-cargos;21/03/2035;09:30;;;;;;;"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rows[0].errors[0].column").value("tipo_audiencia"));
+
+        getAs(lawyer, hearingsOf(civilCase))
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].typeCode").value("preliminar"))
+                .andExpect(jsonPath("$[0].defendants", hasSize(0)));
     }
 }

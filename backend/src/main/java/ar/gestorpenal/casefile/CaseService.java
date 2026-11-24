@@ -72,6 +72,7 @@ class CaseService {
         String area = caseFile.getPracticeArea();
         areas.requireEnabled(area);
         requireCatalogCodes(area, data, null);
+        caseFile.applyCourse(courseOf(area, data, null));
         cases.saveAndFlush(caseFile);
         team.save(CaseTeamMember.create(caseFile.getId(), responsibleId, TeamRole.RESPONSIBLE));
         if (caseFile.isReserved() && !CasePermissions.seesEveryCase(user) && !user.userId().equals(responsibleId)) {
@@ -94,11 +95,37 @@ class CaseService {
         }
         requireNumbersFree(user, data, id);
         requireCatalogCodes(caseFile.getPracticeArea(), data, caseFile);
+        CaseCourse course = courseOf(caseFile.getPracticeArea(), data, caseFile);
         Map<String, Object> values =
                 customFields.resolve(CustomFieldEntity.CASE_FILE, data.customFields(), caseFile.getCustomFields());
         caseFile.apply(data);
+        caseFile.applyCourse(course);
         caseFile.replaceCustomFields(values);
         return views.detail(caseFile);
+    }
+
+    /**
+     * The case's own stage, status and outcome, checked against its area's catalogs; {@code null} for an
+     * area with the {@code defendants} module, where each defendant has them and the case must not.
+     * {@code current} is the stored case, or {@code null} for a new one.
+     */
+    private CaseCourse courseOf(String area, CaseData data, CaseFile current) {
+        if (areas.hasModule(area, PracticeModule.DEFENDANTS)) {
+            if (data.stageCode() != null || data.status() != null || data.closingOutcomeCode() != null) {
+                throw new InvalidCaseDataException(
+                        "In this practice area the stage, status and closing outcome belong to each defendant");
+            }
+            return null;
+        }
+        CaseCourse course = current == null
+                ? CaseCourse.initial(data, catalogs.stageOrder(area).get(0))
+                : CaseCourse.replacing(data);
+        catalogs.requireOffered(area, Catalog.STAGES, course.stageCode(), current == null ? null : current.getStageCode());
+        if (course.closingOutcomeCode() != null) {
+            catalogs.requireOffered(area, Catalog.CLOSING_OUTCOMES, course.closingOutcomeCode(),
+                    current == null ? null : current.getClosingOutcomeCode());
+        }
+        return course;
     }
 
     /**
@@ -111,10 +138,10 @@ class CaseService {
             catalogs.requireOffered(
                     area, Catalog.CIRCUMSCRIPTIONS, circumscription, current == null ? null : current.getCircumscriptionCode());
         }
-        catalogs.requireOffered(area, Catalog.ACTION_TYPES, data.actionType().catalogCode(),
-                current == null ? null : current.getActionType().catalogCode());
-        catalogs.requireOffered(area, Catalog.REPRESENTED_SIDES, data.represents().catalogCode(),
-                current == null ? null : current.getRepresents().catalogCode());
+        catalogs.requireOffered(area, Catalog.ACTION_TYPES, data.actionType(),
+                current == null ? null : current.getActionType());
+        catalogs.requireOffered(area, Catalog.REPRESENTED_SIDES, data.represents(),
+                current == null ? null : current.getRepresents());
         if (Text.clean(data.mpfLegajo()) != null) {
             areas.requireModule(area, PracticeModule.MPF_LEGAJO);
         }

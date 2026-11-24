@@ -11,7 +11,8 @@ import java.util.Optional;
  * @param defendantCount active defendants
  * @param openDefendantCount active defendants that are not closed
  * @param mostDelayedStage the stage, first in the stages catalog order, of an open defendant;
- *     {@code cerrada} when every defendant is closed; {@code null} when there are no defendants
+ *     {@code cerrada} when every defendant is closed; {@code null} when there are no defendants. For a
+ *     case of an area without defendants it is the case's own stage
  * @param detaineeCount active defendants with an active custodial measure (ADR-0016)
  * @param nextHearing the earliest upcoming hearing that is still pending, or {@code null}
  */
@@ -41,6 +42,11 @@ record CaseSummary(
             mostDelayed = earliest.orElseThrow();
         }
         return new CaseSummary(active.size(), open.size(), mostDelayed, 0, null);
+    }
+
+    /** A case that has no defendants (its area has none): the stage is the case's own, and it has no defendant counts. */
+    static CaseSummary ofCase(String stageCode) {
+        return new CaseSummary(0, 0, stageCode, 0, null);
     }
 
     CaseSummary withHearingData(int detainees, NextHearing next) {

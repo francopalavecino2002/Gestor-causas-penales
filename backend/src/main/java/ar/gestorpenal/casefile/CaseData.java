@@ -1,7 +1,6 @@
 package ar.gestorpenal.casefile;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.Map;
 import java.util.UUID;
@@ -13,6 +12,12 @@ import java.util.UUID;
  * {@code customFields} holds the firm's custom field values by key; omitted, the stored values stay.
  * {@code practiceArea} is the code of an area the firm has enabled; omitted, a new case is penal. It is
  * chosen when the case is created and never changes.
+ *
+ * <p>{@code actionType} and {@code represents} are codes of the area's catalogs; the API also accepts the
+ * old enum-like spelling ({@code PUBLIC_ON_COMPLAINT}), see {@link CatalogCodes}. {@code stageCode},
+ * {@code status} and {@code closingOutcomeCode} only apply to an area without the {@code defendants}
+ * module: its case has its own course (a new case starts in the area's first stage); in a criminal case
+ * they must be omitted because each defendant has them.
  */
 record CaseData(
         @NotBlank @Size(max = 300) String caption,
@@ -21,12 +26,20 @@ record CaseData(
         @Size(max = 40) String ofijuNumber,
         @Size(max = 40) String pehuenNumber,
         @NotBlank @Size(max = 60) String circumscriptionCode,
-        @NotNull ActionType actionType,
-        @NotNull Representation represents,
+        @NotBlank @Size(max = 60) String actionType,
+        @NotBlank @Size(max = 60) String represents,
         Boolean reserved,
         UUID responsibleUserId,
         @Size(max = 100) Map<String, Object> customFields,
-        @Size(max = 40) String practiceArea) {
+        @Size(max = 40) String practiceArea,
+        @Size(max = 60) String stageCode,
+        CaseStatus status,
+        @Size(max = 60) String closingOutcomeCode) {
+
+    CaseData {
+        actionType = CatalogCodes.fromWire(actionType);
+        represents = CatalogCodes.fromWire(represents);
+    }
 
     /**
      * The reserved flag to store: omitted keeps the current value (not reserved on a new case), so a

@@ -11,14 +11,16 @@ import ar.gestorpenal.dataimport.ImportValidator;
 import ar.gestorpenal.dataimport.RowException;
 import ar.gestorpenal.dataimport.RowImporter;
 import ar.gestorpenal.jurisdiction.Catalog;
+import ar.gestorpenal.jurisdiction.PracticeAreas;
+import ar.gestorpenal.jurisdiction.PracticeModule;
 import ar.gestorpenal.person.DocumentType;
 import ar.gestorpenal.person.InvalidPersonDataException;
 import ar.gestorpenal.person.PersonSummary;
 import ar.gestorpenal.person.Persons;
 import ar.gestorpenal.security.AuthenticatedUser;
+import ar.gestorpenal.tenancy.Tenant;
 import java.time.LocalDate;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,10 +34,15 @@ import org.springframework.stereotype.Component;
  * or the internal number are one case with several defendants, and the case columns of a later row
  * must be blank or equal to those of the first. A defendant is found by document; if no person has
  * it and the row gives names, a human is registered.
+ *
+ * <p>The optional {@code fuero} column names the practice area of the case (default: criminal). The
+ * action type, represented side and circumscription are matched against that area's catalogs, and the
+ * defendant columns only apply to an area with the {@code defendants} module (ADR-0032).
  */
 @Component
 class CaseRowImporter implements RowImporter {
 
+    private static final String AREA = "fuero";
     private static final String LEGAJO = "legajo_mpf";
     private static final String INTERNAL_NUMBER = "numero_interno";
     private static final String DEFENDANT_NUMBER = "imputado_numero_documento";
@@ -43,20 +50,27 @@ class CaseRowImporter implements RowImporter {
     private static final int MAX_NAME_LENGTH = 120;
     private static final String SAME_AS_FIRST_ROW = "Tiene que estar vacío o ser igual al de la primera fila de este caso.";
 
-    private static final Map<String, ActionType> ACTIONS = actions();
-    private static final Map<String, Representation> REPRESENTATIONS = representations();
+    /** The words the templates always used for the criminal catalogs, besides the catalogs' own codes and names. */
+    private static final Map<String, String> ACTION_ALIASES = Map.of(
+            "publica", "public",
+            "instancia_privada", "public-on-complaint",
+            "privada", "private");
+    private static final Map<String, String> REPRESENTATION_ALIASES = Map.of(
+            "defensa", "defence",
+            "querella", "private-prosecution");
 
-    private static final Map<String, String> COLUMN_OF_PROPERTY = Map.of(
-            "caption", "caratula",
-            "internalNumber", INTERNAL_NUMBER,
-            "mpfLegajo", LEGAJO,
-            "ofijuNumber", "numero_ofiju",
-            "pehuenNumber", "numero_pehuen",
-            "circumscriptionCode", "circunscripcion",
-            "actionType", "tipo_accion",
-            "represents", "representa",
-            "chargesFormulatedOn", "imputado_fecha_formalizacion",
-            "stageCode", "imputado_etapa");
+    private static final Map<String, String> COLUMN_OF_PROPERTY = Map.ofEntries(
+            Map.entry("practiceArea", AREA),
+            Map.entry("caption", "caratula"),
+            Map.entry("internalNumber", INTERNAL_NUMBER),
+            Map.entry("mpfLegajo", LEGAJO),
+            Map.entry("ofijuNumber", "numero_ofiju"),
+            Map.entry("pehuenNumber", "numero_pehuen"),
+            Map.entry("circumscriptionCode", "circunscripcion"),
+            Map.entry("actionType", "tipo_accion"),
+            Map.entry("represents", "representa"),
+            Map.entry("chargesFormulatedOn", "imputado_fecha_formalizacion"),
+            Map.entry("stageCode", "imputado_etapa"));
 
     private final CaseService cases;
     private final DefendantService defendants;
@@ -64,6 +78,7 @@ class CaseRowImporter implements RowImporter {
     private final ImportValidator validator;
     private final CatalogMatcher catalogs;
     private final FirmLawyers lawyers;
+    private final PracticeAreas areas;
 
     CaseRowImporter(
             CaseService cases,
@@ -71,13 +86,15 @@ class CaseRowImporter implements RowImporter {
             Persons persons,
             ImportValidator validator,
             CatalogMatcher catalogs,
-            FirmLawyers lawyers) {
+            FirmLawyers lawyers,
+            PracticeAreas areas) {
         this.cases = cases;
         this.defendants = defendants;
         this.persons = persons;
         this.validator = validator;
         this.catalogs = catalogs;
         this.lawyers = lawyers;
+        this.areas = areas;
     }
 
     @Override
@@ -89,6 +106,7 @@ class CaseRowImporter implements RowImporter {
     public List<ImportColumn> columns() {
         return List.of(
                 new ImportColumn("caratula", true, "Ficticio, Pedro s/ hurto"),
+                new ImportColumn(AREA, false, "penal"),
                 new ImportColumn(INTERNAL_NUMBER, false, "INT-0001"),
                 new ImportColumn(LEGAJO, false, "MPFNQ 1234/2025"),
                 new ImportColumn("numero_ofiju", false, null),
@@ -112,11 +130,13 @@ class CaseRowImporter implements RowImporter {
         if (legajo == null && internalNumber == null && row.text(LEGAJO) == null) {
             row.error(LEGAJO, "Cada fila necesita legajo_mpf o numero_interno.");
         }
-        CaseData data = readCase(user, row, context, legajo, internalNumber);
-        DefendantInput defendant = readDefendant(row, context);
         FileCase known = context.state(FileCases.class, FileCases::new).find(legajo, internalNumber);
+        String namedArea = catalogs.practiceArea(row, AREA, context);
+        String area = namedArea != null ? namedArea : known != null ? known.data().practiceArea() : Tenant.DEFAULT_PRACTICE_AREA;
+        CaseData data = readCase(user, row, context, legajo, internalNumber, area);
+        DefendantInput defendant = readDefendant(row, context, area);
         if (known != null) {
-            requireSameCase(row, known.data(), data);
+            requireSameCase(row, namedArea, known.data(), data);
         } else {
             requireNewCase(row, data);
         }
@@ -144,7 +164,7 @@ class CaseRowImporter implements RowImporter {
 
     /** The case columns of the row. A continuation row may leave them blank, so required ones are checked later. */
     private CaseData readCase(
-            AuthenticatedUser user, ImportRow row, ImportContext context, String legajo, String internalNumber) {
+            AuthenticatedUser user, ImportRow row, ImportContext context, String legajo, String internalNumber, String area) {
         UUID responsible = lawyers.idOf(row, "abogado_responsable", context);
         return new CaseData(
                 row.text("caratula"),
@@ -152,11 +172,14 @@ class CaseRowImporter implements RowImporter {
                 legajo,
                 row.text("numero_ofiju"),
                 row.text("numero_pehuen"),
-                catalogs.code(row, "circunscripcion", Catalog.CIRCUMSCRIPTIONS, context),
-                row.choice("tipo_accion", ACTIONS),
-                row.choice("representa", REPRESENTATIONS),
+                catalogs.code(row, "circunscripcion", area, Catalog.CIRCUMSCRIPTIONS, context),
+                catalogs.code(row, "tipo_accion", area, Catalog.ACTION_TYPES, ACTION_ALIASES, context),
+                catalogs.code(row, "representa", area, Catalog.REPRESENTED_SIDES, REPRESENTATION_ALIASES, context),
                 Boolean.FALSE,
                 responsible != null ? responsible : user.userId(),
+                null,
+                area,
+                null,
                 null,
                 null);
     }
@@ -173,7 +196,8 @@ class CaseRowImporter implements RowImporter {
         }
     }
 
-    private static void requireSameCase(ImportRow row, CaseData first, CaseData later) {
+    private static void requireSameCase(ImportRow row, String namedArea, CaseData first, CaseData later) {
+        requireBlankOrEqual(row, AREA, namedArea, first.practiceArea());
         requireBlankOrEqual(row, "caratula", later.caption(), first.caption());
         requireBlankOrEqual(row, INTERNAL_NUMBER, later.internalNumber(), first.internalNumber());
         requireBlankOrEqual(row, LEGAJO, later.mpfLegajo(), first.mpfLegajo());
@@ -212,16 +236,20 @@ class CaseRowImporter implements RowImporter {
     }
 
     /** The defendant columns of the row, or {@code null} when the row has none. */
-    private DefendantInput readDefendant(ImportRow row, ImportContext context) {
+    private DefendantInput readDefendant(ImportRow row, ImportContext context, String area) {
         String number = row.text(DEFENDANT_NUMBER);
         String firstNames = row.text("imputado_nombres");
         String lastNames = row.text(DEFENDANT_LAST_NAMES);
         DocumentType type = row.choice("imputado_tipo_documento", DocumentType.words());
-        String stage = catalogs.code(row, "imputado_etapa", Catalog.STAGES, context);
+        String stage = catalogs.code(row, "imputado_etapa", area, Catalog.STAGES, context);
         LocalDate chargesOn = row.date("imputado_fecha_formalizacion");
         boolean given = number != null || firstNames != null || lastNames != null || stage != null || chargesOn != null
                 || row.text("imputado_tipo_documento") != null;
         if (!given) {
+            return null;
+        }
+        if (!areas.hasModule(area, PracticeModule.DEFENDANTS)) {
+            row.error(DEFENDANT_NUMBER, "Este fuero no tiene imputados: dejá vacías las columnas imputado_*.");
             return null;
         }
         if (number == null) {
@@ -281,21 +309,6 @@ class CaseRowImporter implements RowImporter {
             throw RowException.of(DEFENDANT_NUMBER, "No se pudo registrar a la persona imputada: revisá el documento y los nombres.",
                     e.getMessage());
         }
-    }
-
-    private static Map<String, ActionType> actions() {
-        Map<String, ActionType> actions = new LinkedHashMap<>();
-        actions.put("publica", ActionType.PUBLIC);
-        actions.put("instancia_privada", ActionType.PUBLIC_ON_COMPLAINT);
-        actions.put("privada", ActionType.PRIVATE);
-        return actions;
-    }
-
-    private static Map<String, Representation> representations() {
-        Map<String, Representation> representations = new LinkedHashMap<>();
-        representations.put("defensa", Representation.DEFENCE);
-        representations.put("querella", Representation.PRIVATE_PROSECUTION);
-        return representations;
     }
 
     /** The defendant of a row: the person if the firm already has it, else the data to register one. */

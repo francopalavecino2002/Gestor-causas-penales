@@ -1,5 +1,7 @@
 package ar.gestorpenal.casefile;
 
+import ar.gestorpenal.jurisdiction.PracticeAreas;
+import ar.gestorpenal.jurisdiction.PracticeModule;
 import ar.gestorpenal.person.PersonSummary;
 import ar.gestorpenal.person.Persons;
 import ar.gestorpenal.security.AuthenticatedUser;
@@ -21,23 +23,29 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class Cases {
 
+    /** The code of the private criminal action in the criminal area's {@code action-types} catalog. */
+    private static final String PRIVATE_ACTION = "private";
+
     private final CaseFileRepository cases;
     private final CaseTeamMemberRepository team;
     private final DefendantRepository defendants;
     private final CaseAccess access;
     private final Persons persons;
+    private final PracticeAreas areas;
 
     Cases(
             CaseFileRepository cases,
             CaseTeamMemberRepository team,
             DefendantRepository defendants,
             CaseAccess access,
-            Persons persons) {
+            Persons persons,
+            PracticeAreas areas) {
         this.cases = cases;
         this.team = team;
         this.defendants = defendants;
         this.access = access;
         this.persons = persons;
+        this.areas = areas;
     }
 
     /** The case, archived or not, or empty when it does not exist or is a reserved case the user cannot see. */
@@ -127,6 +135,12 @@ public class Cases {
         CasePermissions.requireCanArchive(user);
     }
 
+    /** The private criminal action (art. 101): only an area with coercive measures knows it. */
+    private boolean isPrivateAction(CaseFile caseFile) {
+        return PRIVATE_ACTION.equals(caseFile.getActionType())
+                && areas.hasModule(caseFile.getPracticeArea(), PracticeModule.COERCIVE_MEASURES);
+    }
+
     private CaseRef ref(AuthenticatedUser user, CaseFile caseFile) {
         return new CaseRef(
                 caseFile.getId(),
@@ -134,7 +148,7 @@ public class Cases {
                 caseFile.getPracticeArea(),
                 caseFile.isReserved(),
                 caseFile.isArchived(),
-                caseFile.getActionType() == ActionType.PRIVATE,
+                isPrivateAction(caseFile),
                 access.canSee(user, caseFile));
     }
 }

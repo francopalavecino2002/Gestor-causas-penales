@@ -16,6 +16,7 @@ import ar.gestorpenal.jurisdiction.Catalog;
 import ar.gestorpenal.person.PersonSummary;
 import ar.gestorpenal.person.Persons;
 import ar.gestorpenal.security.AuthenticatedUser;
+import ar.gestorpenal.tenancy.Tenant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -103,15 +104,28 @@ class HearingRowImporter implements RowImporter {
         if (legajo == null && internalNumber == null) {
             row.error(LEGAJO, "Cada fila necesita legajo_mpf o numero_interno.");
         }
-        String type = row.require("tipo_audiencia", catalogs.code(row, "tipo_audiencia", Catalog.HEARING_TYPES, context));
+        CaseRef caseRef = null;
+        RowException caseProblem = null;
+        if (legajo != null || internalNumber != null) {
+            try {
+                caseRef = visibleCase(user, legajo, internalNumber);
+            } catch (RowException e) {
+                caseProblem = e;
+            }
+        }
+        // The hearing types and statuses are those of the case's practice area (ADR-0032).
+        String area = caseRef != null ? caseRef.practiceArea() : Tenant.DEFAULT_PRACTICE_AREA;
+        String type = row.require("tipo_audiencia", catalogs.code(row, "tipo_audiencia", area, Catalog.HEARING_TYPES, context));
         LocalDate day = row.require("fecha", row.date("fecha"));
         LocalTime time = row.require("hora", row.time("hora"));
-        String status = catalogs.code(row, "estado", Catalog.HEARING_STATUSES, context);
+        String status = catalogs.code(row, "estado", area, Catalog.HEARING_STATUSES, context);
         Integer minutes = row.integer("duracion_minutos");
         List<UUID> lawyerIds = lawyerIds(row, context);
+        if (caseProblem != null) {
+            caseProblem.errors().forEach(error -> row.error(error.column(), error.message(), error.detail()));
+        }
         row.throwIfErrors();
 
-        CaseRef caseRef = visibleCase(user, legajo, internalNumber);
         List<UUID> defendantIds = defendantIds(row, caseRef.id());
         row.throwIfErrors();
 
