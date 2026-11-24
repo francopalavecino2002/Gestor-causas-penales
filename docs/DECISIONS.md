@@ -1511,3 +1511,21 @@ Superseded decisions are marked, never deleted.
     tasks and fees, but without computed deadlines.
   - Each non-criminal area needs its own legal review before it is presented as validated.
   - The task split T41 (packages and case area), T42 (non-criminal cases) and T43 (UI) stands.
+- **Implementation notes (T41):**
+  - `ActionType` and `Representation` stay Java enums on the case (stored values `PUBLIC`,
+    `PRIVATE_PROSECUTION`... and the API are unchanged, so the frontend needs no change). They are
+    validated through the area's `action-types` and `represented-sides` catalogs, whose penal codes
+    mirror them in lowercase (`public-on-complaint`). T42 replaces the enums with free catalog codes
+    (a Flyway migration plus an API compatibility step) before a non-criminal area needs its own
+    action types and sides.
+  - Imports (`CatalogMatcher`) read the penal catalogs: they only create penal cases until T42 adds
+    the area column. Deadline settings (`DeadlineRuleService`: `/deadline-rules`, its settings and the
+    court calendar) act on the penal rules until non-criminal areas ship rules; creating, updating,
+    extending and viewing a deadline already use the rules of the deadline's case area. The loader
+    requires every area's `action-types` and `represented-sides` to contain the codes of the two
+    enums until T42 removes them.
+  - `tenant.enabled_practice_areas` has no write path yet: T43 adds a validated, owner-only, audited
+    endpoint (tests set it through SQL).
+  - The module list is a closed set in code (`PracticeModule`), and a module may require another
+    (detainee alerts need coercive measures, which need defendants). An area folder must provide the
+    catalogs of its modules and no others.
