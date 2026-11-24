@@ -181,3 +181,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `GET /api/v1/calendar-feed/{secret}.ics`), and a one-hearing download
   (`GET /api/v1/hearings/{id}/calendar.ics`). Defendants, notes and results never leave; reserved
   cases show "Causa reservada" without caption, judge or OFIJU reference (ADR-0034).
+- Agenda export UI (T45): "Tu calendario" in Ajustes for every member, to create the private link
+  (shown once, with copy button and a `webcal://` shortcut), regenerate or deactivate it with
+  confirmation, step-by-step instructions for Google Calendar, Outlook and iPhone and what data the
+  calendar receives; "Agregá al calendario" downloads one hearing as `.ics` from the agenda and the
+  case detail (ADR-0035).
