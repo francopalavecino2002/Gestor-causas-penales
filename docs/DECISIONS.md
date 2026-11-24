@@ -1554,3 +1554,37 @@ Superseded decisions are marked, never deleted.
     area. Hearing imports use the area of the row's case. There are no case-level stage columns in the
     file yet: a non-criminal case imported starts in the first stage.
   - The demo firm still has only `penal` enabled.
+- **Implementation notes (T43):**
+  - Plain catalog codes on the wire: the case API takes and returns `public-on-complaint`, `defence`,
+    `ordinario`... and `CatalogCodes` with its enum-like translation is gone (an old spelling is now a
+    400, like any unknown code). The frontend has no action-type or side labels of its own: it reads the
+    names from the area's `action-types` and `represented-sides` catalogs.
+  - Settings: `GET /api/v1/practice-areas/available` lists every area of the package with an `enabled`
+    flag, the default area (penal) first and then the package order; `PUT /api/v1/practice-areas/enabled
+    {codes}` is owner-only, needs at least one known code, refuses to turn off an area that still has
+    active (not archived) cases (409 `practice-area-in-use`), and writes an `UPDATE` audit entry on the
+    tenant (`enabledPracticeAreas: "penal" → "penal,civil"`). The tenant row is not tenant-scoped, so the
+    entry goes through a small `AuditJournal` (same table and actor as `@Audited`) instead of the entity
+    listener. The `jurisdiction` package asks `casefile` about active cases through a `PracticeAreaUsage`
+    interface, so it does not depend on it.
+  - `GET /api/v1/cases?area=` filters the list on the server; hearings and agenda items carry their case's
+    `practiceArea`, and the agenda filters by area on the client (one week of hearings is already loaded).
+  - The UI keeps the criminal demo identical when the firm has only `penal`: the area choice in «Nueva
+    causa», the area badges and the area filters only appear with more than one enabled area. A case of a
+    non-penal area always shows its badge and the area's draft note (`[validar]`).
+  - What a screen shows follows the case's modules, not its area code: `defendants` (defendant section,
+    defendant picker in hearings, the criminal summary), `detainee-alerts` (detainee counts and the
+    agenda's alerts, hidden when the agenda is filtered to an area without them) and `mpf-legajo` (MPF
+    legajo, OFIJU and Pehuén numbers, the hearing's OFIJU reference and «Quién la pidió»). Without
+    defendants, a case has an «Etapa y estado» section edited through the case form, and parties are
+    added with the area's `party-roles` (the first party can be added while creating the case).
+  - Catalog settings take `?area=` (selector «Fuero» only with more than one area); the settings section
+    nav shows its icons only from 1280 px so its five sections fit in one row from 768 px.
+  - Concurrency: a change of the areas re-reads the tenant row locked `FOR UPDATE` before the in-use check,
+    and opening a case (including each imported case, which goes through the same service) re-reads it
+    `FOR SHARE` when it checks the area is enabled. Two changes run one after the other, and a case cannot
+    be saved in an area that is being turned off. `EntityManager.refresh(tenant, lock)` is used instead of a
+    locking query, which would return the stale copy already in the session. Residual: the import's dry run
+    validates against the areas it read first; the real import re-checks each case under the lock.
+  - Each code in the request is bounded (`@NotBlank`, at most 50 characters) and the 400 for an unknown code
+    does not echo it.
