@@ -102,6 +102,20 @@ class NonCriminalCaseApiTests extends CaseApiTestSupport {
     }
 
     @Test
+    void aFirmCannotHideTheStagesSoANewCaseAlwaysHasAnOfferedFirstStageAndCanClose() throws Exception {
+        // Stages drive behavior, so the catalog only allows renames: hiding the first stage or "cerrada" is refused.
+        putJson(owner, "/api/v1/catalogs/stages/items/inicio?area=civil", "{\"hidden\": true}")
+                .andExpect(status().isConflict());
+        putJson(owner, "/api/v1/catalogs/stages/items/cerrada?area=civil", "{\"hidden\": true}")
+                .andExpect(status().isConflict());
+        String id = createCase(owner, civilCase("Causa civil ficticia", ""));
+
+        putJson(owner, "/api/v1/cases/" + id, civilCase("Causa civil ficticia",
+                ", \"stageCode\": \"cerrada\", \"status\": \"CLOSED\", \"closingOutcomeCode\": \"acuerdo\""))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void aCivilCaseShouldRejectTheStagesAndOutcomesOfOtherAreas() throws Exception {
         String id = createCase(owner, civilCase("Causa civil ficticia", ""));
 

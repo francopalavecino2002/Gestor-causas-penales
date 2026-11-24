@@ -225,4 +225,12 @@ class HearingImportTests extends ImportApiTestSupport {
                 .andExpect(jsonPath("$[0].typeCode").value("preliminar"))
                 .andExpect(jsonPath("$[0].defendants", hasSize(0)));
     }
+
+    @Test
+    void shouldReportOnlyTheCaseErrorWhenTheCaseDoesNotExist() throws Exception {
+        preview(lawyer, "hearings", csv(HEADER, "MPFNQ 3999/2035;;tipo-inexistente;16/03/2035;10:00;;;;;;;"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rows[0].errors", hasSize(1)))
+                .andExpect(jsonPath("$.rows[0].errors[0].column").value("legajo_mpf"));
+    }
 }

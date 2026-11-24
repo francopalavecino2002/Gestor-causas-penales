@@ -34,6 +34,9 @@ final class JurisdictionPackageLoader {
     static final int MAX_NAME_LENGTH = 200;
     static final int MAX_ARTICLE_LENGTH = 120;
 
+    /** The stage a closed case is in; the stages catalog cannot be hidden by a firm, so it is always offered. */
+    static final String CLOSED_STAGE = "cerrada";
+
     private static final Pattern CODE = Pattern.compile("^[a-z0-9]+(-[a-z0-9]+)*$");
 
     /**
@@ -103,6 +106,11 @@ final class JurisdictionPackageLoader {
                 continue;
             }
             readCatalog(areaFile, prefix, catalog, location, problems).ifPresent(found -> catalogs.put(catalog, found));
+        }
+        CatalogDefinition stages = catalogs.get(Catalog.STAGES);
+        if (!modules.contains(PracticeModule.DEFENDANTS) && stages != null && stages.item(CLOSED_STAGE).isEmpty()) {
+            problems.add(prefix + "stages.yml: the item '" + CLOSED_STAGE
+                    + "' is required in an area without the module 'defendants' (a case closes in it)");
         }
         return new PracticeArea(manifest.code(), manifest.name(), manifest.law(), manifest.reviewedOn(),
                 manifest.source(), manifest.flags(), manifest.note(), modules, catalogs);

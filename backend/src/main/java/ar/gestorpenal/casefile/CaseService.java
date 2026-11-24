@@ -118,7 +118,7 @@ class CaseService {
             return null;
         }
         CaseCourse course = current == null
-                ? CaseCourse.initial(data, catalogs.stageOrder(area).get(0))
+                ? CaseCourse.initial(data, catalogs.firstOfferedStage(area))
                 : CaseCourse.replacing(data);
         catalogs.requireOffered(area, Catalog.STAGES, course.stageCode(), current == null ? null : current.getStageCode());
         if (course.closingOutcomeCode() != null) {

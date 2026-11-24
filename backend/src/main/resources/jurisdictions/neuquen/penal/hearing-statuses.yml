@@ -13,7 +13,7 @@ items:
     name: Realizada (efectiva)
   - code: reconvertida
     name: Reconvertida
-    note: "Se hizo, pero como otro tipo de audiencia."
+    note: Se hizo, pero como otro tipo de audiencia.
   - code: cuarto-intermedio
     name: Cuarto intermedio o continuación
   - code: suspendida

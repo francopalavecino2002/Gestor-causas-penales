@@ -141,6 +141,18 @@ class JurisdictionPackageLoaderTests {
     }
 
     @Test
+    void shouldRequireTheClosedStageInAnAreaWithoutDefendants() {
+        Resource jurisdiction = new ClassPathResource("jurisdiction-fixtures/no-closed-stage/jurisdiction.yml");
+        Resource area = new ClassPathResource("jurisdiction-fixtures/no-closed-stage/fuero/area.yml");
+
+        InvalidJurisdictionPackageException error = catchThrowableOfType(
+                InvalidJurisdictionPackageException.class, () -> loader.load(jurisdiction, List.of(area)));
+
+        assertThat(error.problems()).contains("fuero/stages.yml: the item 'cerrada' is required in an area without"
+                + " the module 'defendants' (a case closes in it)");
+    }
+
+    @Test
     void shouldRequireAtLeastOnePracticeArea() {
         InvalidJurisdictionPackageException error = catchThrowableOfType(
                 InvalidJurisdictionPackageException.class,

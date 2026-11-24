@@ -16,7 +16,6 @@ import ar.gestorpenal.jurisdiction.Catalog;
 import ar.gestorpenal.person.PersonSummary;
 import ar.gestorpenal.person.Persons;
 import ar.gestorpenal.security.AuthenticatedUser;
-import ar.gestorpenal.tenancy.Tenant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -113,17 +112,22 @@ class HearingRowImporter implements RowImporter {
                 caseProblem = e;
             }
         }
+        if (caseProblem != null) {
+            // Without the case there is no area to match the catalogs against: report only that.
+            caseProblem.errors().forEach(error -> row.error(error.column(), error.message(), error.detail()));
+            row.throwIfErrors();
+        }
+        if (caseRef == null) {
+            row.throwIfErrors();
+        }
         // The hearing types and statuses are those of the case's practice area (ADR-0032).
-        String area = caseRef != null ? caseRef.practiceArea() : Tenant.DEFAULT_PRACTICE_AREA;
+        String area = caseRef.practiceArea();
         String type = row.require("tipo_audiencia", catalogs.code(row, "tipo_audiencia", area, Catalog.HEARING_TYPES, context));
         LocalDate day = row.require("fecha", row.date("fecha"));
         LocalTime time = row.require("hora", row.time("hora"));
         String status = catalogs.code(row, "estado", area, Catalog.HEARING_STATUSES, context);
         Integer minutes = row.integer("duracion_minutos");
         List<UUID> lawyerIds = lawyerIds(row, context);
-        if (caseProblem != null) {
-            caseProblem.errors().forEach(error -> row.error(error.column(), error.message(), error.detail()));
-        }
         row.throwIfErrors();
 
         List<UUID> defendantIds = defendantIds(row, caseRef.id());

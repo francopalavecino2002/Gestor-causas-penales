@@ -54,6 +54,14 @@ class CaseCatalogs {
         return articles;
     }
 
+    /** The first stage of the area's catalog that the firm offers (not hidden) for new records. */
+    String firstOfferedStage(String area) {
+        return catalogs.view(area, Catalog.STAGES, false).items().stream()
+                .map(CatalogItem::code)
+                .findFirst()
+                .orElseThrow(() -> new InvalidCaseDataException("This practice area offers no stage for a new case"));
+    }
+
     /** The codes of the area's stages catalog in procedural order. */
     List<String> stageOrder(String area) {
         return List.copyOf(names(area, Catalog.STAGES).keySet());
