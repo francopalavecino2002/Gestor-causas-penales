@@ -52,8 +52,8 @@ class DeadlineService {
 
     @Transactional
     DeadlineView create(AuthenticatedUser user, UUID caseId, DeadlineData data) {
-        editableCase(user, caseId);
-        FirmRules.Snapshot firm = firmRules.current();
+        CaseRef caseRef = editableCase(user, caseId);
+        FirmRules.Snapshot firm = firmRules.current(caseRef.practiceArea());
         DeadlineRule rule = firm.deadlinePackage().rule(Text.clean(data.ruleCode()))
                 .orElseThrow(() -> new InvalidDeadlineDataException("There is no deadline rule '" + data.ruleCode() + "'"));
         if (!firm.enabled(rule)) {
@@ -109,7 +109,7 @@ class DeadlineService {
             throw new InvalidDeadlineDataException("The defendant of a deadline cannot change: archive it and load a new one");
         }
         requireHearingOfCase(data.hearingId(), deadline.getCaseId());
-        deadline.apply(firmRules.current().rule(deadline.getRuleCode()), data, DeadlineClock.ZONE, clock.today());
+        deadline.apply(ruleOf(user, deadline), data, DeadlineClock.ZONE, clock.today());
         boolean extendedBeforeStart = activeExtensions(id).stream()
                 .anyMatch(extension -> extension.getGrantedOn().isBefore(deadline.getTriggeredOn()));
         if (extendedBeforeStart) {
@@ -131,7 +131,7 @@ class DeadlineService {
     @Transactional
     DeadlineView extend(AuthenticatedUser user, UUID id, ExtensionData data) {
         Deadline deadline = findEditable(user, id);
-        DeadlineRule rule = firmRules.current().rule(deadline.getRuleCode());
+        DeadlineRule rule = ruleOf(user, deadline);
         List<DeadlineExtension> chain = activeExtensions(id);
         int granted = chain.size();
         if (granted >= rule.extensions().size()) {
@@ -254,6 +254,11 @@ class DeadlineService {
                 .orElseThrow(() -> new DeadlineNotFoundException("There is no deadline " + id));
         visibleCase(user, deadline.getCaseId());
         return deadline;
+    }
+
+    /** The deadline's rule, from the rules of its case's practice area. */
+    private DeadlineRule ruleOf(AuthenticatedUser user, Deadline deadline) {
+        return firmRules.current(visibleCase(user, deadline.getCaseId()).practiceArea()).rule(deadline.getRuleCode());
     }
 
     private Deadline findEditable(AuthenticatedUser user, UUID id) {

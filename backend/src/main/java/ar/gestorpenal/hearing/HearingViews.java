@@ -6,9 +6,11 @@ import ar.gestorpenal.casefile.DefendantRef;
 import ar.gestorpenal.jurisdiction.Catalog;
 import ar.gestorpenal.jurisdiction.CatalogItem;
 import ar.gestorpenal.security.AuthenticatedUser;
+import ar.gestorpenal.tenancy.Tenant;
 import ar.gestorpenal.user.AppUser;
 import ar.gestorpenal.user.UserRepository;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -67,15 +69,17 @@ class HearingViews {
                 .stream()
                 .collect(Collectors.toMap(AppUser::getId, AppUser::getDisplayName));
         Map<UUID, CaseRef> caseRefs = cases.findAll(user, distinct(hearings.stream().map(Hearing::getCaseId).toList()));
-        Map<String, CatalogItem> types = catalogs.items(Catalog.HEARING_TYPES);
-        Map<String, String> statuses = catalogs.names(Catalog.HEARING_STATUSES);
-        Map<String, String> reasons = catalogs.names(Catalog.CANCELLATION_REASONS);
+        Map<String, Vocabulary> vocabularies = new HashMap<>();
 
         return hearings.stream()
                 .map(hearing -> {
+                    CaseRef caseRef = caseRefs.get(hearing.getCaseId());
+                    Vocabulary vocabulary = vocabularies.computeIfAbsent(areaOf(caseRef), this::vocabularyOf);
+                    Map<String, CatalogItem> types = vocabulary.types();
+                    Map<String, String> statuses = vocabulary.statuses();
+                    Map<String, String> reasons = vocabulary.reasons();
                     CatalogItem type = types.get(hearing.getTypeCode());
                     CatalogItem heldAs = hearing.getHeldAsTypeCode() == null ? null : types.get(hearing.getHeldAsTypeCode());
-                    CaseRef caseRef = caseRefs.get(hearing.getCaseId());
                     return new HearingView(
                             hearing.getId(),
                             hearing.getCaseId(),
@@ -118,6 +122,22 @@ class HearingViews {
                 .map(RescheduleView::of)
                 .toList();
         return HearingDetail.of(head, clashes, history);
+    }
+
+    /** What the hearings of one practice area are shown with: that area's types, statuses and reasons. */
+    private record Vocabulary(
+            Map<String, CatalogItem> types, Map<String, String> statuses, Map<String, String> reasons) {}
+
+    private Vocabulary vocabularyOf(String area) {
+        return new Vocabulary(
+                catalogs.items(area, Catalog.HEARING_TYPES),
+                catalogs.names(area, Catalog.HEARING_STATUSES),
+                catalogs.names(area, Catalog.CANCELLATION_REASONS));
+    }
+
+    /** A case that no longer shows up (it cannot happen inside a tenant) is read as the default area. */
+    private static String areaOf(CaseRef caseRef) {
+        return caseRef == null ? Tenant.DEFAULT_PRACTICE_AREA : caseRef.practiceArea();
     }
 
     private static Collection<UUID> distinct(Collection<UUID> ids) {

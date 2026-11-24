@@ -11,6 +11,8 @@ import java.util.UUID;
  * the case is created (it defaults to the creator); afterwards the team has its own endpoint.
  * {@code mpfLegajo} may be typed in lowercase or without the space; it is normalized.
  * {@code customFields} holds the firm's custom field values by key; omitted, the stored values stay.
+ * {@code practiceArea} is the code of an area the firm has enabled; omitted, a new case is penal. It is
+ * chosen when the case is created and never changes.
  */
 record CaseData(
         @NotBlank @Size(max = 300) String caption,
@@ -23,7 +25,8 @@ record CaseData(
         @NotNull Representation represents,
         Boolean reserved,
         UUID responsibleUserId,
-        @Size(max = 100) Map<String, Object> customFields) {
+        @Size(max = 100) Map<String, Object> customFields,
+        @Size(max = 40) String practiceArea) {
 
     /**
      * The reserved flag to store: omitted keeps the current value (not reserved on a new case), so a

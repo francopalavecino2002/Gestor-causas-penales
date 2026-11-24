@@ -1,0 +1,7 @@
+catalog: represented-sides
+source: Prueba automatizada
+items:
+  - code: defence
+    name: Parte de prueba
+  - code: private-prosecution
+    name: Otra parte de prueba

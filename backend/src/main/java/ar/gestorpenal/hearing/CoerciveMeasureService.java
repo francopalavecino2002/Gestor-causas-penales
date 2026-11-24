@@ -5,6 +5,8 @@ import ar.gestorpenal.casefile.Cases;
 import ar.gestorpenal.casefile.DefendantRef;
 import ar.gestorpenal.jurisdiction.Catalog;
 import ar.gestorpenal.jurisdiction.CatalogItem;
+import ar.gestorpenal.jurisdiction.PracticeAreas;
+import ar.gestorpenal.jurisdiction.PracticeModule;
 import ar.gestorpenal.security.AuthenticatedUser;
 import java.util.Comparator;
 import java.util.List;
@@ -29,6 +31,7 @@ class CoerciveMeasureService {
     private final HearingCatalogs catalogs;
     private final HearingCalendar calendar;
     private final Cases cases;
+    private final PracticeAreas areas;
 
     CoerciveMeasureService(
             CoerciveMeasureRepository measures,
@@ -36,35 +39,37 @@ class CoerciveMeasureService {
             HearingRepository hearings,
             HearingCatalogs catalogs,
             HearingCalendar calendar,
-            Cases cases) {
+            Cases cases,
+            PracticeAreas areas) {
         this.measures = measures;
         this.risks = risks;
         this.hearings = hearings;
         this.catalogs = catalogs;
         this.calendar = calendar;
         this.cases = cases;
+        this.areas = areas;
     }
 
     @Transactional
     CoerciveMeasureView create(AuthenticatedUser user, UUID defendantId, CoerciveMeasureData data) {
         DefendantRef defendant = findEditableDefendant(user, defendantId);
         CaseRef caseRef = visibleCase(user, defendant.caseId());
-        requireCatalogCodes(data, null);
+        requireCatalogCodes(caseRef.practiceArea(), data, null);
         requirePreventivePrisonAllowed(caseRef, data.measureCode(), null);
         requireHearingOfCase(data.orderedByHearingId(), defendant.caseId());
         CoerciveMeasure measure = measures.saveAndFlush(CoerciveMeasure.create(defendantId, data));
         addRisks(measure.getId(), data.risks());
         measures.flush();
-        return view(measure);
+        return view(caseRef.practiceArea(), measure);
     }
 
     @Transactional(readOnly = true)
     List<CoerciveMeasureView> listByDefendant(AuthenticatedUser user, UUID defendantId, boolean includeArchived) {
-        findDefendant(user, defendantId);
+        DefendantRef defendant = findDefendant(user, defendantId);
         List<CoerciveMeasure> found = includeArchived
                 ? measures.findByDefendantIdOrderByStartsOnDescIdAsc(defendantId)
                 : measures.findByDefendantIdAndArchivedAtIsNullOrderByStartsOnDescIdAsc(defendantId);
-        return views(found);
+        return views(areaOf(user, defendant), found);
     }
 
     /** Replaces the editable fields. Preventive prison is only checked against the case when it is new. */
@@ -72,13 +77,14 @@ class CoerciveMeasureService {
     CoerciveMeasureView update(AuthenticatedUser user, UUID id, CoerciveMeasureData data) {
         CoerciveMeasure measure = findEditable(user, id);
         DefendantRef defendant = findDefendant(user, measure.getDefendantId());
-        requireCatalogCodes(data, measure);
-        requirePreventivePrisonAllowed(visibleCase(user, defendant.caseId()), data.measureCode(), measure.getMeasureCode());
+        CaseRef caseRef = visibleCase(user, defendant.caseId());
+        requireCatalogCodes(caseRef.practiceArea(), data, measure);
+        requirePreventivePrisonAllowed(caseRef, data.measureCode(), measure.getMeasureCode());
         requireHearingOfCase(data.orderedByHearingId(), defendant.caseId());
         measure.apply(data);
         replaceRisks(id, data.risks());
         measures.flush();
-        return view(measure);
+        return view(caseRef.practiceArea(), measure);
     }
 
     /** Ends the measure (cese) on a day that is neither before it started nor in the future. */
@@ -87,7 +93,7 @@ class CoerciveMeasureService {
         CoerciveMeasure measure = findEditable(user, id);
         measure.lift(data.liftedOn(), calendar.today());
         measures.flush();
-        return view(measure);
+        return view(areaOf(user, findDefendant(user, measure.getDefendantId())), measure);
     }
 
     @Transactional
@@ -105,12 +111,12 @@ class CoerciveMeasureService {
         measure.restore();
     }
 
-    private void requireCatalogCodes(CoerciveMeasureData data, CoerciveMeasure current) {
+    private void requireCatalogCodes(String area, CoerciveMeasureData data, CoerciveMeasure current) {
         String code = Text.clean(data.measureCode());
-        catalogs.requireOffered(Catalog.COERCIVE_MEASURES, code, current == null ? null : current.getMeasureCode());
+        catalogs.requireOffered(area, Catalog.COERCIVE_MEASURES, code, current == null ? null : current.getMeasureCode());
         Set<String> currentRisks = current == null ? Set.of() : riskCodesOf(current.getId());
         for (String risk : data.risks()) {
-            catalogs.requireOffered(Catalog.PROCEDURAL_RISKS, risk, currentRisks.contains(risk) ? risk : null);
+            catalogs.requireOffered(area, Catalog.PROCEDURAL_RISKS, risk, currentRisks.contains(risk) ? risk : null);
         }
     }
 
@@ -160,7 +166,7 @@ class CoerciveMeasureService {
         if (defendant == null) {
             throw new HearingNotFoundException("There is no defendant " + defendantId);
         }
-        visibleCase(user, defendant.caseId());
+        areas.requireModule(visibleCase(user, defendant.caseId()).practiceArea(), PracticeModule.COERCIVE_MEASURES);
         return defendant;
     }
 
@@ -197,11 +203,15 @@ class CoerciveMeasureService {
         return measure;
     }
 
-    private CoerciveMeasureView view(CoerciveMeasure measure) {
-        return views(List.of(measure)).get(0);
+    private String areaOf(AuthenticatedUser user, DefendantRef defendant) {
+        return visibleCase(user, defendant.caseId()).practiceArea();
     }
 
-    private List<CoerciveMeasureView> views(List<CoerciveMeasure> rows) {
+    private CoerciveMeasureView view(String area, CoerciveMeasure measure) {
+        return views(area, List.of(measure)).get(0);
+    }
+
+    private List<CoerciveMeasureView> views(String area, List<CoerciveMeasure> rows) {
         if (rows.isEmpty()) {
             return List.of();
         }
@@ -210,8 +220,8 @@ class CoerciveMeasureService {
                         rows.stream().map(CoerciveMeasure::getId).toList())
                 .stream()
                 .collect(Collectors.groupingBy(CoerciveMeasureRisk::getMeasureId));
-        Map<String, CatalogItem> measureItems = catalogs.items(Catalog.COERCIVE_MEASURES);
-        Map<String, String> riskNames = catalogs.names(Catalog.PROCEDURAL_RISKS);
+        Map<String, CatalogItem> measureItems = catalogs.items(area, Catalog.COERCIVE_MEASURES);
+        Map<String, String> riskNames = catalogs.names(area, Catalog.PROCEDURAL_RISKS);
         // Risks are shown in catalog order (art. 114): rows saved in the same instant have no stable order.
         List<String> riskOrder = List.copyOf(riskNames.keySet());
         Comparator<CoerciveMeasureRisk> byCatalogOrder = Comparator.comparingInt(

@@ -8,9 +8,9 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 /**
- * Checks catalog codes against the current firm's catalogs (ADR-0013). Hearings and measures store
- * codes as text: a new or changed value must be a visible item, an unchanged value is accepted even if
- * the firm hid it later.
+ * Checks catalog codes against the current firm's catalogs of the case's practice area (ADR-0013,
+ * ADR-0032). Hearings and measures store codes as text: a new or changed value must be a visible
+ * item, an unchanged value is accepted even if the firm hid it later.
  */
 @Component
 class HearingCatalogs {
@@ -22,11 +22,11 @@ class HearingCatalogs {
     }
 
     /** {@code currentCode} is the value the record already has, or {@code null} for a new record. */
-    void requireOffered(Catalog catalog, String code, String currentCode) {
+    void requireOffered(String area, Catalog catalog, String code, String currentCode) {
         if (code.equals(currentCode)) {
             return;
         }
-        CatalogItem item = items(catalog).get(code);
+        CatalogItem item = items(area, catalog).get(code);
         if (item == null) {
             throw new InvalidHearingDataException("The catalog " + catalog.id() + " has no item '" + code + "'");
         }
@@ -37,16 +37,16 @@ class HearingCatalogs {
     }
 
     /** Every item (hidden ones too, so old records keep a readable name) by code, in catalog order. */
-    Map<String, CatalogItem> items(Catalog catalog) {
+    Map<String, CatalogItem> items(String area, Catalog catalog) {
         Map<String, CatalogItem> items = new LinkedHashMap<>();
-        catalogs.view(catalog, true).items().forEach(item -> items.put(item.code(), item));
+        catalogs.view(area, catalog, true).items().forEach(item -> items.put(item.code(), item));
         return items;
     }
 
     /** The name of every item by code. */
-    Map<String, String> names(Catalog catalog) {
+    Map<String, String> names(String area, Catalog catalog) {
         Map<String, String> names = new LinkedHashMap<>();
-        items(catalog).forEach((code, item) -> names.put(code, item.name()));
+        items(area, catalog).forEach((code, item) -> names.put(code, item.name()));
         return names;
     }
 }

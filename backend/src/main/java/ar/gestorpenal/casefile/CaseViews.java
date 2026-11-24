@@ -3,11 +3,14 @@ package ar.gestorpenal.casefile;
 import ar.gestorpenal.customfield.CustomFieldEntity;
 import ar.gestorpenal.customfield.CustomFields;
 import ar.gestorpenal.jurisdiction.Catalog;
+import ar.gestorpenal.jurisdiction.PracticeAreas;
+import ar.gestorpenal.jurisdiction.PracticeModule;
 import ar.gestorpenal.person.PersonSummary;
 import ar.gestorpenal.person.Persons;
 import ar.gestorpenal.user.AppUser;
 import ar.gestorpenal.user.UserRepository;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,6 +35,7 @@ class CaseViews {
     private final UserRepository users;
     private final CaseHearingSummaries hearingSummaries;
     private final CustomFields customFields;
+    private final PracticeAreas areas;
 
     CaseViews(
             CaseTeamMemberRepository team,
@@ -42,7 +46,8 @@ class CaseViews {
             Persons persons,
             UserRepository users,
             CaseHearingSummaries hearingSummaries,
-            CustomFields customFields) {
+            CustomFields customFields,
+            PracticeAreas areas) {
         this.team = team;
         this.parties = parties;
         this.defendants = defendants;
@@ -52,6 +57,7 @@ class CaseViews {
         this.users = users;
         this.hearingSummaries = hearingSummaries;
         this.customFields = customFields;
+        this.areas = areas;
     }
 
     /** The case heads for a list, with one query for all the defendants, detainees and next hearings. */
@@ -66,41 +72,55 @@ class CaseViews {
                 .collect(Collectors.groupingBy(Defendant::getCaseId));
         Map<UUID, Integer> detainees = hearingSummaries.detaineeCounts(caseIds);
         Map<UUID, NextHearing> nextHearings = hearingSummaries.nextHearings(caseIds);
-        Map<String, String> circumscriptions = catalogs.names(Catalog.CIRCUMSCRIPTIONS);
-        List<String> stageOrder = catalogs.stageOrder();
+        Map<String, Vocabulary> vocabularies = new HashMap<>();
         return cases.stream()
-                .map(caseFile -> CaseView.of(
-                        caseFile,
-                        nameOf(circumscriptions, caseFile.getCircumscriptionCode()),
-                        summary(
-                                caseFile.getId(),
-                                defendantsByCase.getOrDefault(caseFile.getId(), List.of()),
-                                stageOrder,
-                                detainees,
-                                nextHearings)))
+                .map(caseFile -> {
+                    Vocabulary vocabulary = vocabularies.computeIfAbsent(caseFile.getPracticeArea(), this::vocabularyOf);
+                    return CaseView.of(
+                            caseFile,
+                            vocabulary.modules(),
+                            nameOf(vocabulary.circumscriptions(), caseFile.getCircumscriptionCode()),
+                            summary(
+                                    caseFile.getId(),
+                                    defendantsByCase.getOrDefault(caseFile.getId(), List.of()),
+                                    vocabulary.stageOrder(),
+                                    detainees,
+                                    nextHearings));
+                })
                 .toList();
+    }
+
+    /** What a case of one practice area is shown with: its modules, its stages and the shared circumscriptions. */
+    private record Vocabulary(List<PracticeModule> modules, Map<String, String> circumscriptions, List<String> stageOrder) {}
+
+    private Vocabulary vocabularyOf(String area) {
+        return new Vocabulary(
+                areas.get(area).modules(), catalogs.names(area, Catalog.CIRCUMSCRIPTIONS), catalogs.stageOrder(area));
     }
 
     CaseDetail detail(CaseFile caseFile) {
         List<Defendant> activeDefendants =
                 defendants.findByCaseIdAndArchivedAtIsNullOrderByCreatedAtAscIdAsc(caseFile.getId());
         List<UUID> caseIds = List.of(caseFile.getId());
+        String area = caseFile.getPracticeArea();
+        Vocabulary vocabulary = vocabularyOf(area);
         CaseSummary summary = summary(
                 caseFile.getId(),
                 activeDefendants,
-                catalogs.stageOrder(),
+                vocabulary.stageOrder(),
                 hearingSummaries.detaineeCounts(caseIds),
                 hearingSummaries.nextHearings(caseIds));
         CaseView head = CaseView.of(
                 caseFile,
-                nameOf(catalogs.names(Catalog.CIRCUMSCRIPTIONS), caseFile.getCircumscriptionCode()),
+                vocabulary.modules(),
+                nameOf(vocabulary.circumscriptions(), caseFile.getCircumscriptionCode()),
                 summary);
         return CaseDetail.of(
                 head,
                 customFields.visibility(CustomFieldEntity.CASE_FILE).apply(caseFile.getCustomFields()),
                 teamOf(caseFile.getId()),
-                partiesOf(caseFile.getId()),
-                defendantViews(activeDefendants));
+                partiesOf(caseFile.getId(), area),
+                defendantViews(area, activeDefendants));
     }
 
     /** The defendant-based summary of a case, enriched with its detainee count and next hearing. */
@@ -114,12 +134,12 @@ class CaseViews {
                 .withHearingData(detainees.getOrDefault(caseId, 0), nextHearings.get(caseId));
     }
 
-    DefendantView defendant(Defendant defendant) {
-        return defendantViews(List.of(defendant)).get(0);
+    DefendantView defendant(String area, Defendant defendant) {
+        return defendantViews(area, List.of(defendant)).get(0);
     }
 
-    PartyView party(CaseParty party) {
-        return partyViews(List.of(party)).get(0);
+    PartyView party(String area, CaseParty party) {
+        return partyViews(area, List.of(party)).get(0);
     }
 
     private List<TeamMemberView> teamOf(UUID caseId) {
@@ -132,13 +152,13 @@ class CaseViews {
                 .toList();
     }
 
-    private List<PartyView> partiesOf(UUID caseId) {
-        return partyViews(parties.findByCaseIdAndArchivedAtIsNullOrderByCreatedAtAscIdAsc(caseId));
+    private List<PartyView> partiesOf(UUID caseId, String area) {
+        return partyViews(area, parties.findByCaseIdAndArchivedAtIsNullOrderByCreatedAtAscIdAsc(caseId));
     }
 
-    private List<PartyView> partyViews(List<CaseParty> rows) {
+    private List<PartyView> partyViews(String area, List<CaseParty> rows) {
         Map<UUID, PersonSummary> people = persons.findAll(personIds(rows.stream().map(CaseParty::getPersonId)));
-        Map<String, String> roles = catalogs.names(Catalog.PARTY_ROLES);
+        Map<String, String> roles = catalogs.names(area, Catalog.PARTY_ROLES);
         return rows.stream()
                 .map(party -> {
                     PersonSummary person = people.get(party.getPersonId());
@@ -153,7 +173,7 @@ class CaseViews {
                 .toList();
     }
 
-    private List<DefendantView> defendantViews(List<Defendant> rows) {
+    private List<DefendantView> defendantViews(String area, List<Defendant> rows) {
         if (rows.isEmpty()) {
             return List.of();
         }
@@ -165,8 +185,8 @@ class CaseViews {
                 .collect(Collectors.groupingBy(
                         DefendantCharge::getDefendantId,
                         Collectors.mapping(ChargeView::of, Collectors.toList())));
-        Map<String, String> stages = catalogs.names(Catalog.STAGES);
-        Map<String, String> outcomes = catalogs.names(Catalog.CLOSING_OUTCOMES);
+        Map<String, String> stages = catalogs.names(area, Catalog.STAGES);
+        Map<String, String> outcomes = catalogs.names(area, Catalog.CLOSING_OUTCOMES);
         UnaryOperator<Map<String, Object>> visibleFields = customFields.visibility(CustomFieldEntity.DEFENDANT);
         return rows.stream()
                 .map(defendant -> {

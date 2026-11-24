@@ -3,6 +3,8 @@ package ar.gestorpenal.casefile;
 import ar.gestorpenal.customfield.CustomFieldEntity;
 import ar.gestorpenal.customfield.CustomFields;
 import ar.gestorpenal.jurisdiction.Catalog;
+import ar.gestorpenal.jurisdiction.PracticeAreas;
+import ar.gestorpenal.jurisdiction.PracticeModule;
 import ar.gestorpenal.person.PersonSummary;
 import ar.gestorpenal.person.Persons;
 import ar.gestorpenal.security.AuthenticatedUser;
@@ -25,6 +27,7 @@ class DefendantService {
     private final CaseViews views;
     private final Persons persons;
     private final CustomFields customFields;
+    private final PracticeAreas areas;
 
     DefendantService(
             DefendantRepository defendants,
@@ -33,7 +36,8 @@ class DefendantService {
             CaseCatalogs catalogs,
             CaseViews views,
             Persons persons,
-            CustomFields customFields) {
+            CustomFields customFields,
+            PracticeAreas areas) {
         this.defendants = defendants;
         this.charges = charges;
         this.access = access;
@@ -41,11 +45,13 @@ class DefendantService {
         this.views = views;
         this.persons = persons;
         this.customFields = customFields;
+        this.areas = areas;
     }
 
     @Transactional
     DefendantView add(AuthenticatedUser user, UUID caseId, DefendantData data) {
         CaseFile caseFile = access.requireEditable(user, caseId);
+        requireDefendants(caseFile);
         if (data.personId() == null) {
             throw new InvalidCaseDataException("A defendant needs a person");
         }
@@ -57,16 +63,17 @@ class DefendantService {
         if (defendants.existsByCaseIdAndPersonIdAndArchivedAtIsNull(caseId, person.id())) {
             throw new DuplicateRecordException("The person is already a defendant in the case");
         }
-        requireCatalogCodes(data, null, null);
+        requireCatalogCodes(caseFile.getPracticeArea(), data, null, null);
         Map<String, Object> values = customFields.resolveNew(CustomFieldEntity.DEFENDANT, data.customFields());
         Defendant defendant = Defendant.create(caseFile.getId(), person.id(), data, person.kind());
         defendant.replaceCustomFields(values);
-        return views.defendant(defendants.saveAndFlush(defendant));
+        return views.defendant(caseFile.getPracticeArea(), defendants.saveAndFlush(defendant));
     }
 
     @Transactional
     DefendantView update(AuthenticatedUser user, UUID caseId, UUID defendantId, DefendantData data) {
-        access.requireEditable(user, caseId);
+        CaseFile caseFile = access.requireEditable(user, caseId);
+        requireDefendants(caseFile);
         Defendant defendant = findEditable(caseId, defendantId);
         if (data.personId() != null && !data.personId().equals(defendant.getPersonId())) {
             throw new InvalidCaseDataException("The person of a defendant cannot change");
@@ -76,30 +83,30 @@ class DefendantService {
             throw new InvalidCaseDataException("Updating a defendant needs its stage, status and defendedByFirm");
         }
         PersonSummary person = persons.find(defendant.getPersonId()).orElseThrow();
-        requireCatalogCodes(data, defendant.getStageCode(), defendant.getClosingOutcomeCode());
+        requireCatalogCodes(caseFile.getPracticeArea(), data, defendant.getStageCode(), defendant.getClosingOutcomeCode());
         Map<String, Object> values =
                 customFields.resolve(CustomFieldEntity.DEFENDANT, data.customFields(), defendant.getCustomFields());
         defendant.apply(data, person.kind());
         defendant.replaceCustomFields(values);
-        return views.defendant(defendant);
+        return views.defendant(caseFile.getPracticeArea(), defendant);
     }
 
     @Transactional
     void archive(AuthenticatedUser user, UUID caseId, UUID defendantId) {
-        access.requireVisible(user, caseId);
+        requireDefendants(access.requireVisible(user, caseId));
         find(caseId, defendantId).archive();
     }
 
     @Transactional
     ChargeView addCharge(AuthenticatedUser user, UUID caseId, UUID defendantId, ChargeData data) {
-        access.requireEditable(user, caseId);
+        requireDefendants(access.requireEditable(user, caseId));
         Defendant defendant = findEditable(caseId, defendantId);
         return ChargeView.of(charges.saveAndFlush(DefendantCharge.create(defendant.getId(), data)));
     }
 
     @Transactional
     ChargeView updateCharge(AuthenticatedUser user, UUID caseId, UUID defendantId, UUID chargeId, ChargeData data) {
-        access.requireEditable(user, caseId);
+        requireDefendants(access.requireEditable(user, caseId));
         findEditable(caseId, defendantId);
         DefendantCharge charge = findCharge(caseId, defendantId, chargeId);
         charge.apply(data);
@@ -108,15 +115,20 @@ class DefendantService {
 
     @Transactional
     void archiveCharge(AuthenticatedUser user, UUID caseId, UUID defendantId, UUID chargeId) {
-        access.requireVisible(user, caseId);
+        requireDefendants(access.requireVisible(user, caseId));
         findCharge(caseId, defendantId, chargeId).archive();
     }
 
-    private void requireCatalogCodes(DefendantData data, String currentStage, String currentOutcome) {
-        catalogs.requireOffered(Catalog.STAGES, Defendant.stageOf(data), currentStage);
+    /** Only areas with the {@code defendants} module (criminal) have defendants and charges. */
+    private void requireDefendants(CaseFile caseFile) {
+        areas.requireModule(caseFile.getPracticeArea(), PracticeModule.DEFENDANTS);
+    }
+
+    private void requireCatalogCodes(String area, DefendantData data, String currentStage, String currentOutcome) {
+        catalogs.requireOffered(area, Catalog.STAGES, Defendant.stageOf(data), currentStage);
         String outcome = Defendant.closingOutcomeOf(data);
         if (outcome != null) {
-            catalogs.requireOffered(Catalog.CLOSING_OUTCOMES, outcome, currentOutcome);
+            catalogs.requireOffered(area, Catalog.CLOSING_OUTCOMES, outcome, currentOutcome);
         }
     }
 

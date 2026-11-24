@@ -1,6 +1,7 @@
 package ar.gestorpenal.jurisdiction;
 
 import ar.gestorpenal.security.AuthenticatedUser;
+import ar.gestorpenal.tenancy.Tenant;
 import ar.gestorpenal.user.Role;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -21,7 +22,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * The firm's catalogs (ADR-0013). Every member can read them; only the owner (titular) changes
+ * The firm's catalogs (ADR-0013), per practice area (ADR-0032; {@code area} defaults to penal, so
+ * clients that do not know areas keep working). Every member can read them; only the owner (titular) changes
  * them, because a change applies to the whole firm.
  */
 @RestController
@@ -29,9 +31,11 @@ import org.springframework.web.bind.annotation.RestController;
 class CatalogController {
 
     private final CatalogService catalogs;
+    private final PracticeAreas areas;
 
-    CatalogController(CatalogService catalogs) {
+    CatalogController(CatalogService catalogs, PracticeAreas areas) {
         this.catalogs = catalogs;
+        this.areas = areas;
     }
 
     record NewItemRequest(
@@ -41,25 +45,33 @@ class CatalogController {
     /** {@code name} null or blank restores the package name of a built-in item. */
     record ItemChangeRequest(@Size(max = JurisdictionPackageLoader.MAX_NAME_LENGTH) String name, @NotNull Boolean hidden) {}
 
+    /** {@code area} is a practice area the firm has enabled; the catalogs shared by every area are in each. */
     @GetMapping
-    List<CatalogView> all(@RequestParam(defaultValue = "false") boolean includeHidden) {
-        return catalogs.viewAll(includeHidden);
+    List<CatalogView> all(
+            @RequestParam(defaultValue = Tenant.DEFAULT_PRACTICE_AREA) String area,
+            @RequestParam(defaultValue = "false") boolean includeHidden) {
+        return catalogs.viewAll(areas.requireEnabled(area).code(), includeHidden);
     }
 
     @GetMapping("/{catalogId}")
-    CatalogView one(@PathVariable String catalogId, @RequestParam(defaultValue = "false") boolean includeHidden) {
-        return catalogs.view(catalog(catalogId), includeHidden);
+    CatalogView one(
+            @PathVariable String catalogId,
+            @RequestParam(defaultValue = Tenant.DEFAULT_PRACTICE_AREA) String area,
+            @RequestParam(defaultValue = "false") boolean includeHidden) {
+        return catalogs.view(areas.requireEnabled(area).code(), catalog(catalogId), includeHidden);
     }
 
     @PostMapping("/{catalogId}/items")
     ResponseEntity<CatalogItem> add(
             @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable String catalogId,
+            @RequestParam(defaultValue = Tenant.DEFAULT_PRACTICE_AREA) String area,
             @Valid @RequestBody NewItemRequest body) {
         requireOwner(user);
         Catalog catalog = catalog(catalogId);
-        CatalogItem item = catalogs.addItem(catalog, body.name(), body.article());
-        URI location = URI.create("/api/v1/catalogs/" + catalog.id() + "/items/" + item.code());
+        String areaCode = areas.requireEnabled(area).code();
+        CatalogItem item = catalogs.addItem(areaCode, catalog, body.name(), body.article());
+        URI location = URI.create("/api/v1/catalogs/" + catalog.id() + "/items/" + item.code() + "?area=" + areaCode);
         return ResponseEntity.created(location).body(item);
     }
 
@@ -68,9 +80,10 @@ class CatalogController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable String catalogId,
             @PathVariable String code,
+            @RequestParam(defaultValue = Tenant.DEFAULT_PRACTICE_AREA) String area,
             @Valid @RequestBody ItemChangeRequest body) {
         requireOwner(user);
-        return catalogs.updateItem(catalog(catalogId), code, body.name(), body.hidden());
+        return catalogs.updateItem(areas.requireEnabled(area).code(), catalog(catalogId), code, body.name(), body.hidden());
     }
 
     private static Catalog catalog(String id) {

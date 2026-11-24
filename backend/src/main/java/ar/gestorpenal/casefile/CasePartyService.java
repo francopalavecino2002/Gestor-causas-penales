@@ -38,7 +38,7 @@ class CasePartyService {
         if (DEFENDANT_ROLE.equals(role)) {
             throw new InvalidCaseDataException("A defendant is not a party: use the defendants endpoint");
         }
-        catalogs.requireOffered(Catalog.PARTY_ROLES, role, null);
+        catalogs.requireOffered(caseFile.getPracticeArea(), Catalog.PARTY_ROLES, role, null);
         boolean archivedPerson = persons.find(data.personId())
                 .orElseThrow(() -> new CaseRecordNotFoundException("There is no person " + data.personId()))
                 .archived();
@@ -48,7 +48,8 @@ class CasePartyService {
         if (parties.existsByCaseIdAndPersonIdAndRoleCodeAndArchivedAtIsNull(caseId, data.personId(), role)) {
             throw new DuplicateRecordException("The person already has this role in the case");
         }
-        return views.party(parties.saveAndFlush(CaseParty.create(caseFile.getId(), data.personId(), role)));
+        return views.party(
+                caseFile.getPracticeArea(), parties.saveAndFlush(CaseParty.create(caseFile.getId(), data.personId(), role)));
     }
 
     @Transactional

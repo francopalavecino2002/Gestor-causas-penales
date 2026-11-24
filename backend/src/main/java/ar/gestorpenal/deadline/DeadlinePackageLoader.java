@@ -24,9 +24,9 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reads {@code deadline-rules.yml} and its sibling {@code court-calendar.yml}. Like the catalog loader
- * (ADR-0013), every problem is reported at once and any problem stops the application at startup: a
- * wrong rule must never reach a lawyer.
+ * Reads the {@code deadline-rules.yml} of a practice area and the {@code court-calendar.yml} of its
+ * jurisdiction. Like the catalog loader (ADR-0013), every problem is reported at once and any problem
+ * stops the application at startup: a wrong rule must never reach a lawyer.
  */
 final class DeadlinePackageLoader {
 
@@ -54,13 +54,16 @@ final class DeadlinePackageLoader {
     /** One non-business day, or a run of them ({@code to} included). */
     record CalendarEntry(LocalDate from, LocalDate to, String name, List<ReviewFlag> flags) {}
 
-    /** @param jurisdictionCode the folder the files live in */
-    DeadlinePackage load(String jurisdictionCode, Resource rulesFile) {
+    /**
+     * @param jurisdictionCode the folder of the jurisdiction
+     * @param areaCode the folder of the practice area the rules belong to
+     * @param calendarFile the jurisdiction's {@code court-calendar.yml}
+     */
+    DeadlinePackage load(String jurisdictionCode, String areaCode, Resource rulesFile, Resource calendarFile) {
         String location = rulesFile.getDescription();
         List<String> problems = new ArrayList<>();
         RulesFile rules = read(rulesFile, RulesFile.class, location);
         checkRules(rules, problems);
-        Resource calendarFile = sibling(rulesFile, location);
         CourtCalendar calendar = null;
         if (!calendarFile.exists()) {
             problems.add(CALENDAR_FILE + " is missing");
@@ -70,7 +73,7 @@ final class DeadlinePackageLoader {
         if (!problems.isEmpty()) {
             throw new InvalidDeadlinePackageException(location, problems);
         }
-        return new DeadlinePackage(jurisdictionCode, rules.law(), rules.source(), rules.rules(), calendar);
+        return new DeadlinePackage(jurisdictionCode, areaCode, rules.law(), rules.source(), rules.rules(), calendar);
     }
 
     private static void checkRules(RulesFile file, List<String> problems) {
@@ -204,14 +207,6 @@ final class DeadlinePackageLoader {
             return mapper.convertValue(document, type);
         } catch (IOException | YAMLException | JacksonException | IllegalArgumentException e) {
             throw new InvalidDeadlinePackageException(location, "cannot read " + file.getFilename(), e);
-        }
-    }
-
-    private static Resource sibling(Resource rulesFile, String location) {
-        try {
-            return rulesFile.createRelative(CALENDAR_FILE);
-        } catch (IOException e) {
-            throw new InvalidDeadlinePackageException(location, "cannot resolve " + CALENDAR_FILE, e);
         }
     }
 

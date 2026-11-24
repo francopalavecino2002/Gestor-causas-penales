@@ -131,6 +131,7 @@ public class Cases {
         return new CaseRef(
                 caseFile.getId(),
                 caseFile.getCaption(),
+                caseFile.getPracticeArea(),
                 caseFile.isReserved(),
                 caseFile.isArchived(),
                 caseFile.getActionType() == ActionType.PRIVATE,

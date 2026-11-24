@@ -41,6 +41,7 @@ public class DeadlineSeeding {
     @Transactional
     public UUID createDeadline(
             UUID caseId, UUID defendantId, String ruleCode, LocalDate triggeredOn, LocalDate setDueOn, String notes) {
+        // Demo data is penal: the rules are those of the default practice area.
         DeadlineRule rule = firmRules.current().rule(ruleCode);
         DeadlineData data = new DeadlineData(ruleCode, defendantId, triggeredOn, null, setDueOn, null, null, notes);
         return deadlines.save(Deadline.create(caseId, defendantId, rule, data, DeadlineClock.ZONE, clock.today())).getId();

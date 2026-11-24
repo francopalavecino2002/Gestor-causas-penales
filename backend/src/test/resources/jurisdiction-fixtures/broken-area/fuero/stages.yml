@@ -1,0 +1,5 @@
+catalog: stages
+source: Código ficticio
+items:
+  - code: inicio
+    name: Inicio

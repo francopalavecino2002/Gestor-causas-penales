@@ -1,0 +1,7 @@
+catalog: hearing-types
+source: Prueba automatizada
+items:
+  - code: conciliacion-de-prueba
+    name: Conciliación de prueba
+  - code: vista-de-prueba
+    name: Vista de prueba

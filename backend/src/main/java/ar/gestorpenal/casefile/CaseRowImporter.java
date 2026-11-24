@@ -157,6 +157,7 @@ class CaseRowImporter implements RowImporter {
                 row.choice("representa", REPRESENTATIONS),
                 Boolean.FALSE,
                 responsible != null ? responsible : user.userId(),
+                null,
                 null);
     }
 

@@ -16,7 +16,7 @@ class DeadlinePackageLoaderTests {
 
     private final DeadlinePackageLoader loader = new DeadlinePackageLoader();
 
-    private final DeadlinePackage neuquen = DeadlinePackages.fromClasspath().get("neuquen");
+    private final DeadlinePackage neuquen = DeadlinePackages.fromClasspath().get("neuquen", "penal");
 
     @Test
     void shouldShipThe13MvpRulesOfNeuquenPlusTheGenericJudicialDeadline() {
@@ -140,7 +140,7 @@ class DeadlinePackageLoaderTests {
 
     @Test
     void shouldReportEveryProblemOfABrokenPackageAtOnce() {
-        assertThatThrownBy(() -> loader.load("broken", new ClassPathResource("deadline-fixtures/broken/deadline-rules.yml")))
+        assertThatThrownBy(() -> loader.load("broken", "penal", fixture("broken", "deadline-rules.yml"), fixture("broken", "court-calendar.yml")))
                 .isInstanceOf(InvalidDeadlinePackageException.class)
                 .hasMessageContaining("rule 'Mal-Codigo': code must be lowercase")
                 .hasMessageContaining("rule 'judicial-con-duracion': a SET_BY_COURT rule has neither duration nor extensions")
@@ -156,23 +156,46 @@ class DeadlinePackageLoaderTests {
 
     @Test
     void shouldRejectAMisspelledKey() {
-        assertThatThrownBy(() -> loader.load("x", new ClassPathResource("deadline-fixtures/unknown-key/deadline-rules.yml")))
+        assertThatThrownBy(() -> loader.load("x", "penal", fixture("unknown-key", "deadline-rules.yml"), fixture("unknown-key", "court-calendar.yml")))
                 .isInstanceOf(InvalidDeadlinePackageException.class)
                 .hasMessageContaining("cannot read deadline-rules.yml");
     }
 
     @Test
     void shouldRequireTheCourtCalendar() {
-        assertThatThrownBy(() -> loader.load("x", new ClassPathResource("deadline-fixtures/no-calendar/deadline-rules.yml")))
+        assertThatThrownBy(() -> loader.load("x", "penal", fixture("no-calendar", "deadline-rules.yml"), fixture("no-calendar", "court-calendar.yml")))
                 .isInstanceOf(InvalidDeadlinePackageException.class)
                 .hasMessageContaining("court-calendar.yml is missing");
     }
 
     @Test
     void shouldGiveAJurisdictionWithoutRulesAnEmptyPackage() {
-        DeadlinePackage none = DeadlinePackages.fromClasspath().get("sin-reglas");
+        DeadlinePackage none = DeadlinePackages.fromClasspath().get("sin-reglas", "penal");
 
         assertThat(none.rules()).isEmpty();
         assertThat(none.calendar().covers(2026)).isFalse();
+    }
+
+    @Test
+    void shouldGiveAnAreaWithoutRulesNoRulesButTheCalendarOfItsJurisdiction() {
+        DeadlinePackage noRules = DeadlinePackages.fromClasspath().get("neuquen", "area-sin-reglas");
+
+        assertThat(noRules.rules()).isEmpty();
+        assertThat(noRules.calendar().covers(LocalDate.now(DeadlineClock.ZONE).getYear())).isTrue();
+    }
+
+    @Test
+    void shouldKeepTheRulesOfEachAreaApart() {
+        DeadlinePackages packages = DeadlinePackages.fromClasspath();
+
+        assertThat(packages.get("neuquen", "penal").areaCode()).isEqualTo("penal");
+        assertThat(packages.get("neuquen", "penal").rules()).isNotEmpty();
+        assertThat(packages.get("neuquen", "testarea").rule("plazo-judicial")).isEmpty();
+        assertThat(packages.get("neuquen", "testarea").rule("regla-de-prueba")).isPresent();
+        assertThat(packages.get("neuquen", "penal").rule("regla-de-prueba")).isEmpty();
+    }
+
+    private static ClassPathResource fixture(String folder, String file) {
+        return new ClassPathResource("deadline-fixtures/" + folder + "/" + file);
     }
 }

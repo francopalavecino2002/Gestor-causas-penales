@@ -1,0 +1,6 @@
+# Fixture: this catalog belongs to a module the area does not declare.
+catalog: alternative-outcomes
+source: Código ficticio
+items:
+  - code: acuerdo
+    name: Acuerdo

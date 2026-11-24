@@ -3,6 +3,8 @@ package ar.gestorpenal.casefile;
 import ar.gestorpenal.customfield.CustomFieldEntity;
 import ar.gestorpenal.customfield.CustomFields;
 import ar.gestorpenal.jurisdiction.Catalog;
+import ar.gestorpenal.jurisdiction.PracticeAreas;
+import ar.gestorpenal.jurisdiction.PracticeModule;
 import ar.gestorpenal.security.AuthenticatedUser;
 import ar.gestorpenal.user.AppUser;
 import ar.gestorpenal.user.UserRepository;
@@ -34,6 +36,7 @@ class CaseService {
     private final CaseViews views;
     private final UserRepository users;
     private final CustomFields customFields;
+    private final PracticeAreas areas;
 
     CaseService(
             CaseFileRepository cases,
@@ -42,7 +45,8 @@ class CaseService {
             CaseCatalogs catalogs,
             CaseViews views,
             UserRepository users,
-            CustomFields customFields) {
+            CustomFields customFields,
+            PracticeAreas areas) {
         this.cases = cases;
         this.team = team;
         this.access = access;
@@ -50,6 +54,7 @@ class CaseService {
         this.views = views;
         this.users = users;
         this.customFields = customFields;
+        this.areas = areas;
     }
 
     /**
@@ -64,7 +69,9 @@ class CaseService {
         Map<String, Object> values = customFields.resolveNew(CustomFieldEntity.CASE_FILE, data.customFields());
         CaseFile caseFile = CaseFile.create(data);
         caseFile.replaceCustomFields(values);
-        catalogs.requireOffered(Catalog.CIRCUMSCRIPTIONS, caseFile.getCircumscriptionCode(), null);
+        String area = caseFile.getPracticeArea();
+        areas.requireEnabled(area);
+        requireCatalogCodes(area, data, null);
         cases.saveAndFlush(caseFile);
         team.save(CaseTeamMember.create(caseFile.getId(), responsibleId, TeamRole.RESPONSIBLE));
         if (caseFile.isReserved() && !CasePermissions.seesEveryCase(user) && !user.userId().equals(responsibleId)) {
@@ -86,15 +93,31 @@ class CaseService {
             CasePermissions.requireCanManageTeam(user, responsibleOf(id).orElse(null));
         }
         requireNumbersFree(user, data, id);
-        String circumscription = Text.clean(data.circumscriptionCode());
-        if (circumscription != null) {
-            catalogs.requireOffered(Catalog.CIRCUMSCRIPTIONS, circumscription, caseFile.getCircumscriptionCode());
-        }
+        requireCatalogCodes(caseFile.getPracticeArea(), data, caseFile);
         Map<String, Object> values =
                 customFields.resolve(CustomFieldEntity.CASE_FILE, data.customFields(), caseFile.getCustomFields());
         caseFile.apply(data);
         caseFile.replaceCustomFields(values);
         return views.detail(caseFile);
+    }
+
+    /**
+     * Checks the case's catalog codes against its area's catalogs, and that the area has the module
+     * of the optional fields the data fills in. {@code current} is the stored case, or {@code null}.
+     */
+    private void requireCatalogCodes(String area, CaseData data, CaseFile current) {
+        String circumscription = Text.clean(data.circumscriptionCode());
+        if (circumscription != null) {
+            catalogs.requireOffered(
+                    area, Catalog.CIRCUMSCRIPTIONS, circumscription, current == null ? null : current.getCircumscriptionCode());
+        }
+        catalogs.requireOffered(area, Catalog.ACTION_TYPES, data.actionType().catalogCode(),
+                current == null ? null : current.getActionType().catalogCode());
+        catalogs.requireOffered(area, Catalog.REPRESENTED_SIDES, data.represents().catalogCode(),
+                current == null ? null : current.getRepresents().catalogCode());
+        if (Text.clean(data.mpfLegajo()) != null) {
+            areas.requireModule(area, PracticeModule.MPF_LEGAJO);
+        }
     }
 
     @Transactional(readOnly = true)
