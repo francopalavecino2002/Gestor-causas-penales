@@ -23,6 +23,7 @@ import { meQueryOptions } from "@/features/auth/me-query";
 import { LOGIN_PATH, loginSearchFor } from "@/features/auth/redirect";
 import { ImportPage } from "@/features/imports/import-page";
 import { AiAssistSection } from "@/features/ai-assist/ai-assist-section";
+import { CalendarFeedSection } from "@/features/calendar-feed/calendar-feed-section";
 import { CatalogsSection } from "@/features/settings/catalogs-section";
 import { CustomFieldsSection } from "@/features/settings/custom-fields-section";
 import { DeadlineRulesSection } from "@/features/settings/deadline-rules-section";
@@ -195,6 +196,13 @@ const settingsUsersRoute = createRoute({
   component: UsersSection,
 });
 
+/** The member's private calendar link (ADR-0034): every role manages their own. */
+const settingsCalendarRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ajustes/calendario",
+  component: CalendarFeedSection,
+});
+
 /** Import wizard (ADR-0027): reached from Ajustes and from the empty case list. */
 const importRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -218,6 +226,7 @@ const routeTree = rootRoute.addChildren([
     settingsRulesRoute,
     settingsAiRoute,
     settingsUsersRoute,
+    settingsCalendarRoute,
     importRoute,
   ]),
 ]);

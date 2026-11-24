@@ -70,6 +70,8 @@ interface RequestOptions {
    */
   formData?: FormData;
   signal?: AbortSignal;
+  /** The `Accept` header; JSON unless the answer is a file. */
+  accept?: string;
 }
 
 /**
@@ -91,8 +93,24 @@ export async function apiFetch<T = undefined>(
   return parse<T>(response);
 }
 
+/**
+ * Downloads a file the API answers (e.g. a `.ics`) with the session. Throws {@link ApiError} like
+ * {@link apiFetch}; an error answer is still read as problem+json.
+ */
+export async function apiFetchBlob(
+  path: string,
+  options: { accept: string; signal?: AbortSignal },
+): Promise<Blob> {
+  const response = await send(path, "GET", {
+    accept: `${options.accept}, application/problem+json`,
+    signal: options.signal,
+  });
+  if (!response.ok) throw await toApiError(response);
+  return response.blob();
+}
+
 async function send(path: string, method: Method, options: RequestOptions): Promise<Response> {
-  const headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: options.accept ?? "application/json" };
   const json = options.formData === undefined && options.body !== undefined;
   if (json) headers["Content-Type"] = "application/json";
   if (method !== "GET") headers[CSRF_HEADER] = await csrfToken();

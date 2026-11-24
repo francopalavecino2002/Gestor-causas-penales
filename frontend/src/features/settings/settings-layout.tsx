@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/shell/page-header";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { useCanImport } from "@/features/imports/import-hooks";
-import { SETTINGS_SECTIONS } from "@/features/settings/settings-copy";
+import { PERSONAL_SECTIONS, SETTINGS_SECTIONS } from "@/features/settings/settings-copy";
 import { useCanEditSettings } from "@/features/settings/settings-hooks";
 import { cn } from "@/lib/utils";
 
@@ -62,8 +62,8 @@ function SectionNav({ current }: { current: string }) {
                   "aria-[current=page]:bg-card aria-[current=page]:text-foreground aria-[current=page]:shadow-segment",
                 )}
               >
-                {/* Icons only where the five sections fit with them on one row. */}
-                <section.icon aria-hidden="true" className="hidden size-5 xl:block" />
+                {/* Icons only where all the sections fit with them on one row. */}
+                <section.icon aria-hidden="true" className="hidden size-5 min-[90rem]:block" />
                 {section.title}
               </Link>
             </li>
@@ -94,7 +94,7 @@ export function SettingsPage({
           <div className="max-w-prose">{intro}</div>
         </PageHeader>
       </div>
-      {!canEdit && section !== "/ajustes/usuarios" && <ReadOnlyNote />}
+      {!canEdit && !PERSONAL_SECTIONS.has(section) && <ReadOnlyNote />}
       {children}
     </>
   );
