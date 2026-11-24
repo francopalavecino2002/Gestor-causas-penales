@@ -1670,7 +1670,13 @@ Superseded decisions are marked, never deleted.
     and, for cases that are not reserved, the caption, judge and OFIJU reference. Defendants, notes,
     results and team never leave. A reserved case shows "Causa reservada" and nothing that
     identifies it, even to members who may see it, because the event is stored by the calendar
-    provider. Each description ends with "verificá los datos en la agenda".
+    provider. Each description ends with "verificá los datos en la agenda". The caption of a case
+    that is not reserved often names the defendant ("Pérez s/ robo"): that personal data does reach
+    the calendar provider. The firm decides it by not reserving the case, and the T45 screen must
+    say so next to the link. A per-member "sin carátula" feed can come later if lawyers ask.
+  - Events carry no `SEQUENCE` or `LAST-MODIFIED`: hearings keep no modification time, and a
+    subscribed `METHOD:PUBLISH` feed is replaced whole on each refresh, matched by `UID`. Control
+    characters other than tab and line breaks are dropped from TEXT values.
   - **One-off download**: `GET /api/v1/hearings/{id}/calendar.ics` (with session, same visibility and
     the same masking) answers a one-event file as an attachment, for "Agregá al calendario".
   - The `.ics` is written by hand (`IcsWriter`: escaping and 75-octet folding per RFC 5545 §3.1 and
