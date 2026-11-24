@@ -16,7 +16,13 @@ describe("settings: index and users", () => {
       within(nav)
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
-    ).toEqual(["/ajustes/catalogos", "/ajustes/campos", "/ajustes/plazos", "/ajustes/usuarios"]);
+    ).toEqual([
+      "/ajustes/catalogos",
+      "/ajustes/campos",
+      "/ajustes/plazos",
+      "/ajustes/ia",
+      "/ajustes/usuarios",
+    ]);
     expect(nav).toHaveTextContent("Plantillas por tipo de causa");
     expect(nav).toHaveTextContent("Todavía no disponible");
 

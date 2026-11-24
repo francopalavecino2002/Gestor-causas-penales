@@ -1,4 +1,11 @@
-import { FolderCog, Hourglass, ListChecks, UsersRound, type LucideIcon } from "lucide-react";
+import {
+  FolderCog,
+  Hourglass,
+  ListChecks,
+  Sparkles,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
 
 import type { Role } from "@/features/auth/auth-api";
 import type { AnyCatalogId } from "@/features/catalogs/catalog-types";
@@ -12,7 +19,12 @@ import type {
 
 /** The settings sections, in the order of the index and the section links. */
 export interface SettingsSection {
-  to: "/ajustes/catalogos" | "/ajustes/campos" | "/ajustes/plazos" | "/ajustes/usuarios";
+  to:
+    | "/ajustes/catalogos"
+    | "/ajustes/campos"
+    | "/ajustes/plazos"
+    | "/ajustes/ia"
+    | "/ajustes/usuarios";
   title: string;
   /** One line under the title in the index. */
   summary: string;
@@ -37,6 +49,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: "Reglas de plazos",
     summary: "Qué plazos calcula el sistema y con cuántos días de aviso.",
     icon: Hourglass,
+  },
+  {
+    to: "/ajustes/ia",
+    title: "Asistente de IA",
+    summary: "Opcional: completá audiencias pegando la notificación. Viene desactivado.",
+    icon: Sparkles,
   },
   {
     to: "/ajustes/usuarios",

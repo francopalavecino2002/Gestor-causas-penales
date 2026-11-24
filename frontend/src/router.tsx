@@ -22,6 +22,7 @@ import { LoginPage, type LoginSearch } from "@/features/auth/login-page";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { LOGIN_PATH, loginSearchFor } from "@/features/auth/redirect";
 import { ImportPage } from "@/features/imports/import-page";
+import { AiAssistSection } from "@/features/ai-assist/ai-assist-section";
 import { CatalogsSection } from "@/features/settings/catalogs-section";
 import { CustomFieldsSection } from "@/features/settings/custom-fields-section";
 import { DeadlineRulesSection } from "@/features/settings/deadline-rules-section";
@@ -174,6 +175,12 @@ const settingsRulesRoute = createRoute({
   component: DeadlineRulesSection,
 });
 
+const settingsAiRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ajustes/ia",
+  component: AiAssistSection,
+});
+
 const settingsUsersRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/ajustes/usuarios",
@@ -200,6 +207,7 @@ const routeTree = rootRoute.addChildren([
     settingsCatalogsRoute,
     settingsFieldsRoute,
     settingsRulesRoute,
+    settingsAiRoute,
     settingsUsersRoute,
     importRoute,
   ]),
