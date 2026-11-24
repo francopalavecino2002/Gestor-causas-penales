@@ -15,6 +15,8 @@ import {
 import { areaCatalog, PENAL_AREA } from "@/test/area-fixtures";
 import { ALL_DEADLINES, caseDeadlines, upcomingDeadlines } from "@/test/deadline-fixtures";
 import { FORM_CATALOGS, MEMBERS } from "@/test/form-fixtures";
+import { ALL_TASKS, tasksBackend } from "@/test/task-fixtures";
+import type { TaskView } from "@/features/tasks/task-types";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
@@ -133,6 +135,8 @@ export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {})
     "GET /api/v1/cases": ({ query }) =>
       json(200, { items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
     "GET /api/v1/deadlines": () => json(200, []),
+    "GET /api/v1/tasks": ({ query }) =>
+      json(200, { items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
     "GET /api/v1/users": () => json(200, MEMBERS),
     "GET /api/v1/practice-areas": () => json(200, [PENAL_AREA]),
     // The optional AI assistance is off unless a test turns it on.
@@ -207,6 +211,31 @@ export function deadlineRoutes(deadlines: DeadlineView[] = ALL_DEADLINES): Recor
     "GET /api/v1/deadlines": ({ query }) =>
       json(200, upcomingDeadlines(Number(query.withinDays ?? 30), deadlines)),
   };
+}
+
+/**
+ * `/api/v1/tasks` over the fictitious tasks, with state: a POST, PUT, done, reopen, archive or
+ * restore shows up in the next GET.
+ */
+export function taskRoutes(tasks: TaskView[] = ALL_TASKS): Record<string, Handler> {
+  const backend = tasksBackend(tasks, DEMO_ME.id);
+  const answer = (request: RecordedRequest) => {
+    const result = backend(request.method, request.path, request.query, () => request.body);
+    if (!result) return problem(404, "not-found");
+    if (result.status === 404) return problem(404, "not-found");
+    return result.json === undefined ? noContent() : json(result.status, result.json);
+  };
+  const routes: Record<string, Handler> = {
+    "GET /api/v1/tasks": answer,
+    "POST /api/v1/tasks": answer,
+  };
+  for (const item of tasks) {
+    routes[`PUT /api/v1/tasks/${item.id}`] = answer;
+    for (const action of ["done", "reopen", "archive", "restore"]) {
+      routes[`POST /api/v1/tasks/${item.id}/${action}`] = answer;
+    }
+  }
+  return routes;
 }
 
 /** Anonymous session: /me answers 401. */

@@ -1,7 +1,14 @@
 /// <reference lib="dom" />
 import { test, type Page } from "@playwright/test";
 
-import { DETAINEE_ALERTS, FIXTURE_NOW, hearing, WEEK_HEARINGS } from "../src/test/agenda-fixtures";
+import {
+  DETAINEE_ALERTS,
+  FIXTURE_NOW,
+  hearing,
+  LAWYER_PAULA,
+  WEEK_HEARINGS,
+} from "../src/test/agenda-fixtures";
+import { ALL_TASKS } from "../src/test/task-fixtures";
 import { CASE_CIVIL } from "../src/test/area-fixtures";
 import { CASE_EJEMPLAR, CASE_MODELO } from "../src/test/case-fixtures";
 import { DEMO_ME, mockBackend } from "./mock-backend";
@@ -89,6 +96,17 @@ const twoAreas = async (page: Page) => {
 };
 
 const waitForHearings = (page: Page) => page.getByRole("article").first().waitFor();
+
+/** The agenda week with the fictitious tasks (T47): two due today, one overdue, one done. */
+const withTasks = async (page: Page) => {
+  await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+  await mockBackend(page, {
+    signedIn: true,
+    hearings: WEEK_HEARINGS,
+    detaineeAlerts: DETAINEE_ALERTS,
+    tasks: ALL_TASKS,
+  });
+};
 
 /** Cards on phones, the table on desktops: wait for whichever this viewport shows. */
 const waitForArticleOrTable = (page: Page) =>
@@ -673,6 +691,62 @@ const SCREENS: Record<string, Screen[]> = {
         await button.waitFor();
         await button.evaluate((element) =>
           window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 300),
+        );
+      },
+      fullPage: false,
+    },
+  ],
+  t47: [
+    {
+      path: "/tareas",
+      name: "tasks-mine",
+      prepare: withTasks,
+      act: (page) => page.getByRole("article").first().waitFor(),
+    },
+    {
+      path: `/tareas?persona=${LAWYER_PAULA.id}&hechas=si`,
+      name: "tasks-by-person",
+      themes: ["light"],
+      prepare: withTasks,
+      act: (page) => page.getByRole("article").first().waitFor(),
+    },
+    {
+      path: "/tareas",
+      name: "tasks-empty",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: (page) => page.getByRole("heading", { name: "No tenés tareas pendientes" }).waitFor(),
+    },
+    {
+      path: "/tareas",
+      name: "tasks-quick-add",
+      prepare: withTasks,
+      act: async (page) => {
+        await page.getByRole("article").first().waitFor();
+        await page.getByRole("button", { name: "Nueva tarea" }).first().click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Qué hay que hacer").fill("Pedir el informe del registro");
+        await dialog.getByLabel("Vence el").fill("2026-11-26");
+      },
+      fullPage: false,
+    },
+    {
+      path: "/",
+      name: "agenda-today-tasks",
+      prepare: withTasks,
+      act: waitForHearings,
+    },
+    {
+      path: `/causas/${CASE_MODELO.id}`,
+      name: "case-tasks",
+      themes: ["light"],
+      prepare: withTasks,
+      act: async (page) => {
+        const section = page.getByRole("region", { name: "Tareas" });
+        await section.getByRole("article").first().waitFor();
+        await section.evaluate((element) =>
+          window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 80),
         );
       },
       fullPage: false,

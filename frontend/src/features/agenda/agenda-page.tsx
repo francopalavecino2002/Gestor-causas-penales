@@ -29,6 +29,9 @@ import { HearingEditContext } from "@/features/hearings/hearing-edit-context";
 import { HearingFormDialog } from "@/features/hearings/hearing-form-dialog";
 import { AreaFilter } from "@/features/practice-areas/area-filter";
 import { useAreaDirectory } from "@/features/practice-areas/practice-area-queries";
+import { TaskFormDialog, type TaskLinks } from "@/features/tasks/task-form-dialog";
+import { TaskQuickAddContext } from "@/features/tasks/task-quick-add-context";
+import { TodayTasksCard } from "@/features/tasks/today-tasks-card";
 
 /** Which hearing form is open: a new one, or the edit of one hearing. */
 type HearingDialog = { mode: "new" } | { mode: "edit"; hearingId: string } | null;
@@ -104,6 +107,7 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
     : cache.lawyers.find((lawyer) => lawyer.id === search.abogado);
 
   const [dialog, setDialog] = useState<HearingDialog>(null);
+  const [taskLinks, setTaskLinks] = useState<TaskLinks | null>(null);
   // After a new hearing, show its day (or its week) so the lawyer sees it in place.
   const showSaved = (hearing: HearingDetail) => {
     const day = localDay(hearing.startsAt, timeZone);
@@ -119,134 +123,148 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
 
   return (
     <HearingEditContext.Provider value={(hearingId) => setDialog({ mode: "edit", hearingId })}>
-      <div className="grid gap-5 lg:flex lg:items-end lg:justify-between lg:gap-8">
-        <header className="grid gap-1 lg:shrink-0">
-          <p className="text-meta text-muted-foreground">
-            {view === "semana" ? (
-              formatWeekLabel(range.from, range.to)
-            ) : (
-              <time dateTime={anchor}>{formatDayLabel(anchor, { year: true })}</time>
-            )}
-          </p>
-          <h1 className="text-display font-bold text-balance">{TITLES[scope]}</h1>
-          <p aria-live="polite" className="text-body text-muted-foreground empty:hidden">
-            {agenda.isSuccess && items.length > 0
-              ? agendaSummary({
-                  count: items.length,
-                  detained: items.filter((item) => item.detainee).length,
-                  scope,
-                  lawyerName: personal ? undefined : (otherLawyer?.name ?? "Esa persona"),
-                })
-              : null}
-          </p>
-        </header>
-        <div className="grid gap-4 lg:justify-items-end">
-          <div className="hidden lg:block">{newHearingButton}</div>
-          <AgendaToolbar
-            view={view}
-            onViewChange={(vista) =>
-              go({ ...current, vista: vista === "semana" ? "semana" : undefined })
-            }
-            onPrevious={() => go({ ...current, fecha: addDays(anchor, -step) })}
-            onToday={() => go({ ...current, fecha: undefined })}
-            onNext={() => go({ ...current, fecha: addDays(anchor, step) })}
-            lawyer={search.abogado ?? ""}
-            lawyerOptions={lawyerOptions(meId, cache.lawyers, search.abogado)}
-            onLawyerChange={(abogado) => go({ ...current, abogado: abogado || undefined })}
-            filters={
-              directory.multiple && (
-                <AreaFilter
-                  areas={directory.areas}
-                  value={area?.code ?? ""}
-                  onChange={(code) => go({ ...current, fuero: code || undefined })}
-                  className="sm:w-56"
-                />
-              )
-            }
-          />
+      <TaskQuickAddContext.Provider value={setTaskLinks}>
+        <div className="grid gap-5 lg:flex lg:items-end lg:justify-between lg:gap-8">
+          <header className="grid gap-1 lg:shrink-0">
+            <p className="text-meta text-muted-foreground">
+              {view === "semana" ? (
+                formatWeekLabel(range.from, range.to)
+              ) : (
+                <time dateTime={anchor}>{formatDayLabel(anchor, { year: true })}</time>
+              )}
+            </p>
+            <h1 className="text-display font-bold text-balance">{TITLES[scope]}</h1>
+            <p aria-live="polite" className="text-body text-muted-foreground empty:hidden">
+              {agenda.isSuccess && items.length > 0
+                ? agendaSummary({
+                    count: items.length,
+                    detained: items.filter((item) => item.detainee).length,
+                    scope,
+                    lawyerName: personal ? undefined : (otherLawyer?.name ?? "Esa persona"),
+                  })
+                : null}
+            </p>
+          </header>
+          <div className="grid gap-4 lg:justify-items-end">
+            <div className="hidden lg:block">{newHearingButton}</div>
+            <AgendaToolbar
+              view={view}
+              onViewChange={(vista) =>
+                go({ ...current, vista: vista === "semana" ? "semana" : undefined })
+              }
+              onPrevious={() => go({ ...current, fecha: addDays(anchor, -step) })}
+              onToday={() => go({ ...current, fecha: undefined })}
+              onNext={() => go({ ...current, fecha: addDays(anchor, step) })}
+              lawyer={search.abogado ?? ""}
+              lawyerOptions={lawyerOptions(meId, cache.lawyers, search.abogado)}
+              onLawyerChange={(abogado) => go({ ...current, abogado: abogado || undefined })}
+              filters={
+                directory.multiple && (
+                  <AreaFilter
+                    areas={directory.areas}
+                    value={area?.code ?? ""}
+                    onChange={(code) => go({ ...current, fuero: code || undefined })}
+                    className="sm:w-56"
+                  />
+                )
+              }
+            />
+          </div>
         </div>
-      </div>
 
-      {/* The alerts are about criminal defendants: an area without them filters them out. */}
-      {(!area || hasModule(area.modules, "detainee-alerts")) && <DetaineeAlerts />}
+        {/* Below 1280 px one column: alerts, today's tasks, then the hearings. From 1280 px the
+          tasks card moves to the right column (DESIGN.md: 340 px aside). */}
+        <div className="grid gap-7 xl:grid-cols-with-aside xl:grid-rows-[auto_1fr] xl:items-start xl:gap-x-10">
+          {/* The alerts are about criminal defendants: an area without them filters them out. */}
+          {(!area || hasModule(area.modules, "detainee-alerts")) && <DetaineeAlerts />}
 
-      {agenda.isPending ? (
-        <AgendaSkeleton />
-      ) : agenda.isError ? (
-        <AgendaError error={agenda.error} onRetry={() => void agenda.refetch()} />
-      ) : items.length === 0 ? (
-        <AgendaEmpty
-          title={`${personal ? "No tenés" : "No hay"} audiencias ${area ? `de ${area.name} ` : ""}${scope}`}
-          description={
-            view === "semana"
-              ? "Cuando cargues una audiencia o la Oficina Judicial fije una fecha, la vas a ver acá, en su día."
-              : "Cuando cargues una audiencia o la Oficina Judicial fije una fecha, la vas a ver acá, en orden."
-          }
-        >
-          <Button onClick={() => setDialog({ mode: "new" })}>
+          <TodayTasksCard today={today} className="xl:col-start-2 xl:row-span-2 xl:row-start-1" />
+
+          <div className="grid min-w-0 gap-7 xl:col-start-1">
+            {agenda.isPending ? (
+              <AgendaSkeleton />
+            ) : agenda.isError ? (
+              <AgendaError error={agenda.error} onRetry={() => void agenda.refetch()} />
+            ) : items.length === 0 ? (
+              <AgendaEmpty
+                title={`${personal ? "No tenés" : "No hay"} audiencias ${area ? `de ${area.name} ` : ""}${scope}`}
+                description={
+                  view === "semana"
+                    ? "Cuando cargues una audiencia o la Oficina Judicial fije una fecha, la vas a ver acá, en su día."
+                    : "Cuando cargues una audiencia o la Oficina Judicial fije una fecha, la vas a ver acá, en orden."
+                }
+              >
+                <Button onClick={() => setDialog({ mode: "new" })}>
+                  <Plus aria-hidden="true" />
+                  Cargá una audiencia
+                </Button>
+                {view === "semana" ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => go({ ...current, fecha: addDays(anchor, 7) })}
+                  >
+                    Mirá la semana siguiente
+                  </Button>
+                ) : (
+                  <Button variant="outline" onClick={() => go({ ...current, vista: "semana" })}>
+                    Mirá toda la semana
+                  </Button>
+                )}
+                {search.abogado && (
+                  <Button variant="ghost" onClick={() => go({ ...current, abogado: undefined })}>
+                    Mirá todo el estudio
+                  </Button>
+                )}
+                {area && (
+                  <Button variant="ghost" onClick={() => go({ ...current, fuero: undefined })}>
+                    Mirá todos los fueros
+                  </Button>
+                )}
+              </AgendaEmpty>
+            ) : view === "semana" ? (
+              <WeekList
+                from={range.from}
+                to={range.to}
+                items={items}
+                timeZone={timeZone}
+                today={today}
+                lawyerId={search.abogado}
+                areaCode={area?.code}
+              />
+            ) : (
+              <div className="max-w-4xl">
+                <DayRail items={items} timeZone={timeZone} now={now} isToday={anchor === today} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Phones and tablets: the labeled floating button above the bottom navigation, with room
+          below the list so the last hearing can scroll clear of it. */}
+        <div aria-hidden="true" className="h-16 lg:hidden" />
+        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--spacing-bottom-nav)+env(safe-area-inset-bottom)+0.75rem)] z-30 flex justify-end px-4 sm:px-8 lg:hidden">
+          <Button
+            size="fab"
+            className="pointer-events-auto"
+            onClick={() => setDialog({ mode: "new" })}
+          >
             <Plus aria-hidden="true" />
             Cargá una audiencia
           </Button>
-          {view === "semana" ? (
-            <Button variant="outline" onClick={() => go({ ...current, fecha: addDays(anchor, 7) })}>
-              Mirá la semana siguiente
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={() => go({ ...current, vista: "semana" })}>
-              Mirá toda la semana
-            </Button>
-          )}
-          {search.abogado && (
-            <Button variant="ghost" onClick={() => go({ ...current, abogado: undefined })}>
-              Mirá todo el estudio
-            </Button>
-          )}
-          {area && (
-            <Button variant="ghost" onClick={() => go({ ...current, fuero: undefined })}>
-              Mirá todos los fueros
-            </Button>
-          )}
-        </AgendaEmpty>
-      ) : view === "semana" ? (
-        <WeekList
-          from={range.from}
-          to={range.to}
-          items={items}
-          timeZone={timeZone}
-          today={today}
-          lawyerId={search.abogado}
-          areaCode={area?.code}
-        />
-      ) : (
-        <div className="max-w-4xl">
-          <DayRail items={items} timeZone={timeZone} now={now} isToday={anchor === today} />
         </div>
-      )}
 
-      {/* Phones and tablets: the labeled floating button above the bottom navigation, with room
-          below the list so the last hearing can scroll clear of it. */}
-      <div aria-hidden="true" className="h-16 lg:hidden" />
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--spacing-bottom-nav)+env(safe-area-inset-bottom)+0.75rem)] z-30 flex justify-end px-4 sm:px-8 lg:hidden">
-        <Button
-          size="fab"
-          className="pointer-events-auto"
-          onClick={() => setDialog({ mode: "new" })}
-        >
-          <Plus aria-hidden="true" />
-          Cargá una audiencia
-        </Button>
-      </div>
-
-      {dialog?.mode === "new" && (
-        <HearingFormDialog
-          defaultDate={view === "semana" ? undefined : anchor}
-          onClose={() => setDialog(null)}
-          onSaved={showSaved}
-        />
-      )}
-      {dialog?.mode === "edit" && (
-        <HearingFormDialog hearingId={dialog.hearingId} onClose={() => setDialog(null)} />
-      )}
+        {dialog?.mode === "new" && (
+          <HearingFormDialog
+            defaultDate={view === "semana" ? undefined : anchor}
+            onClose={() => setDialog(null)}
+            onSaved={showSaved}
+          />
+        )}
+        {dialog?.mode === "edit" && (
+          <HearingFormDialog hearingId={dialog.hearingId} onClose={() => setDialog(null)} />
+        )}
+        {taskLinks && <TaskFormDialog links={taskLinks} onClose={() => setTaskLinks(null)} />}
+      </TaskQuickAddContext.Provider>
     </HearingEditContext.Provider>
   );
 }

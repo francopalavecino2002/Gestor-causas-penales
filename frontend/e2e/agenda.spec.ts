@@ -56,7 +56,8 @@ test("today's agenda on a phone: alerts first, the rail, then the week and a law
   await expect(
     page.getByRole("heading", { level: 1, name: "Audiencias de esta semana" }),
   ).toBeVisible();
-  await expect(page.getByRole("heading", { level: 2 })).toHaveCount(7);
+  // Seven days, plus the "Tareas de hoy" card.
+  await expect(page.getByRole("heading", { level: 2, name: /Ver el día$/ })).toHaveCount(7);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
 
   // The day header sticks under the top bar while its hearings scroll by.

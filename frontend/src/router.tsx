@@ -31,6 +31,8 @@ import { PracticeAreasSection } from "@/features/settings/practice-areas-section
 import { SettingsHomePage } from "@/features/settings/settings-layout";
 import { parseCatalogSearch, parseFieldSearch } from "@/features/settings/settings-search";
 import { UsersSection } from "@/features/settings/users-section";
+import { parseTaskSearch } from "@/features/tasks/task-search";
+import { TasksPage } from "@/features/tasks/tasks-page";
 import { HomePage } from "@/pages/home-page";
 import { NotFoundPage } from "@/pages/not-found-page";
 import { PlaceholderPage } from "@/pages/placeholder-page";
@@ -130,6 +132,17 @@ const deadlinesRoute = createRoute({
   },
 });
 
+/** Tasks per responsible (T47). `?persona` and `?hechas` keep the view linkable. */
+const tasksRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/tareas",
+  validateSearch: parseTaskSearch,
+  component: function TasksRoute() {
+    const search = tasksRoute.useSearch();
+    return <TasksPage search={search} />;
+  },
+});
+
 const personsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/personas",
@@ -218,6 +231,7 @@ const routeTree = rootRoute.addChildren([
     casesRoute,
     caseRoute,
     deadlinesRoute,
+    tasksRoute,
     personsRoute,
     settingsRoute,
     settingsAreasRoute,

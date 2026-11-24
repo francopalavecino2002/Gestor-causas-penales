@@ -48,6 +48,7 @@ describe("app shell", () => {
       "Agenda",
       "Causas",
       "Plazos",
+      "Tareas",
       "Personas",
     ]);
     expect(within(nav).getByRole("link", { name: "Agenda" })).toHaveAttribute(

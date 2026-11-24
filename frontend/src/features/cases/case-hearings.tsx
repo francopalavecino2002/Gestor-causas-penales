@@ -12,6 +12,7 @@ import { useCaseHearings } from "@/features/cases/case-queries";
 import { LoadError } from "@/features/cases/case-states";
 import type { CaseHearing } from "@/features/cases/case-types";
 import { useHearingEdit } from "@/features/hearings/hearing-edit-context";
+import { AddHearingTaskButton } from "@/features/tasks/add-hearing-task-button";
 
 function HearingItem({ hearing, timeZone }: { hearing: CaseHearing; timeZone: string }) {
   const titleId = useId();
@@ -78,6 +79,7 @@ function HearingItem({ hearing, timeZone }: { hearing: CaseHearing; timeZone: st
             </Button>
           )}
           <AddToCalendarButton hearingId={hearing.id} typeName={hearing.typeName} />
+          <AddHearingTaskButton hearing={hearing} timeZone={timeZone} />
         </div>
       </article>
     </Card>
