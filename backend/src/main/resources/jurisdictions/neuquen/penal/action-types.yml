@@ -1,0 +1,16 @@
+# Ejercicio de la acción penal (arts. 99 a 101). Closed list: the article decides what the case
+# can do (a private action has no preventive prison, art. 115). A firm can rename these items but
+# not hide or add any. The codes mirror the stored values PUBLIC, PUBLIC_ON_COMPLAINT and PRIVATE
+# of the case (lowercase, hyphenated), so existing cases stay valid.
+catalog: action-types
+source: CPP de Neuquén (Ley 2784)
+items:
+  - code: public
+    name: Acción pública
+    article: "99"
+  - code: public-on-complaint
+    name: Acción pública dependiente de instancia privada
+    article: "100"
+  - code: private
+    name: Acción privada
+    article: "101"

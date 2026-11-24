@@ -5,6 +5,8 @@ import ar.gestorpenal.casefile.Cases;
 import ar.gestorpenal.casefile.DefendantRef;
 import ar.gestorpenal.hearing.DetaineeAlerts.Alert;
 import ar.gestorpenal.hearing.DetaineeAlerts.MeasureDates;
+import ar.gestorpenal.jurisdiction.PracticeAreas;
+import ar.gestorpenal.jurisdiction.PracticeModule;
 import ar.gestorpenal.security.AuthenticatedUser;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -17,7 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Assisted alerts about the firm's detainees (ADR-0016), for active custodial measures of cases and
- * defendants that are not archived and that the user may see. Not the deadline engine of T14.
+ * defendants that are not archived and that the user may see, in practice areas that have the
+ * {@code detainee-alerts} module (ADR-0032). Not the deadline engine of T14.
  */
 @Service
 class DetaineeAlertService {
@@ -28,11 +31,14 @@ class DetaineeAlertService {
     private final CoerciveMeasureRepository measures;
     private final HearingCalendar calendar;
     private final Cases cases;
+    private final PracticeAreas areas;
 
-    DetaineeAlertService(CoerciveMeasureRepository measures, HearingCalendar calendar, Cases cases) {
+    DetaineeAlertService(
+            CoerciveMeasureRepository measures, HearingCalendar calendar, Cases cases, PracticeAreas areas) {
         this.measures = measures;
         this.calendar = calendar;
         this.cases = cases;
+        this.areas = areas;
     }
 
     /** Alerts due within {@code withinDays} (1 to 90) or already overdue, the most urgent first. */
@@ -56,6 +62,9 @@ class DetaineeAlertService {
         for (CoerciveMeasure measure : active) {
             DefendantRef defendant = defendants.get(measure.getDefendantId());
             CaseRef caseRef = caseRefs.get(defendant.caseId());
+            if (!areas.hasModule(caseRef.practiceArea(), PracticeModule.DETAINEE_ALERTS)) {
+                continue;
+            }
             MeasureDates dates = new MeasureDates(
                     measure.getMeasureCode(), measure.getStartsOn(), measure.getEndsOn(), measure.getNextReviewOn());
             for (Alert alert : DetaineeAlerts.of(dates, today, withinDays)) {

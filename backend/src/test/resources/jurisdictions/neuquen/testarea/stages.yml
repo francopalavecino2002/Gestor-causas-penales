@@ -1,0 +1,7 @@
+catalog: stages
+source: Prueba automatizada
+items:
+  - code: inicio-de-prueba
+    name: Inicio
+  - code: cerrada
+    name: Cerrada

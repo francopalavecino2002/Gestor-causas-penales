@@ -39,7 +39,7 @@ class CatalogMatcherTests extends ImportApiTestSupport {
     @Test
     void shouldMatchTheNameTheFirmGaveToAnItemAndStillItsCode() {
         TenantContext.runAs(tenantA, () ->
-                catalogs.updateItem(Catalog.HEARING_TYPES, "formulacion-de-cargos", "Cargos (nombre propio)", false));
+                catalogs.updateItem("penal", Catalog.HEARING_TYPES, "formulacion-de-cargos", "Cargos (nombre propio)", false));
 
         assertThat(codeFor("Cargos (nombre propio)")).isEqualTo("formulacion-de-cargos");
         assertThat(codeFor("formulacion-de-cargos")).isEqualTo("formulacion-de-cargos");
@@ -59,7 +59,7 @@ class CatalogMatcherTests extends ImportApiTestSupport {
     @Test
     void shouldNotMatchAHiddenItem() {
         TenantContext.runAs(tenantA, () ->
-                catalogs.updateItem(Catalog.HEARING_TYPES, "formulacion-de-cargos", null, true));
+                catalogs.updateItem("penal", Catalog.HEARING_TYPES, "formulacion-de-cargos", null, true));
 
         assertThat(codeFor("formulacion-de-cargos")).isNull();
     }

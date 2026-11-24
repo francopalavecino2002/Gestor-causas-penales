@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -71,8 +72,10 @@ class DeadlineViews {
         if (deadlines.isEmpty()) {
             return List.of();
         }
-        FirmRules.Snapshot firm = firmRules.current();
-        DeadlineCalculator calculator = new DeadlineCalculator(firm.deadlinePackage().calendar(), DeadlineClock.ZONE);
+        // The rules come from each deadline's case area; the court calendar belongs to the jurisdiction.
+        Map<String, FirmRules.Snapshot> firms = new HashMap<>();
+        DeadlineCalculator calculator =
+                new DeadlineCalculator(firmRules.current().deadlinePackage().calendar(), DeadlineClock.ZONE);
         Map<UUID, List<DeadlineExtension>> extensionsByDeadline = extensions
                 .findByDeadlineIdInAndArchivedAtIsNullOrderByGrantedOnAscCreatedAtAscIdAsc(
                         deadlines.stream().map(Deadline::getId).toList())
@@ -90,6 +93,8 @@ class DeadlineViews {
 
         List<DeadlineView> views = new ArrayList<>();
         for (Deadline deadline : deadlines) {
+            FirmRules.Snapshot firm = firms.computeIfAbsent(
+                    caseRefs.get(deadline.getCaseId()).practiceArea(), firmRules::current);
             DeadlineRule rule = firm.rule(deadline.getRuleCode());
             List<DeadlineExtension> granted = extensionsByDeadline.getOrDefault(deadline.getId(), List.of());
             DefendantRef defendant = deadline.getDefendantId() == null ? null : defendants.get(deadline.getDefendantId());

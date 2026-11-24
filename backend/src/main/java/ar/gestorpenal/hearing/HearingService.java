@@ -60,7 +60,7 @@ class HearingService {
     HearingDetail create(AuthenticatedUser user, UUID caseId, HearingData data) {
         CaseRef caseRef = requireVisibleCase(user, caseId);
         requireNotArchived(caseRef);
-        requireCatalogCodes(data, null);
+        requireCatalogCodes(caseRef.practiceArea(), data, null);
         List<UUID> defendantIds = checkedDefendants(caseId, data.defendantIds(), Set.of());
         List<UUID> lawyerIds =
                 data.lawyerIds() == null ? defaultLawyers(caseId) : checkedLawyers(data.lawyerIds(), Set.of());
@@ -88,8 +88,9 @@ class HearingService {
     /** Replaces the editable fields; the date only changes by {@link #reschedule}. */
     @Transactional
     HearingDetail update(AuthenticatedUser user, UUID id, HearingData data) {
-        Hearing hearing = findEditable(user, id);
-        requireCatalogCodes(data, hearing);
+        Located located = findEditableLocated(user, id);
+        Hearing hearing = located.hearing();
+        requireCatalogCodes(located.caseRef().practiceArea(), data, hearing);
         // Defendants and lawyers already attached are kept even if archived since: only new ones are checked.
         List<UUID> defendantIds = data.defendantIds() == null
                 ? null
@@ -131,7 +132,9 @@ class HearingService {
      */
     @Transactional
     HearingDetail recordResult(AuthenticatedUser user, UUID id, ResultData data) {
-        Hearing hearing = findEditable(user, id);
+        Located located = findEditableLocated(user, id);
+        Hearing hearing = located.hearing();
+        String area = located.caseRef().practiceArea();
         if (HearingRules.isFinallyCancelled(hearing.getStatusCode())) {
             throw new HearingStateException("A cancelled hearing has no result");
         }
@@ -141,13 +144,13 @@ class HearingService {
         String status = Text.clean(data.statusCode());
         HearingRules.requireResultStatus(status);
         String heldAs = Text.clean(data.heldAsTypeCode());
-        catalogs.requireOffered(Catalog.HEARING_STATUSES, status, hearing.getStatusCode());
+        catalogs.requireOffered(area, Catalog.HEARING_STATUSES, status, hearing.getStatusCode());
         if (heldAs != null) {
-            catalogs.requireOffered(Catalog.HEARING_TYPES, heldAs, hearing.getHeldAsTypeCode());
+            catalogs.requireOffered(area, Catalog.HEARING_TYPES, heldAs, hearing.getHeldAsTypeCode());
         }
         ResultData.NextHearingData next = data.nextHearing();
         if (next != null) {
-            catalogs.requireOffered(Catalog.HEARING_TYPES, Text.clean(next.typeCode()), null);
+            catalogs.requireOffered(area, Catalog.HEARING_TYPES, Text.clean(next.typeCode()), null);
         }
 
         hearing.recordResult(status, heldAs, Text.clean(data.resultSummary()));
@@ -188,21 +191,22 @@ class HearingService {
                 null, null, null, null, null, null, null, null, null);
     }
 
-    private void requireCatalogCodes(HearingData data, Hearing current) {
+    private void requireCatalogCodes(String area, HearingData data, Hearing current) {
         String typeCode = Text.clean(data.typeCode());
-        catalogs.requireOffered(Catalog.HEARING_TYPES, typeCode, current == null ? null : current.getTypeCode());
+        catalogs.requireOffered(area, Catalog.HEARING_TYPES, typeCode, current == null ? null : current.getTypeCode());
         catalogs.requireOffered(
+                area,
                 Catalog.HEARING_STATUSES,
                 Hearing.statusOf(data, current == null ? null : current.getStatusCode()),
                 current == null ? null : current.getStatusCode());
         String reason = Text.clean(data.cancellationReasonCode());
         if (reason != null) {
             catalogs.requireOffered(
-                    Catalog.CANCELLATION_REASONS, reason, current == null ? null : current.getCancellationReasonCode());
+                    area, Catalog.CANCELLATION_REASONS, reason, current == null ? null : current.getCancellationReasonCode());
         }
         String heldAs = Text.clean(data.heldAsTypeCode());
         if (heldAs != null) {
-            catalogs.requireOffered(Catalog.HEARING_TYPES, heldAs, current == null ? null : current.getHeldAsTypeCode());
+            catalogs.requireOffered(area, Catalog.HEARING_TYPES, heldAs, current == null ? null : current.getHeldAsTypeCode());
         }
     }
 
@@ -323,14 +327,18 @@ class HearingService {
         return new Located(hearing, requireVisibleCase(user, hearing.getCaseId()));
     }
 
-    /** A visible hearing of a case that is not archived, and not archived itself. */
     private Hearing findEditable(AuthenticatedUser user, UUID id) {
+        return findEditableLocated(user, id).hearing();
+    }
+
+    /** A visible hearing of a case that is not archived, and not archived itself, with its case. */
+    private Located findEditableLocated(AuthenticatedUser user, UUID id) {
         Located located = find(user, id);
         requireNotArchived(located.caseRef());
         if (located.hearing().isArchived()) {
             throw new ArchivedHearingRecordException("The hearing is archived: restore it before changing it");
         }
-        return located.hearing();
+        return located;
     }
 
     private record Located(Hearing hearing, CaseRef caseRef) {}

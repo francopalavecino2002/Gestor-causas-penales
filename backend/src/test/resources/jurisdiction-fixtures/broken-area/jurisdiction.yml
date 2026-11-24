@@ -1,0 +1,5 @@
+# Fixture: a valid jurisdiction whose only practice area breaks several rules (JurisdictionPackageLoaderTests).
+code: broken-area
+name: Provincia Ficticia
+version: 1
+law: Código ficticio

@@ -1,5 +1,6 @@
 package ar.gestorpenal.casefile;
 
+import ar.gestorpenal.jurisdiction.PracticeModule;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,8 @@ import java.util.UUID;
  */
 record CaseDetail(
         UUID id,
+        String practiceArea,
+        List<PracticeModule> modules,
         String caption,
         String internalNumber,
         String mpfLegajo,
@@ -38,6 +41,8 @@ record CaseDetail(
             List<DefendantView> defendants) {
         return new CaseDetail(
                 head.id(),
+                head.practiceArea(),
+                head.modules(),
                 head.caption(),
                 head.internalNumber(),
                 head.mpfLegajo(),

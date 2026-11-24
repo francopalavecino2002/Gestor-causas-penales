@@ -1,0 +1,22 @@
+# Practice area manifest: criminal procedure of Neuquén (ADR-0032).
+# One folder per practice area under the jurisdiction folder. The area's catalogs live next to this
+# file, one <catalog>.yml each, plus deadline-rules.yml. Shared catalogs (circumscriptions) and the
+# court calendar stay at jurisdiction level.
+#
+# Source: docs/domain/neuquen-review.md, the stage 0 review of the criminal package. Item codes are
+# stable identifiers that records reference: never rename or remove one.
+code: penal
+name: Penal
+law: CPP de Neuquén (Ley 2784)
+# Quoted: an unquoted YAML date would be read as a timestamp.
+reviewedOn: "2026-11-21"
+source: docs/domain/neuquen-review.md §2
+# Optional features this area turns on. Each one needs its own catalogs in this folder
+# (coercive-measures needs coercive-measures.yml and procedural-risks.yml; detainee-alerts needs
+# liberty-situations.yml; alternative-outcomes needs alternative-outcomes.yml).
+modules:
+  - defendants
+  - coercive-measures
+  - detainee-alerts
+  - alternative-outcomes
+  - mpf-legajo

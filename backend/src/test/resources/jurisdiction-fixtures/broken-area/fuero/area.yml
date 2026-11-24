@@ -1,0 +1,5 @@
+# Fixture: the code does not match the folder, there is no name, one module does not exist, one is
+# listed twice, and a module needs another one that is missing.
+code: otro-fuero
+law: Código ficticio
+modules: [inexistente, defendants, defendants, detainee-alerts]

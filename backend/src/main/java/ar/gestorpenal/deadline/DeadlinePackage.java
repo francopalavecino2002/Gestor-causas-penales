@@ -6,21 +6,32 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * The deadline rules and the court calendar of one jurisdiction (ADR-0017), read once at startup
- * from {@code resources/jurisdictions/<code>/} and shared, read-only, by every firm of it.
+ * The deadline rules of one practice area and the court calendar of its jurisdiction (ADR-0017,
+ * ADR-0032), read once at startup from {@code resources/jurisdictions/<code>/<area>/} and shared,
+ * read-only, by every firm of the jurisdiction.
  *
  * @param law the code of procedure, the source of every rule that names no law of its own
  */
-record DeadlinePackage(String jurisdictionCode, String law, String source, List<DeadlineRule> rules, CourtCalendar calendar) {
+record DeadlinePackage(
+        String jurisdictionCode,
+        String areaCode,
+        String law,
+        String source,
+        List<DeadlineRule> rules,
+        CourtCalendar calendar) {
 
     DeadlinePackage {
         rules = List.copyOf(rules);
     }
 
-    /** A jurisdiction that ships no rules: nothing to compute, every year unknown. */
-    static DeadlinePackage empty(String jurisdictionCode) {
-        return new DeadlinePackage(
-                jurisdictionCode, null, null, List.of(), new CourtCalendar(Set.of(), Map.of(), null, List.of()));
+    /** An area that ships no rules: nothing to compute. The calendar is the jurisdiction's. */
+    static DeadlinePackage empty(String jurisdictionCode, String areaCode, CourtCalendar calendar) {
+        return new DeadlinePackage(jurisdictionCode, areaCode, null, null, List.of(), calendar);
+    }
+
+    /** A jurisdiction without any calendar: every year unknown. */
+    static CourtCalendar noCalendar() {
+        return new CourtCalendar(Set.of(), Map.of(), null, List.of());
     }
 
     Optional<DeadlineRule> rule(String code) {

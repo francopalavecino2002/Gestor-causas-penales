@@ -1,0 +1,9 @@
+# A quién representa el estudio en la causa. Closed list: the codes mirror the stored values
+# DEFENCE and PRIVATE_PROSECUTION of the case (lowercase, hyphenated), so existing cases stay valid.
+catalog: represented-sides
+source: CPP de Neuquén (Ley 2784)
+items:
+  - code: defence
+    name: Defensa del imputado
+  - code: private-prosecution
+    name: Querella

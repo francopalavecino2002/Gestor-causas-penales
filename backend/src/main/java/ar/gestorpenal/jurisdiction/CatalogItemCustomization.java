@@ -19,7 +19,8 @@ import lombok.NoArgsConstructor;
 
 /**
  * What a firm changed in one catalog item: a rename or hidden flag on a built-in item, or an item
- * the firm added. Built-in items themselves stay in the jurisdiction package (ADR-0013).
+ * the firm added. Built-in items themselves stay in the jurisdiction package (ADR-0013). Items of an
+ * area catalog belong to one practice area (ADR-0032).
  */
 @Entity
 @Audited
@@ -33,6 +34,10 @@ class CatalogItemCustomization extends TenantScopedEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    /** The practice area of an area catalog; {@code null} for a catalog shared by the whole jurisdiction. */
+    @Column(name = "practice_area", updatable = false, length = 40)
+    private String practiceArea;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, updatable = false, length = 40)
@@ -59,7 +64,14 @@ class CatalogItemCustomization extends TenantScopedEntity {
     private Instant createdAt;
 
     private CatalogItemCustomization(
-            Catalog catalog, String itemCode, boolean custom, String name, String article, boolean hidden) {
+            String practiceArea,
+            Catalog catalog,
+            String itemCode,
+            boolean custom,
+            String name,
+            String article,
+            boolean hidden) {
+        this.practiceArea = practiceArea;
         this.catalog = Objects.requireNonNull(catalog, "catalog");
         this.itemCode = Objects.requireNonNull(itemCode, "itemCode");
         this.custom = custom;
@@ -70,13 +82,15 @@ class CatalogItemCustomization extends TenantScopedEntity {
     }
 
     /** A rename ({@code name} not null) or hidden flag on an item of the jurisdiction package. */
-    static CatalogItemCustomization ofBuiltIn(Catalog catalog, String itemCode, String name, boolean hidden) {
-        return new CatalogItemCustomization(catalog, itemCode, false, name, null, hidden);
+    static CatalogItemCustomization ofBuiltIn(
+            String practiceArea, Catalog catalog, String itemCode, String name, boolean hidden) {
+        return new CatalogItemCustomization(practiceArea, catalog, itemCode, false, name, null, hidden);
     }
 
-    static CatalogItemCustomization newCustomItem(Catalog catalog, String name, String article) {
+    static CatalogItemCustomization newCustomItem(String practiceArea, Catalog catalog, String name, String article) {
         String code = CUSTOM_CODE_PREFIX + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-        return new CatalogItemCustomization(catalog, code, true, Objects.requireNonNull(name, "name"), article, false);
+        return new CatalogItemCustomization(
+                practiceArea, catalog, code, true, Objects.requireNonNull(name, "name"), article, false);
     }
 
     void rename(String newName) {

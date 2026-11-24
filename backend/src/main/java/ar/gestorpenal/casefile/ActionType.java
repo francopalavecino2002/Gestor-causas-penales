@@ -18,4 +18,9 @@ enum ActionType {
     String article() {
         return article;
     }
+
+    /** The item of the penal {@code action-types} catalog that mirrors this value. */
+    String catalogCode() {
+        return CatalogCodes.of(this);
+    }
 }

@@ -1,5 +1,6 @@
 package ar.gestorpenal.deadline;
 
+import ar.gestorpenal.tenancy.Tenant;
 import ar.gestorpenal.tenancy.TenantService;
 import java.util.Map;
 import java.util.function.Function;
@@ -7,7 +8,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/** The rules of the current firm: its jurisdiction's package plus the firm's settings (ADR-0017). */
+/** The rules of the current firm: its jurisdiction's package per practice area plus the firm's settings (ADR-0017). */
 @Component
 class FirmRules {
 
@@ -40,15 +41,25 @@ class FirmRules {
         }
     }
 
+    /** The penal rules and the firm's settings (the other areas ship no rules yet, ADR-0032). */
     @Transactional(readOnly = true)
     Snapshot current() {
+        return current(Tenant.DEFAULT_PRACTICE_AREA);
+    }
+
+    @Transactional(readOnly = true)
+    Snapshot current(String areaCode) {
         return new Snapshot(
-                currentPackage(),
+                currentPackage(areaCode),
                 settings.findAll().stream()
                         .collect(Collectors.toMap(DeadlineRuleSetting::getRuleCode, Function.identity())));
     }
 
     DeadlinePackage currentPackage() {
-        return packages.get(tenants.currentJurisdictionCode());
+        return currentPackage(Tenant.DEFAULT_PRACTICE_AREA);
+    }
+
+    DeadlinePackage currentPackage(String areaCode) {
+        return packages.get(tenants.currentJurisdictionCode(), areaCode);
     }
 }

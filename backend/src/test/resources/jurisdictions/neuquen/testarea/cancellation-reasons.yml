@@ -1,0 +1,5 @@
+catalog: cancellation-reasons
+source: Prueba automatizada
+items:
+  - code: desistimiento-de-prueba
+    name: Desistimiento

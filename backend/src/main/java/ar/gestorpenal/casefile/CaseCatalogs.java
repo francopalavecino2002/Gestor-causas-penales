@@ -9,9 +9,9 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 /**
- * Checks catalog codes against the current firm's catalogs (ADR-0013). Cases store codes as text: a
- * new or changed value must be a visible item, an unchanged value is accepted even if the firm hid
- * it later.
+ * Checks catalog codes against the current firm's catalogs of the case's practice area (ADR-0013,
+ * ADR-0032): a case of one area can never use an item of another. Cases store codes as text: a new or
+ * changed value must be a visible item, an unchanged value is accepted even if the firm hid it later.
  */
 @Component
 class CaseCatalogs {
@@ -23,11 +23,11 @@ class CaseCatalogs {
     }
 
     /** {@code currentCode} is the value the record already has, or {@code null} for a new record. */
-    void requireOffered(Catalog catalog, String code, String currentCode) {
+    void requireOffered(String area, Catalog catalog, String code, String currentCode) {
         if (code.equals(currentCode)) {
             return;
         }
-        CatalogItem item = catalogs.view(catalog, true).items().stream()
+        CatalogItem item = catalogs.view(area, catalog, true).items().stream()
                 .filter(candidate -> candidate.code().equals(code))
                 .findFirst()
                 .orElseThrow(() -> new InvalidCaseDataException(
@@ -39,14 +39,14 @@ class CaseCatalogs {
     }
 
     /** Name of every item (hidden ones too, so old records keep a readable name) by code, in catalog order. */
-    Map<String, String> names(Catalog catalog) {
+    Map<String, String> names(String area, Catalog catalog) {
         Map<String, String> names = new LinkedHashMap<>();
-        catalogs.view(catalog, true).items().forEach(item -> names.put(item.code(), item.name()));
+        catalogs.view(area, catalog, true).items().forEach(item -> names.put(item.code(), item.name()));
         return names;
     }
 
-    /** The codes of the stages catalog in procedural order. */
-    List<String> stageOrder() {
-        return List.copyOf(names(Catalog.STAGES).keySet());
+    /** The codes of the area's stages catalog in procedural order. */
+    List<String> stageOrder(String area) {
+        return List.copyOf(names(area, Catalog.STAGES).keySet());
     }
 }

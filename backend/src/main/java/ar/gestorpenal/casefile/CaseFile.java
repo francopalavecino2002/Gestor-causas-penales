@@ -1,6 +1,7 @@
 package ar.gestorpenal.casefile;
 
 import ar.gestorpenal.audit.Audited;
+import ar.gestorpenal.tenancy.Tenant;
 import ar.gestorpenal.tenancy.TenantScopedEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -22,7 +23,8 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * A case file, the legajo (ADR-0015). It holds what is common to the case; the stage, status and
- * outcome belong to each {@link Defendant}. Archived, never deleted.
+ * outcome belong to each {@link Defendant}. It belongs to one practice area (ADR-0032). Archived,
+ * never deleted.
  */
 @Entity
 @Audited
@@ -52,6 +54,10 @@ class CaseFile extends TenantScopedEntity {
     @Column(name = "pehuen_number", length = 40)
     private String pehuenNumber;
 
+    /** The practice area (fuero) whose catalogs and modules the case uses; chosen once, never changes. */
+    @Column(name = "practice_area", nullable = false, updatable = false, length = 40)
+    private String practiceArea;
+
     @Column(name = "circumscription_code", nullable = false, length = 60)
     private String circumscriptionCode;
 
@@ -80,6 +86,8 @@ class CaseFile extends TenantScopedEntity {
     static CaseFile create(CaseData data) {
         CaseFile caseFile = new CaseFile();
         caseFile.createdAt = Instant.now();
+        String area = Text.clean(data.practiceArea());
+        caseFile.practiceArea = area == null ? Tenant.DEFAULT_PRACTICE_AREA : area;
         caseFile.apply(data);
         return caseFile;
     }
@@ -92,6 +100,10 @@ class CaseFile extends TenantScopedEntity {
             throw new InvalidCaseDataException("A case needs a caption and a circumscription");
         }
         String legajo = MpfLegajo.normalize(data.mpfLegajo());
+        String area = Text.clean(data.practiceArea());
+        if (area != null && !area.equals(practiceArea)) {
+            throw new InvalidCaseDataException("The practice area of a case cannot change");
+        }
 
         this.caption = caption;
         this.internalNumber = Text.clean(data.internalNumber());

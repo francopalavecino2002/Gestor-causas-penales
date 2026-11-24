@@ -157,3 +157,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   to their field, schedule clashes are shown after saving without blocking, and changing a hearing's
   date goes through rescheduling with a reason. New `GET /api/v1/users` lists the firm's active
   members for the lawyer pickers (ADR-0031).
+- Practice-area design (T40): every practice area (penal, civil, laboral, familia) is a configuration
+  package inside the jurisdiction, with criminal concepts as modules of the criminal area (ADR-0032).
+- Practice-area packages (T41): the Neuquén criminal catalogs and deadline rules moved to
+  `jurisdictions/neuquen/penal/` with an `area.yml` manifest and modules; cases carry
+  `practiceArea` (existing ones migrated to `penal`), firms have enabled areas, catalogs are served
+  and customized per area (`?area=`, default `penal`), every code is validated against the case's
+  area, and criminal-only features answer 409 for other areas. New `GET /api/v1/practice-areas`.

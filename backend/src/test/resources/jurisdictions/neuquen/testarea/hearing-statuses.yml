@@ -1,0 +1,22 @@
+# Estados y resultados de una audiencia según la Oficina Judicial (neuquen-review.md §2.2).
+# In lifecycle order. Hearings (T13) will drive behavior from these codes.
+catalog: hearing-statuses
+source: Informe de gestión de audiencias, Oficina Judicial de Zapala, 2018
+items:
+  - code: solicitada
+    name: Solicitada
+  - code: programada
+    name: Programada
+  - code: reprogramada
+    name: Reprogramada
+  - code: efectiva
+    name: Realizada (efectiva)
+  - code: reconvertida
+    name: Reconvertida
+    note: Se hizo, pero como otro tipo de audiencia.
+  - code: cuarto-intermedio
+    name: Cuarto intermedio o continuación
+  - code: suspendida
+    name: Suspendida por el juez
+  - code: cancelada
+    name: Cancelada

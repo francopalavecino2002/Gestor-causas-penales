@@ -1,6 +1,8 @@
 # Jurisdiction package: Neuquén (ADR-0013).
-# One folder per jurisdiction under resources/jurisdictions/. This manifest plus one file per
-# catalog (<catalog>.yml) is everything a jurisdiction needs; adding a province adds a folder.
+# One folder per jurisdiction under resources/jurisdictions/. This manifest, the catalogs shared by
+# every practice area (circumscriptions.yml) and the court calendar sit at the top; each practice
+# area (fuero) has its own subfolder with an area.yml manifest (ADR-0032). Adding a province adds
+# a folder; adding an area adds a subfolder.
 #
 # Source: docs/domain/neuquen-review.md, section 2 (stage 0 review). Every item keeps its legal
 # source and its review flags: "validar" (to confirm with a lawyer) and "no-verificado" (taken

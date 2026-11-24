@@ -1,0 +1,5 @@
+# Fixture: a jurisdiction without any practice area folder.
+code: no-areas
+name: Provincia Ficticia
+version: 1
+law: Código ficticio

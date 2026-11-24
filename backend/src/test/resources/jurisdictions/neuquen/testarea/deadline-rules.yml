@@ -1,0 +1,15 @@
+# Test-only deadline rule of the test area: proves the rules of a case come from its own area.
+source: Prueba automatizada
+law: Ley ficticia de prueba
+rules:
+  - code: regla-de-prueba
+    name: Plazo de prueba
+    law: Ley ficticia de prueba
+    trigger: Resolución de prueba
+    kind: JUDICIAL
+    computation: SET_BY_COURT
+    scope: CASE
+    detainee: false
+    consequence: Ninguna
+    caseLaw: {status: Prueba automatizada, reviewedOn: "2026-11-23"}
+    alertDaysBefore: 3

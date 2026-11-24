@@ -58,7 +58,7 @@ class CaseRoleLookup implements PersonCaseRoles {
                 .findAllById(caseIds(partyRows, defendantRows))
                 .stream()
                 .collect(Collectors.toMap(CaseFile::getId, Function.identity()));
-        Map<String, String> roleNames = catalogs.names(Catalog.PARTY_ROLES);
+        Map<String, Map<String, String>> roleNames = new HashMap<>();
         AuthenticatedUser user = currentUser();
 
         Map<UUID, List<CaseRole>> roles = new HashMap<>();
@@ -74,9 +74,11 @@ class CaseRoleLookup implements PersonCaseRoles {
             UUID personId,
             CaseFile caseFile,
             String roleCode,
-            Map<String, String> roleNames,
+            Map<String, Map<String, String>> roleNames,
             AuthenticatedUser user) {
-        String roleName = roleNames.getOrDefault(roleCode, roleCode);
+        String roleName = roleNames
+                .computeIfAbsent(caseFile.getPracticeArea(), area -> catalogs.names(area, Catalog.PARTY_ROLES))
+                .getOrDefault(roleCode, roleCode);
         boolean visible = !caseFile.isReserved() || (user != null && access.canSee(user, caseFile));
         CaseRole role = visible
                 ? new CaseRole(caseFile.getId(), caseFile.getCaption(), roleCode, roleName, caseFile.isArchived(), false)

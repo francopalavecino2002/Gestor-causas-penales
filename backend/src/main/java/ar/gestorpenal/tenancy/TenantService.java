@@ -1,5 +1,6 @@
 package ar.gestorpenal.tenancy;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -48,10 +49,18 @@ public class TenantService {
      */
     @Transactional(readOnly = true)
     public String currentJurisdictionCode() {
+        return currentTenant().getJurisdictionCode();
+    }
+
+    private Tenant currentTenant() {
         UUID current = new CurrentTenantResolver().resolveCurrentTenantIdentifier();
-        return tenants.findById(current)
-                .map(Tenant::getJurisdictionCode)
-                .orElseThrow(() -> new IllegalStateException("No firm in scope"));
+        return tenants.findById(current).orElseThrow(() -> new IllegalStateException("No firm in scope"));
+    }
+
+    /** The practice areas the firm in scope works in, by code. Fails closed when no firm is in scope. */
+    @Transactional(readOnly = true)
+    public List<String> currentEnabledPracticeAreas() {
+        return currentTenant().getEnabledPracticeAreas();
     }
 
     public record TenantSummary(UUID id, String name, String slug) {

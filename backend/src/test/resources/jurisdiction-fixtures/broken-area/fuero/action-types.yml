@@ -1,0 +1,6 @@
+# Fixture: the case enums still need the other two items.
+catalog: action-types
+source: Código ficticio
+items:
+  - code: public
+    name: Acción pública

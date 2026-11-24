@@ -1,32 +1,34 @@
 package ar.gestorpenal.deadline;
 
+import ar.gestorpenal.jurisdiction.PackageFolders;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 /**
- * The deadline package of every jurisdiction on the classpath, by jurisdiction code (the folder
- * name). A jurisdiction without {@code deadline-rules.yml} simply has no rules.
+ * The deadline package of every practice area on the classpath, by jurisdiction code and area code
+ * (the folder names). An area without {@code deadline-rules.yml} simply has no rules (ADR-0032).
  */
 class DeadlinePackages {
 
-    static final String CLASSPATH_RULES = "classpath*:jurisdictions/*/" + DeadlinePackageLoader.RULES_FILE;
+    static final String CLASSPATH_RULES = "classpath*:jurisdictions/*/*/" + DeadlinePackageLoader.RULES_FILE;
 
     private final Map<String, DeadlinePackage> packages;
 
     DeadlinePackages(Collection<DeadlinePackage> packages) {
-        Map<String, DeadlinePackage> byCode = new LinkedHashMap<>();
+        Map<String, DeadlinePackage> byKey = new LinkedHashMap<>();
         for (DeadlinePackage found : packages) {
-            if (byCode.putIfAbsent(found.jurisdictionCode(), found) != null) {
-                throw new IllegalStateException("Two deadline packages for the jurisdiction " + found.jurisdictionCode());
+            if (byKey.putIfAbsent(key(found.jurisdictionCode(), found.areaCode()), found) != null) {
+                throw new IllegalStateException("Two deadline packages for " + found.jurisdictionCode() + "/" + found.areaCode());
             }
         }
-        this.packages = Map.copyOf(byCode);
+        this.packages = Map.copyOf(byKey);
     }
 
     static DeadlinePackages fromClasspath() {
@@ -34,24 +36,36 @@ class DeadlinePackages {
         try {
             Resource[] files = new PathMatchingResourcePatternResolver().getResources(CLASSPATH_RULES);
             return new DeadlinePackages(Arrays.stream(files)
-                    .map(file -> loader.load(folderOf(file), file))
+                    .map(file -> {
+                        String jurisdiction = PackageFolders.folderOf(file, 3);
+                        Resource calendar = new ClassPathResource(
+                                "jurisdictions/" + jurisdiction + "/" + DeadlinePackageLoader.CALENDAR_FILE);
+                        return loader.load(jurisdiction, PackageFolders.folderOf(file, 2), file, calendar);
+                    })
                     .toList());
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot scan " + CLASSPATH_RULES, e);
         }
     }
 
-    DeadlinePackage get(String jurisdictionCode) {
-        return packages.getOrDefault(jurisdictionCode, DeadlinePackage.empty(jurisdictionCode));
+    /**
+     * The package of a practice area. An area without rules gets an empty one that still carries the
+     * jurisdiction's court calendar, when some other area of the jurisdiction loaded it.
+     */
+    DeadlinePackage get(String jurisdictionCode, String areaCode) {
+        DeadlinePackage found = packages.get(key(jurisdictionCode, areaCode));
+        if (found != null) {
+            return found;
+        }
+        CourtCalendar calendar = packages.values().stream()
+                .filter(other -> other.jurisdictionCode().equals(jurisdictionCode))
+                .map(DeadlinePackage::calendar)
+                .findFirst()
+                .orElseGet(DeadlinePackage::noCalendar);
+        return DeadlinePackage.empty(jurisdictionCode, areaCode, calendar);
     }
 
-    /** Works for files and for entries inside a jar ({@code jar:file:...!/jurisdictions/x/...}). */
-    private static String folderOf(Resource file) {
-        try {
-            String[] segments = file.getURL().toString().split("/");
-            return segments.length < 2 ? "" : segments[segments.length - 2];
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot resolve the folder of " + file.getDescription(), e);
-        }
+    private static String key(String jurisdictionCode, String areaCode) {
+        return jurisdictionCode + "/" + areaCode;
     }
 }

@@ -1,0 +1,11 @@
+# Test-only practice area (ADR-0032): a small area without modules, to prove that an area cannot use
+# the catalog items of another area and that criminal-only features answer "module not enabled".
+# It lives in src/test/resources, so it is never shipped. Fictitious content.
+code: testarea
+name: Area de prueba
+law: Ley ficticia de prueba
+reviewedOn: "2026-11-23"
+source: Prueba automatizada
+flags: [validar]
+note: Solo para pruebas automatizadas.
+modules: []

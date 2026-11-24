@@ -1,0 +1,7 @@
+catalog: party-roles
+source: Prueba automatizada
+items:
+  - code: actor-de-prueba
+    name: Actor
+  - code: demandado-de-prueba
+    name: Demandado
