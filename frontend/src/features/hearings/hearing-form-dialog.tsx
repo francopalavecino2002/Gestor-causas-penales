@@ -53,6 +53,9 @@ import {
   useUpdateHearing,
 } from "@/features/hearings/hearing-queries";
 import { useFirmMembers } from "@/features/members/member-queries";
+import { hasModule, initialArea } from "@/features/practice-areas/practice-area-format";
+import { useAreaDirectory } from "@/features/practice-areas/practice-area-queries";
+import { useStickyReady } from "@/lib/use-sticky-ready";
 
 const FORM_CATALOGS: AnyCatalogId[] = ["hearing-types", "hearing-statuses", "cancellation-reasons"];
 
@@ -148,16 +151,12 @@ export function HearingFormDialog({
 }: HearingFormProps) {
   const hearingQuery = useHearing(hearingId);
   const hearing = hearingQuery.data;
-  const catalogsReady = useCatalogsSettled(FORM_CATALOGS);
-  const ready = catalogsReady && (hearingId === undefined || hearing !== undefined);
   const editing = hearingId !== undefined;
+  const directory = useAreaDirectory();
   const formId = useId();
   const { data: me } = useMe();
   const timeZone = useAgendaCache().timeZone ?? FIRM_TIME_ZONE;
   const members = useFirmMembers();
-  const types = useCatalogOptions("hearing-types", hearing?.typeCode);
-  const statuses = useCatalogOptions("hearing-statuses", hearing?.statusCode);
-  const reasons = useCatalogOptions("cancellation-reasons", hearing?.cancellationReasonCode);
   const create = useCreateHearing();
   const update = useUpdateHearing();
   const [general, setGeneral] = useState<string | null>(null);
@@ -195,6 +194,36 @@ export function HearingFormDialog({
   if (detail && detail.caption !== caseCaption && caseId === detail.id)
     setCaseCaption(detail.caption);
 
+  // The hearing speaks the vocabulary of its case's area: its types, statuses and reasons, and
+  // the criminal fields (defendants, OFIJU) only when the area has them.
+  const caseDetailOfForm = detail && detail.id === caseId ? detail : undefined;
+  const area =
+    caseDetailOfForm?.practiceArea ?? hearing?.practiceArea ?? initialArea(directory.areas);
+  const areaModules =
+    caseDetailOfForm?.modules ??
+    directory.find(area)?.modules ??
+    (directory.areas.length === 0 ? (["defendants", "mpf-legajo"] as const) : []);
+  const withDefendants = hasModule(areaModules, "defendants");
+  const criminalFields = hasModule(areaModules, "mpf-legajo");
+  /** From the agenda, with areas to tell apart: the type list waits for the case. */
+  const waitsForCase = !editing && !fixedCaseId && caseId === "" && directory.multiple;
+  const types = useCatalogOptions("hearing-types", hearing?.typeCode, area);
+  const statuses = useCatalogOptions("hearing-statuses", hearing?.statusCode, area);
+  const reasons = useCatalogOptions("cancellation-reasons", hearing?.cancellationReasonCode, area);
+  const catalogsReady = useCatalogsSettled(FORM_CATALOGS, area);
+  const ready = useStickyReady(
+    catalogsReady &&
+      (hearingId === undefined || hearing !== undefined) &&
+      (!fixedCaseId || caseDetail.isFetched) &&
+      !directory.isPending,
+  );
+
+  // Another case, another area: a type or reason of the previous area does not apply.
+  const typeOffered = typeCode === "" || types.items.some((item) => item.code === typeCode);
+  useEffect(() => {
+    if (!types.isPending && !typeOffered) setValue("typeCode", "");
+  }, [types.isPending, typeOffered, setValue]);
+
   // A new hearing goes, by default, to the case's responsible (the backend's own default) and
   // calls the case's only open defendant. Set once per chosen case.
   const prefilled = useRef<string | null>(editing ? caseId : null);
@@ -214,8 +243,8 @@ export function HearingFormDialog({
     ...(me ? [{ id: me.id, name: me.displayName }] : []),
   ]);
   const names = new Map(lawyers.map((lawyer) => [lawyer.id, lawyer.name]));
-  const defendants: { id: string; name: string; note?: string }[] = detail
-    ? detail.defendants.map((defendant) => ({
+  const defendants: { id: string; name: string; note?: string }[] = caseDetailOfForm
+    ? caseDetailOfForm.defendants.map((defendant) => ({
         id: defendant.id,
         name: defendant.displayName,
         note: defendant.status === "CLOSED" ? DEFENDANT_STATUS_LABELS.CLOSED : undefined,
@@ -320,7 +349,9 @@ export function HearingFormDialog({
       description={
         editing
           ? (hearing?.caseCaption ?? "")
-          : "Cargala como la fijó la Oficina Judicial. Si se superpone con otra, te avisamos al guardar."
+          : criminalFields
+            ? "Cargala como la fijó la Oficina Judicial. Si se superpone con otra, te avisamos al guardar."
+            : "Cargala como la fijó el juzgado. Si se superpone con otra, te avisamos al guardar."
       }
       onClose={onClose}
       busy={!ready}
@@ -378,6 +409,7 @@ export function HearingFormDialog({
             <Label htmlFor={ids.type}>Tipo de audiencia</Label>
             <Select
               id={ids.type}
+              disabled={waitsForCase || types.isPending}
               aria-invalid={errors.typeCode ? true : undefined}
               aria-describedby={describedBy(
                 typeArticle && `${ids.type}-article`,
@@ -385,12 +417,19 @@ export function HearingFormDialog({
               )}
               {...register("typeCode")}
             >
-              <option value="">Elegí el tipo</option>
-              {types.items.map((item) => (
-                <option key={item.code} value={item.code}>
-                  {catalogOptionLabel(item)}
-                </option>
-              ))}
+              <option value="">
+                {waitsForCase
+                  ? "Elegí la causa primero"
+                  : types.isPending
+                    ? "Cargando…"
+                    : "Elegí el tipo"}
+              </option>
+              {!waitsForCase &&
+                types.items.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {catalogOptionLabel(item)}
+                  </option>
+                ))}
             </Select>
             {selectedType && (typeArticle || selectedType.flags.length > 0) && (
               <FieldDescription id={`${ids.type}-article`} className="tabular-nums">
@@ -490,18 +529,27 @@ export function HearingFormDialog({
           <div className="grid items-start gap-4 sm:grid-cols-2">
             {textField("room", ids.room, "Sala", ROOM_MAX)}
             {textField("judge", ids.judge, "Juez o jueza", JUDGE_MAX)}
-            {textField("ofijuReference", ids.ofiju, "Referencia de la OFIJU", OFIJU_REFERENCE_MAX)}
-            <Field>
-              <Label htmlFor={ids.requestedBy}>Quién la pidió</Label>
-              <Select id={ids.requestedBy} {...register("requestedBy")}>
-                <option value="">Sin cargar</option>
-                {Object.entries(REQUESTED_BY_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+            {criminalFields && (
+              <>
+                {textField(
+                  "ofijuReference",
+                  ids.ofiju,
+                  "Referencia de la OFIJU",
+                  OFIJU_REFERENCE_MAX,
+                )}
+                <Field>
+                  <Label htmlFor={ids.requestedBy}>Quién la pidió</Label>
+                  <Select id={ids.requestedBy} {...register("requestedBy")}>
+                    <option value="">Sin cargar</option>
+                    {Object.entries(REQUESTED_BY_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </>
+            )}
           </div>
 
           <div className="grid items-start gap-4 sm:grid-cols-2">
@@ -615,60 +663,62 @@ export function HearingFormDialog({
             )}
           />
 
-          <Controller
-            control={control}
-            name="defendantIds"
-            render={({ field }) => (
-              <fieldset
-                className="grid gap-2"
-                aria-describedby={errors.defendantIds ? `${formId}-defendants-error` : undefined}
-              >
-                <legend className="mb-1.5 text-body font-semibold">Imputados citados</legend>
-                {defendants.length === 0 ? (
-                  <p className="text-meta text-muted-foreground">
-                    {caseId === ""
-                      ? "Elegí la causa para ver sus imputados."
-                      : caseDetail.isPending
-                        ? "Cargando los imputados de la causa…"
-                        : "La causa todavía no tiene imputados cargados."}
-                  </p>
-                ) : (
-                  <ul className="grid gap-1 sm:grid-cols-2">
-                    {defendants.map((defendant) => {
-                      const checkboxId = `${formId}-defendant-${defendant.id}`;
-                      return (
-                        <li key={defendant.id} className="flex min-h-11 items-center gap-3">
-                          <Checkbox
-                            id={checkboxId}
-                            checked={field.value.includes(defendant.id)}
-                            onCheckedChange={(checked) =>
-                              field.onChange(
-                                checked === true
-                                  ? [...field.value, defendant.id]
-                                  : field.value.filter((value) => value !== defendant.id),
-                              )
-                            }
-                          />
-                          <Label htmlFor={checkboxId} className="cursor-pointer">
-                            {defendant.name}
-                            {defendant.note && (
-                              <span className="font-normal text-muted-foreground">
-                                {" "}
-                                · {defendant.note}
-                              </span>
-                            )}
-                          </Label>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-                <FieldError id={`${formId}-defendants-error`}>
-                  {errors.defendantIds?.message}
-                </FieldError>
-              </fieldset>
-            )}
-          />
+          {withDefendants && (
+            <Controller
+              control={control}
+              name="defendantIds"
+              render={({ field }) => (
+                <fieldset
+                  className="grid gap-2"
+                  aria-describedby={errors.defendantIds ? `${formId}-defendants-error` : undefined}
+                >
+                  <legend className="mb-1.5 text-body font-semibold">Imputados citados</legend>
+                  {defendants.length === 0 ? (
+                    <p className="text-meta text-muted-foreground">
+                      {caseId === ""
+                        ? "Elegí la causa para ver sus imputados."
+                        : caseDetail.isPending
+                          ? "Cargando los imputados de la causa…"
+                          : "La causa todavía no tiene imputados cargados."}
+                    </p>
+                  ) : (
+                    <ul className="grid gap-1 sm:grid-cols-2">
+                      {defendants.map((defendant) => {
+                        const checkboxId = `${formId}-defendant-${defendant.id}`;
+                        return (
+                          <li key={defendant.id} className="flex min-h-11 items-center gap-3">
+                            <Checkbox
+                              id={checkboxId}
+                              checked={field.value.includes(defendant.id)}
+                              onCheckedChange={(checked) =>
+                                field.onChange(
+                                  checked === true
+                                    ? [...field.value, defendant.id]
+                                    : field.value.filter((value) => value !== defendant.id),
+                                )
+                              }
+                            />
+                            <Label htmlFor={checkboxId} className="cursor-pointer">
+                              {defendant.name}
+                              {defendant.note && (
+                                <span className="font-normal text-muted-foreground">
+                                  {" "}
+                                  · {defendant.note}
+                                </span>
+                              )}
+                            </Label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  <FieldError id={`${formId}-defendants-error`}>
+                    {errors.defendantIds?.message}
+                  </FieldError>
+                </fieldset>
+              )}
+            />
+          )}
 
           <Field>
             <Label htmlFor={ids.notes}>Notas</Label>

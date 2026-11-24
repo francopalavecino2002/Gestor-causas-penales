@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,7 @@ function ViewSwitch({
   );
 }
 
-/** View switch, previous / today / next, and the lawyer filter. */
+/** View switch, previous / today / next, the lawyer filter and any other filter (`filters`). */
 export function AgendaToolbar({
   view,
   onViewChange,
@@ -55,6 +55,7 @@ export function AgendaToolbar({
   lawyer,
   lawyerOptions,
   onLawyerChange,
+  filters,
 }: {
   view: AgendaViewMode;
   onViewChange: (view: AgendaViewMode) => void;
@@ -64,11 +65,12 @@ export function AgendaToolbar({
   lawyer: string;
   lawyerOptions: LawyerOption[];
   onLawyerChange: (lawyerId: string) => void;
+  filters?: ReactNode;
 }) {
   const selectId = useId();
   const unit = view === "dia" ? "Día" : "Semana";
   return (
-    <div className="flex flex-wrap items-end gap-3">
+    <div className="flex flex-wrap items-end gap-3 lg:justify-end">
       <ViewSwitch view={view} onChange={onViewChange} />
       <div role="group" aria-label="Cambiar de fecha" className="flex gap-2">
         <Button variant="outline" size="icon" aria-label={`${unit} anterior`} onClick={onPrevious}>
@@ -95,6 +97,7 @@ export function AgendaToolbar({
           ))}
         </Select>
       </div>
+      {filters}
     </div>
   );
 }

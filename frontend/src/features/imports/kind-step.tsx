@@ -100,6 +100,11 @@ export function KindStep({
                         <span className="text-meta text-muted-foreground">
                           {option.description}
                         </span>
+                        {option.columnNote && (
+                          <span className="text-small text-muted-foreground">
+                            {option.columnNote}
+                          </span>
+                        )}
                       </span>
                     </label>
                     <a

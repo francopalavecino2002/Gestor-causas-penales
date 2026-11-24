@@ -17,6 +17,8 @@ export interface ImportKindOption {
   /** The records inside a sentence: "las personas". */
   plural: string;
   description: string;
+  /** An optional column worth knowing about before filling the file in. */
+  columnNote?: string;
   /** Where the imported records live, for the last step. */
   area: { to: "/personas" | "/causas" | "/"; label: string };
 }
@@ -37,6 +39,8 @@ export const IMPORT_KINDS: ImportKindOption[] = [
     plural: "las causas",
     description:
       "Una fila por causa e imputado. Cada imputado se busca por su documento; si no está, se crea.",
+    columnNote:
+      "Columna opcional «fuero»: penal, civil, laboral o familia (vacía es penal). Las causas de un fuero sin imputados dejan vacías las columnas del imputado.",
     area: { to: "/causas", label: "Mirá las causas" },
   },
   {

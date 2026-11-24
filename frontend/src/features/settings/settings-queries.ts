@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { AnyCatalogId } from "@/features/catalogs/catalog-types";
+import { DEFAULT_AREA } from "@/features/practice-areas/practice-area-format";
 import {
   addCatalogItem,
   archiveCustomField,
@@ -25,14 +26,18 @@ const CATALOGS_KEY = ["settings", "catalogs"] as const;
 const CUSTOM_FIELDS_KEY = ["custom-fields"] as const;
 const DEADLINE_RULES_KEY = ["deadline-rules"] as const;
 
-export function useAllCatalogs() {
+/** The catalogs of one practice area (the criminal one by default). */
+export function useAllCatalogs(area: string = DEFAULT_AREA) {
   return useQuery({
-    queryKey: CATALOGS_KEY,
-    queryFn: ({ signal }) => fetchAllCatalogs(signal),
+    queryKey: [...CATALOGS_KEY, area] as const,
+    queryFn: ({ signal }) => fetchAllCatalogs(area, signal),
   });
 }
 
-/** After a catalog change: this screen's list and the copy the case screens cache. */
+/**
+ * After a catalog change: this screen's lists and the copy the case screens cache (every area:
+ * a shared catalog such as the circumscriptions changes in all of them).
+ */
 function useCatalogInvalidation() {
   const queryClient = useQueryClient();
   return (catalog: AnyCatalogId) =>
@@ -42,19 +47,20 @@ function useCatalogInvalidation() {
     ]);
 }
 
-export function useAddCatalogItem(catalog: AnyCatalogId) {
+export function useAddCatalogItem(catalog: AnyCatalogId, area: string = DEFAULT_AREA) {
   const invalidate = useCatalogInvalidation();
   return useMutation({
-    mutationFn: (item: { name: string; article: string | null }) => addCatalogItem(catalog, item),
+    mutationFn: (item: { name: string; article: string | null }) =>
+      addCatalogItem(catalog, area, item),
     onSuccess: () => invalidate(catalog),
   });
 }
 
-export function useUpdateCatalogItem(catalog: AnyCatalogId) {
+export function useUpdateCatalogItem(catalog: AnyCatalogId, area: string = DEFAULT_AREA) {
   const invalidate = useCatalogInvalidation();
   return useMutation({
     mutationFn: (variables: { code: string; name: string | null; hidden: boolean }) =>
-      updateCatalogItem(catalog, variables.code, {
+      updateCatalogItem(catalog, area, variables.code, {
         name: variables.name,
         hidden: variables.hidden,
       }),

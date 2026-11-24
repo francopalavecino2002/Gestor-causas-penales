@@ -2,11 +2,13 @@ import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-q
 
 import {
   addDefendant,
+  addParty,
   createCase,
   updateCase,
   updateDefendant,
   type CaseData,
   type DefendantData,
+  type PartyData,
 } from "@/features/cases/case-write-api";
 import type { CaseDetail } from "@/features/cases/case-types";
 import { createPerson, type NewHumanPerson } from "@/features/persons/person-api";
@@ -67,5 +69,14 @@ export function useUpdateDefendant(caseId: string) {
         invalidateCase(queryClient, caseId),
         queryClient.invalidateQueries({ queryKey: ["agenda"] }),
       ]),
+  });
+}
+
+export function useAddParty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (variables: { caseId: string; data: PartyData }) =>
+      addParty(variables.caseId, variables.data),
+    onSuccess: (_party, variables) => invalidateCase(queryClient, variables.caseId),
   });
 }

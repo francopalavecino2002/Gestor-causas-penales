@@ -33,6 +33,33 @@ const CASE_RULES: ProblemRule<CaseFormField>[] = [
     message: "Esa circunscripción ya no se ofrece en el estudio. Elegí otra.",
   },
   {
+    type: "invalid-case-data",
+    detail: /closing outcome|closed case/i,
+    field: "caseOutcomeCode",
+    message: "Una causa cerrada necesita cómo terminó; una abierta, no.",
+  },
+  {
+    type: "invalid-case-data",
+    detail: /catalog stages/i,
+    field: "caseStageCode",
+    message: "Esa etapa ya no se ofrece en el estudio. Elegí otra.",
+  },
+  {
+    type: "invalid-case-data",
+    detail: /catalog action-types/i,
+    field: "actionType",
+    message: "Ese tipo ya no se ofrece en este fuero. Elegí otro.",
+  },
+  {
+    type: "practice-area-not-enabled",
+    field: "practiceArea",
+    message: "El estudio no trabaja en ese fuero. Elegí otro o habilitalo en Ajustes.",
+  },
+  {
+    type: "module-not-enabled",
+    message: "Este fuero no usa ese dato. Revisá los campos y volvé a guardar.",
+  },
+  {
     type: "access-denied",
     field: "reserved",
     message: "Solo la persona titular o quien es responsable de la causa cambian la reserva.",
@@ -118,4 +145,27 @@ export function defendantProblem(error: unknown): FormProblem<DefendantFormField
     rules: DEFENDANT_RULES,
     fields: DEFENDANT_FORM_FIELDS,
   });
+}
+
+/** The party problems (CasePartyService). */
+const PARTY_RULES: ProblemRule<"roleCode">[] = [
+  {
+    type: "duplicate-record",
+    message: "Esa persona ya tiene ese rol en la causa.",
+  },
+  {
+    type: "invalid-case-data",
+    detail: /archived person/i,
+    message: "La ficha de esa persona está archivada: hay que restaurarla antes de sumarla.",
+  },
+  {
+    type: "invalid-case-data",
+    detail: /party-roles|defendant is not a party/i,
+    field: "roleCode",
+    message: "Ese rol no se ofrece en este fuero. Elegí otro.",
+  },
+];
+
+export function partyProblem(error: unknown): FormProblem<"roleCode"> {
+  return formProblem(error, { subject: "a la parte", rules: PARTY_RULES, fields: ["roleCode"] });
 }

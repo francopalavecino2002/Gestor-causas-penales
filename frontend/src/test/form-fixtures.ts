@@ -59,6 +59,24 @@ export const FORM_CATALOGS: CatalogView[] = [
     item("sobreseimiento", "Sobreseimiento"),
     item("archivo", "Archivo"),
   ]),
+  catalog("action-types", [
+    { ...item("public", "Acción pública"), article: "99" },
+    {
+      ...item("public-on-complaint", "Acción pública dependiente de instancia privada"),
+      article: "100",
+    },
+    { ...item("private", "Acción privada"), article: "101" },
+  ]),
+  catalog("represented-sides", [
+    item("defence", "Defensa del imputado"),
+    item("private-prosecution", "Querella"),
+  ]),
+  catalog("party-roles", [
+    item("imputado", "Imputado"),
+    item("victima", "Víctima"),
+    item("fiscal", "Fiscal"),
+    item("testigo", "Testigo"),
+  ]),
 ];
 
 /** The firm's active members: the signed-in owner and two lawyers, plus a paralegal. */

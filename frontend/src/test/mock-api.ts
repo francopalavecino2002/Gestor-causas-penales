@@ -12,6 +12,7 @@ import {
   HEARINGS_BY_CASE,
   MEASURES,
 } from "@/test/case-fixtures";
+import { areaCatalog, PENAL_AREA } from "@/test/area-fixtures";
 import { ALL_DEADLINES, caseDeadlines, upcomingDeadlines } from "@/test/deadline-fixtures";
 import { FORM_CATALOGS, MEMBERS } from "@/test/form-fixtures";
 
@@ -133,17 +134,31 @@ export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {})
       json(200, { items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
     "GET /api/v1/deadlines": () => json(200, []),
     "GET /api/v1/users": () => json(200, MEMBERS),
+    "GET /api/v1/practice-areas": () => json(200, [PENAL_AREA]),
     ...catalogRoutes(),
     ...routes,
   });
 }
 
-/** The catalogs the screens read, answered from the fictitious fixtures. */
+/**
+ * The catalogs the screens read, answered from the fictitious fixtures: the criminal ones, or the
+ * civil ones for `?area=civil` (the circumscriptions are shared).
+ */
 export function catalogRoutes(): Record<string, Handler> {
+  const criminal = [...Object.values(CATALOGS), ...FORM_CATALOGS];
+  const ids = new Set([
+    ...criminal.map((view) => view.catalog),
+    "party-roles",
+    "action-types",
+    "represented-sides",
+  ]);
   return Object.fromEntries(
-    [...Object.values(CATALOGS), ...FORM_CATALOGS].map((view) => [
-      `GET /api/v1/catalogs/${view.catalog}`,
-      () => json(200, view),
+    [...ids].map((id) => [
+      `GET /api/v1/catalogs/${id}`,
+      ({ query }: RecordedRequest) => {
+        const view = areaCatalog(id, query.area, criminal);
+        return view ? json(200, view) : problem(404, "catalog-not-found");
+      },
     ]),
   );
 }
@@ -164,6 +179,7 @@ export function caseRoutes(
         casePageFor(cases, {
           q: query.q,
           includeArchived: query.includeArchived === "true",
+          area: query.area,
           page: Number(query.page ?? 0),
           size: Number(query.size ?? 20),
         }),

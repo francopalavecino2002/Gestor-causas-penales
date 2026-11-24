@@ -53,6 +53,7 @@ export function hearing(local: string, overrides: Partial<AgendaItem> = {}): Age
     hearingId: `00000000-0000-4000-9000-${id}`,
     caseId: `00000000-0000-4000-a000-${id}`,
     caseCaption: "Ficticio, Martín s/ robo simple",
+    practiceArea: "penal",
     typeCode: "formulacion-de-cargos",
     typeName: "Formulación de cargos",
     typeArticle: "133",

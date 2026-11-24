@@ -14,6 +14,8 @@ export const ALL_CATALOG_IDS = [
   "alternative-outcomes",
   "circumscriptions",
   "party-roles",
+  "action-types",
+  "represented-sides",
 ] as const;
 
 export type AnyCatalogId = (typeof ALL_CATALOG_IDS)[number];
