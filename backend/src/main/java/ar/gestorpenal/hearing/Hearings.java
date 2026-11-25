@@ -4,6 +4,7 @@ import ar.gestorpenal.jurisdiction.Catalog;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -51,5 +52,16 @@ public class Hearings {
     @Transactional(readOnly = true)
     public Map<String, String> typeNames(String practiceArea) {
         return catalogs.names(practiceArea, Catalog.HEARING_TYPES);
+    }
+
+    /** The name of every hearing status of the practice area by code (hidden ones too). */
+    @Transactional(readOnly = true)
+    public Map<String, String> statusNames(String practiceArea) {
+        return catalogs.names(practiceArea, Catalog.HEARING_STATUSES);
+    }
+
+    /** The status codes that record how a held hearing ended (held, reconverted, recess). */
+    public Set<String> resultStatuses() {
+        return HearingRules.WITH_RESULT;
     }
 }
