@@ -194,3 +194,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   done ones, overdue first with a "Vencida" label), mark done with undo, edit and archive for whoever
   may manage the task; "Nueva tarea" from Tareas, the case detail (with the case's pending tasks) and
   each hearing ("Sumá una tarea"); "Tareas de hoy" card on the agenda home (ADR-0037).
+- Firm news wall (T48): `GET /api/v1/news` lists what changed in the firm, newest first and paginated,
+  read from the audit log (case opened, hearing scheduled, rescheduled with both dates, result loaded)
+  plus short manual posts (`/api/v1/news/posts`, archived by the author or the owner); entries of
+  reserved cases reach only their team and the owner, archived records drop out; the first page also
+  lists the deadlines due soon with their legal source and the disclaimer (ADR-0038).
