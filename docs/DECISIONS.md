@@ -1762,3 +1762,37 @@ Superseded decisions are marked, never deleted.
     the detainee alerts on phones, in a right column from 1280 px. A failure there never blocks the
     agenda.
 - **Consequences:** The bottom nav is denser; a sixth top-level item would need a "Más" menu.
+
+## ADR-0038: Firm news wall from the audit log (T48)
+
+- **Date:** 2026-11-24
+- **Status:** accepted
+- **Context:** A small firm wants one place that says what happened lately (new cases, hearings
+  scheduled or moved, results loaded, deadlines about to expire) plus short notices among members,
+  without anyone writing it down twice. The audit log (ADR-0010) already records every change.
+- **Decision:**
+  - The wall is a **read model over `audit_event`**, not a second table written by every feature. One
+    native query classifies the firm's entries: `CaseFile` CREATE is "case opened"; `Hearing` CREATE is
+    "hearing scheduled"; a `Hearing` UPDATE that changed `startsAt` is "rescheduled" (only a reschedule
+    moves the date) and one that set a status with a result (`efectiva`, `reconvertida`,
+    `cuarto-intermedio`) is "result loaded"; `FirmPost` CREATE is a post. Other edits are not news.
+  - The query also drops entries whose case, hearing or post is archived and entries of reserved cases
+    the user cannot see (owner or active team only, as everywhere else), so page totals do not leak.
+    A native query skips Hibernate's tenant filter, so every table in it is filtered by the user's
+    tenant explicitly and a test proves two firms never see each other's wall. A partial index on
+    `audit_event (tenant_id, id)` serves it.
+  - Items carry only what the user already sees on the case and the agenda: caption, practice area,
+    hearing type, date, the previous and new date of a reschedule and the result status name; never
+    notes or result summaries. The actor is the member who did it, or none for seeds and jobs.
+  - Posts are a tenant-scoped, `@Audited` `firm_post` (plain text up to 1000 characters, no case
+    link, no editing). Every member posts; the author or the owner archives and restores one.
+  - "Deadline due soon" is a state, not a change: the first page carries a separate `dueSoon` list
+    (running deadlines inside their rule's alert window, via a new `Deadlines` facade) with the rule's
+    legal source and "Cálculo asistido: verificá con la norma".
+  - Offset pagination (`page`, `size` up to 50), newest first by audit id, like the other lists.
+- **Consequences:** The page and count queries classify the firm's whole case/hearing/post history on
+  each request: fine for firms of 1 to 5 lawyers, but if it grows slow, cap the wall to a recent window
+  (for example 90 days) before anything else. A bulk import shows one "case opened" per row; grouping can come with the UI
+  (T49) if it gets noisy. Changes made with bulk SQL are not audited and so never reach the wall
+  (ADR-0010 already forbids them for business data). Renaming an entity class would rename its
+  `entity_type` and needs the query updated.
