@@ -4,6 +4,7 @@ import ar.gestorpenal.casefile.CaseSeeding;
 import ar.gestorpenal.deadline.DeadlineSeeding;
 import ar.gestorpenal.demo.DemoData.DemoPerson;
 import ar.gestorpenal.demo.DemoData.DemoUser;
+import ar.gestorpenal.fee.JusValueSeeding;
 import ar.gestorpenal.hearing.HearingSeeding;
 import ar.gestorpenal.person.Persons;
 import ar.gestorpenal.task.TaskSeeding;
@@ -11,6 +12,7 @@ import ar.gestorpenal.tenancy.TenantContext;
 import ar.gestorpenal.tenancy.TenantService;
 import ar.gestorpenal.user.UserRepository;
 import ar.gestorpenal.user.UserService;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -48,6 +50,7 @@ class DemoDataSeeder implements ApplicationRunner {
     private final HearingSeeding hearingSeeding;
     private final DeadlineSeeding deadlineSeeding;
     private final TaskSeeding taskSeeding;
+    private final JusValueSeeding jusValueSeeding;
     private final DemoPortfolio portfolio;
     private final DemoProperties properties;
 
@@ -60,6 +63,7 @@ class DemoDataSeeder implements ApplicationRunner {
             HearingSeeding hearingSeeding,
             DeadlineSeeding deadlineSeeding,
             TaskSeeding taskSeeding,
+            JusValueSeeding jusValueSeeding,
             DemoPortfolio portfolio,
             DemoProperties properties) {
         this.tenants = tenants;
@@ -70,6 +74,7 @@ class DemoDataSeeder implements ApplicationRunner {
         this.hearingSeeding = hearingSeeding;
         this.deadlineSeeding = deadlineSeeding;
         this.taskSeeding = taskSeeding;
+        this.jusValueSeeding = jusValueSeeding;
         this.portfolio = portfolio;
         this.properties = properties;
     }
@@ -81,6 +86,7 @@ class DemoDataSeeder implements ApplicationRunner {
             createMissingCases();
             createMissingAgenda();
             createMissingTasks();
+            createMissingJusValue();
             portfolio.createMissingCases();
         }));
     }
@@ -222,6 +228,20 @@ class DemoDataSeeder implements ApplicationRunner {
         taskSeeding.createTask(lawyerId, paralegalId, "Actualizar el cuaderno de notificaciones", today.plusDays(3), null);
         taskSeeding.createTask(ownerId, ownerId, "Renovar el seguro de responsabilidad profesional", today.plusDays(20), null);
         log.info("Demo tasks created");
+    }
+
+    /**
+     * The value of the JUS the fees calculator needs. From jusneuquen.gov.ar, read on 2026-11-25
+     * [validar: confirm the current value at the source]. The demo firm has none until the first run;
+     * after that it leaves them alone.
+     */
+    private void createMissingJusValue() {
+        if (jusValueSeeding.hasJusValues()) {
+            return;
+        }
+        UUID ownerId = users.findByEmail(DemoData.OWNER.email()).orElseThrow().getId();
+        jusValueSeeding.createJusValue(ownerId, new BigDecimal("94963.25"), LocalDate.of(2026, 7, 1));
+        log.info("Demo JUS value created");
     }
 
     private UUID personId(DemoPerson person) {

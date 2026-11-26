@@ -1,0 +1,226 @@
+# Fees scale of the Neuquén package, in JUS (ADR-0040). Source: docs/domain/honorarios-neuquen.md,
+# built from the Ley 1594 (honorarios profesionales de abogados y procuradores). It is shared by
+# every practice area and read-only for firms: a firm only enters the JUS value (jus_value table).
+#
+# Every rule keeps its article and its review flags ("validar": to confirm with a lawyer). Do not
+# drop them: the calculator shows them next to every result. The calculator assists, the lawyer and
+# the judge decide.
+#
+# Percentages are written as percent (11 means 11%); factors as a multiplier (0.40 means 40%).
+# A minimum may list the practice areas it applies to (folder names of the package); without
+# `areas` it applies to every area.
+#
+# Minimum codes are stable identifiers: never rename or remove one. A new version may add
+# minimums, fix names and articles, or update flags.
+law: Ley 1594
+source: https://ejur.com.ar/normas/neuquen/ley-1594/
+
+# art. 7: range over the amount of the process. A client who lost entirely pays from 70% of the
+# minimum percentage (7,7%).
+scale:
+  article: art. 7
+  minPercent: 11
+  maxPercent: 20
+  losingPartyFloorFactor: 0.70
+  flags: [validar]
+
+# art. 10: the procurador gets 40% of what the sponsoring lawyer gets.
+procurador:
+  article: art. 10
+  factor: 0.40
+  flags: [validar]
+
+# art. 10: who acts as attorney-in-fact and sponsor collects both (100% + 40%).
+sponsorAndAttorney:
+  article: art. 10
+  factor: 1.40
+  flags: [validar]
+
+# art. 15: appeal, a share of what was regulated in the first instance; 35% when everything was
+# revoked in favor of the appellant.
+appeal:
+  article: art. 15
+  minPercent: 25
+  maxPercent: 35
+  fullyRevokedPercent: 35
+  flags: [validar]
+
+minimums:
+  # art. 9, first paragraph: general floors.
+  - code: conocimiento
+    name: Procesos de conocimiento
+    jus: 10
+    article: art. 9
+    flags: [validar]
+
+  - code: ejecucion
+    name: Procesos de ejecución
+    jus: 7
+    article: art. 9
+    flags: [validar]
+
+  - code: voluntarios-incidentes
+    name: Voluntarios, incidentes, exhortos y oficios de otra jurisdicción
+    jus: 5
+    article: art. 9
+    flags: [validar]
+
+  - code: penal-general
+    name: Procesos correccionales o penales
+    jus: 10
+    article: art. 9
+    flags: [validar]
+    areas: [penal]
+
+  # art. 9, I: matters that cannot be appraised in money.
+  - code: divorcio
+    name: Divorcio
+    jus: 60
+    article: art. 9, I
+    flags: [validar]
+    note: El texto distingue por causal y es anterior al Código Civil y Comercial de 2015.
+    areas: [familia]
+
+  - code: divorcio-conjunto
+    name: Divorcio por presentación conjunta
+    jus: 30
+    article: art. 9, I
+    flags: [validar]
+    areas: [familia]
+
+  - code: adopcion
+    name: Adopción
+    jus: 20
+    article: art. 9, I
+    flags: [validar]
+    areas: [familia]
+
+  - code: tutela-curatela
+    name: Tutela y curatela
+    jus: 15
+    article: art. 9, I
+    flags: [validar]
+    areas: [familia]
+
+  - code: insania-filiacion
+    name: Insania y filiación
+    jus: 30
+    article: art. 9, I
+    flags: [validar]
+    areas: [familia]
+
+  - code: tenencia-visitas
+    name: Tenencia y régimen de visitas
+    jus: 15
+    article: art. 9, I
+    flags: [validar]
+    areas: [familia]
+
+  - code: informacion-sumaria
+    name: Informaciones sumarias
+    jus: 10
+    article: art. 9, I
+    flags: [validar]
+    areas: [civil, laboral, familia]
+
+  - code: denuncia-penal
+    name: Denuncia penal con firma de abogado
+    jus: 10
+    article: art. 9, I
+    flags: [validar]
+    areas: [penal]
+
+  - code: excarcelacion-pedido
+    name: Pedido de excarcelación
+    jus: 10
+    article: art. 9, I
+    flags: [validar]
+    areas: [penal]
+
+  - code: excarcelacion-concedida
+    name: Excarcelación concedida (no se suma al pedido)
+    jus: 12
+    article: art. 9, I
+    flags: [validar]
+    areas: [penal]
+
+  - code: eximicion-pedido
+    name: Pedido de eximición de prisión
+    jus: 10
+    article: art. 9, I
+    flags: [validar]
+    areas: [penal]
+
+  - code: eximicion-concedida
+    name: Eximición de prisión concedida (no se suma al pedido)
+    jus: 12
+    article: art. 9, I
+    flags: [validar]
+    areas: [penal]
+
+  # art. 9, I, 16: penal defenses. The text is written for the old written procedure (sumario and
+  # plenario); Neuquén now applies the accusatory CPP (Ley 2784), so the equivalence between stages
+  # is not direct.
+  - code: defensa-contravencion
+    name: "Contravenciones o faltas: defensa"
+    jus: 12
+    article: art. 9, I, 16
+    flags: [validar]
+    note: &old-procedure El texto usa el procedimiento escrito anterior (sumario y plenario). Validar cómo se aplica hoy en el proceso acusatorio.
+    areas: [penal]
+
+  - code: defensa-correccional-sumario
+    name: "Juicio correccional, sumario: defensa"
+    jus: 22
+    article: art. 9, I, 16
+    flags: [validar]
+    note: *old-procedure
+    areas: [penal]
+
+  - code: defensa-criminal-sumario
+    name: "Juicio criminal, sumario: defensa"
+    jus: 30
+    article: art. 9, I, 16
+    flags: [validar]
+    note: *old-procedure
+    areas: [penal]
+
+  - code: defensa-correccional-plenario
+    name: "Juicio correccional, plenario: defensa (absorbe el sumario)"
+    jus: 25
+    article: art. 9, I, 16
+    flags: [validar]
+    note: *old-procedure
+    areas: [penal]
+
+  - code: defensa-correccional-absolucion
+    name: "Juicio correccional, plenario: sentencia absolutoria"
+    jus: 55
+    article: art. 9, I, 16
+    flags: [validar]
+    note: *old-procedure
+    areas: [penal]
+
+  - code: defensa-criminal-plenario
+    name: "Juicio criminal, plenario: defensa (absorbe el sumario)"
+    jus: 40
+    article: art. 9, I, 16
+    flags: [validar]
+    note: *old-procedure
+    areas: [penal]
+
+  - code: defensa-criminal-absolucion
+    name: "Juicio criminal, plenario: sentencia absolutoria"
+    jus: 60
+    article: art. 9, I, 16
+    flags: [validar]
+    note: *old-procedure
+    areas: [penal]
+
+  - code: querella-condena
+    name: "Querellante: condena o revocación de sobreseimiento definitivo"
+    jus: 30
+    article: art. 9, I, 16
+    flags: [validar]
+    note: *old-procedure
+    areas: [penal]
