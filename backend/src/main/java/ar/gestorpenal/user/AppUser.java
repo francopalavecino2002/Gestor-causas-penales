@@ -67,6 +67,14 @@ public class AppUser extends TenantScopedEntity {
     @Column(name = "totp_last_step")
     private Long totpLastStep;
 
+    /** Set for a temporary password chosen by the owner: the user must replace it first (ADR-0044). */
+    @Column(name = "password_change_required", nullable = false)
+    private boolean passwordChangeRequired;
+
+    /** When the password last changed; sessions opened before it are no longer valid. */
+    @Column(name = "credentials_changed_at")
+    private Instant credentialsChangedAt;
+
     AppUser(String email, String displayName, String passwordHash, Role role) {
         this.email = Objects.requireNonNull(email, "email");
         this.displayName = Objects.requireNonNull(displayName, "displayName");
@@ -84,6 +92,29 @@ public class AppUser extends TenantScopedEntity {
         if (archivedAt == null) {
             archivedAt = Instant.now();
         }
+    }
+
+    void restore() {
+        archivedAt = null;
+    }
+
+    void changeRole(Role newRole) {
+        this.role = Objects.requireNonNull(newRole, "role");
+    }
+
+    /**
+     * Replaces the password hash. A temporary one (set by the owner) must be changed by the user
+     * before anything else; either way, sessions opened before {@code now} end.
+     */
+    void replacePassword(String newPasswordHash, boolean temporary, Instant now) {
+        this.passwordHash = Objects.requireNonNull(newPasswordHash, "newPasswordHash");
+        this.passwordChangeRequired = temporary;
+        this.credentialsChangedAt = Objects.requireNonNull(now, "now");
+    }
+
+    /** Whether a session opened at {@code authenticatedAt} predates the last password change. */
+    public boolean credentialsChangedAfter(Instant authenticatedAt) {
+        return credentialsChangedAt != null && authenticatedAt.isBefore(credentialsChangedAt);
     }
 
     public boolean isTotpEnabled() {

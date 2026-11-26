@@ -1,5 +1,7 @@
 package ar.gestorpenal.security;
 
+import ar.gestorpenal.user.InvalidPasswordException;
+import ar.gestorpenal.user.WrongPasswordException;
 import java.net.URI;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -37,7 +39,7 @@ class SecurityProblemHandler {
                 "There is no pending login or it expired. Log in again.");
     }
 
-    @ExceptionHandler(TwoFactorConfirmationException.class)
+    @ExceptionHandler({TwoFactorConfirmationException.class, WrongPasswordException.class})
     ProblemDetail invalidConfirmation() {
         return problem(HttpStatus.UNPROCESSABLE_CONTENT, "invalid-confirmation", "Not confirmed",
                 "The code or password is not valid.");
@@ -46,6 +48,18 @@ class SecurityProblemHandler {
     @ExceptionHandler(TwoFactorStateException.class)
     ProblemDetail twoFactorState(TwoFactorStateException exception) {
         return problem(HttpStatus.CONFLICT, "two-factor-state", "Two-factor state conflict", exception.getMessage());
+    }
+
+    @ExceptionHandler(InvalidPasswordException.class)
+    ProblemDetail invalidPassword(InvalidPasswordException exception) {
+        return problem(HttpStatus.BAD_REQUEST, "invalid-password", "Password not accepted", exception.getMessage());
+    }
+
+    /** More specific than {@link AccessDeniedException}, so it wins over {@link #accessDenied()}. */
+    @ExceptionHandler(PasswordChangeRequiredException.class)
+    ProblemDetail passwordChangeRequired(PasswordChangeRequiredException exception) {
+        return problem(HttpStatus.FORBIDDEN, "password-change-required", "Password change required",
+                exception.getMessage());
     }
 
     @ExceptionHandler(AuthenticationException.class)

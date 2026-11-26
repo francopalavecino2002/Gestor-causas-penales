@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * The active members of the current firm, so forms can offer them as a case's responsible lawyer or
  * as the lawyers who attend a hearing (T35). Every member may read it: it only exposes names and
- * roles, never emails or security data. Inviting or changing users is not here (ADR-0026).
+ * roles, never emails or security data. The owner manages users in {@link FirmUserController}.
  */
 @RestController
 class FirmMemberController {
