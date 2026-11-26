@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.jayway.jsonpath.JsonPath;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -187,6 +188,42 @@ class ReservedCaseTests extends CaseApiTestSupport {
                 .andExpect(content().string(not(containsString("Caso reservado ficticio"))))
                 .andExpect(jsonPath("$.matches[0].caseRoles[?(@.caseId == '" + open + "')].caption")
                         .value("Caso abierto ficticio"));
+    }
+
+    @Test
+    void thePersonListAndOverviewShouldShowRolesInCasesMaskingReservedOnes() throws Exception {
+        String person = createPerson(lawyer, humanJson("Ana", "Quiroga Ejemplo", "99123456"));
+        String reserved = createCase(lawyer, caseJson("Caso reservado ficticio", RESERVED));
+        String open = createCase(lawyer, caseJson("Caso abierto ficticio", ""));
+        addDefendant(lawyer, reserved, "{\"personId\": \"" + person + "\"}");
+        postJson(lawyer, "/api/v1/cases/" + open + "/parties",
+                "{\"personId\": \"" + person + "\", \"roleCode\": \"testigo\"}").andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/v1/persons").param("q", "quiroga").with(lawyer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(person))
+                .andExpect(jsonPath("$.items[0].displayName").value("Quiroga Ejemplo, Ana"))
+                .andExpect(jsonPath("$.items[0].clientId").doesNotExist())
+                .andExpect(jsonPath("$.items[0].caseRoles", hasSize(2)));
+
+        mockMvc.perform(get("/api/v1/persons/" + person + "/overview").with(otherLawyer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(person))
+                .andExpect(jsonPath("$.documentNumber").value("99123456"))
+                .andExpect(jsonPath("$.caseRoles", hasSize(2)))
+                .andExpect(jsonPath("$.caseRoles[?(@.reserved == true)].roleCode").value("imputado"))
+                .andExpect(jsonPath("$.caseRoles[?(@.caseId == '" + open + "')].roleName").value("Testigo"))
+                .andExpect(content().string(not(containsString(reserved))))
+                .andExpect(content().string(not(containsString("Caso reservado ficticio"))));
+
+        String client = JsonPath.read(postJson(lawyer, "/api/v1/persons/" + person + "/client",
+                        "{\"intakeDate\": \"2026-03-10\"}")
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(), "$.id");
+        mockMvc.perform(get("/api/v1/persons/" + person + "/overview").with(lawyer))
+                .andExpect(jsonPath("$.clientId").value(client));
+        mockMvc.perform(get("/api/v1/persons/" + UUID.randomUUID() + "/overview").with(lawyer))
+                .andExpect(status().isNotFound());
     }
 
     private static String teamJson(UUID userId, String role) {

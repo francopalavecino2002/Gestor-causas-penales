@@ -54,7 +54,13 @@ class PersonController {
             @RequestParam(defaultValue = "false") boolean includeArchived,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return PersonPage.of(people.search(q, includeArchived, page, size));
+        return people.searchWithRoles(q, includeArchived, page, size);
+    }
+
+    /** The person with their client record id (or null) and their roles in cases, for the detail screen. */
+    @GetMapping("/{id}/overview")
+    PersonListItem overview(@PathVariable UUID id) {
+        return people.overview(id);
     }
 
     record ConflictCheckRequest(@NotBlank @Size(max = 30) String documentNumber) {}
