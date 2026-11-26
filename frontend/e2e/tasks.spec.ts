@@ -56,7 +56,7 @@ test("the five-item bottom nav fits a 360 px phone: no label is cut", async ({ p
   await page.goto("/tareas");
 
   const nav = page.locator("nav.fixed").getByRole("link");
-  await expect(nav).toHaveText(["Agenda", "Causas", "Plazos", "Tareas", "Personas"]);
+  await expect(nav).toHaveText(["Agenda", "Causas", "Plazos", "Tareas", "Novedades"]);
   for (const link of await nav.all()) {
     // The label's box stays inside its link's box, and the text is not wider than the label.
     const fits = await link.evaluate((element) => {

@@ -9,6 +9,7 @@ import {
   WEEK_HEARINGS,
 } from "../src/test/agenda-fixtures";
 import { ALL_TASKS } from "../src/test/task-fixtures";
+import { ALL_DUE_SOON, ALL_NEWS } from "../src/test/news-fixtures";
 import { CASE_CIVIL } from "../src/test/area-fixtures";
 import { CASE_EJEMPLAR, CASE_MODELO } from "../src/test/case-fixtures";
 import { DEMO_ME, mockBackend } from "./mock-backend";
@@ -105,6 +106,19 @@ const withTasks = async (page: Page) => {
     hearings: WEEK_HEARINGS,
     detaineeAlerts: DETAINEE_ALERTS,
     tasks: ALL_TASKS,
+  });
+};
+
+/** The agenda week, the tasks and the fictitious news wall (T49). */
+const withNews = async (page: Page) => {
+  await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+  await mockBackend(page, {
+    signedIn: true,
+    hearings: WEEK_HEARINGS,
+    detaineeAlerts: DETAINEE_ALERTS,
+    tasks: ALL_TASKS,
+    news: ALL_NEWS,
+    dueSoon: ALL_DUE_SOON,
   });
 };
 
@@ -750,6 +764,74 @@ const SCREENS: Record<string, Screen[]> = {
         );
       },
       fullPage: false,
+    },
+  ],
+  t49: [
+    {
+      path: "/novedades",
+      name: "news",
+      prepare: withNews,
+      act: (page) => page.getByRole("region", { name: "Hoy" }).waitFor(),
+    },
+    {
+      path: "/novedades",
+      name: "news-archived",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: withNews,
+      act: async (page) => {
+        await page.getByRole("button", { name: "Archivá la publicación de Paula Demo" }).click();
+        const undo = page.getByRole("button", { name: "Deshacé" });
+        await undo.waitFor();
+        await undo.evaluate((element) =>
+          window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 240),
+        );
+      },
+      fullPage: false,
+    },
+    {
+      path: "/novedades",
+      name: "news-import",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: withNews,
+      act: async (page) => {
+        await page.getByRole("button", { name: "Mirá las 4 causas" }).click();
+        const toggle = page.getByRole("button", { name: "Ocultá las causas" });
+        await toggle.evaluate((element) =>
+          window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 200),
+        );
+        await page.mouse.move(0, 0);
+      },
+      fullPage: false,
+    },
+    {
+      path: "/novedades",
+      name: "news-empty",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: agendaWeek(),
+      act: (page) => page.getByRole("heading", { name: "Todavía no hay novedades" }).waitFor(),
+    },
+    {
+      path: "/novedades",
+      name: "news-error",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: async (page) => {
+        await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+        await mockBackend(page, { signedIn: true, newsFails: true });
+      },
+      act: (page) => page.getByText("No pudimos cargar las novedades").waitFor({ timeout: 15_000 }),
+    },
+    {
+      path: "/",
+      name: "agenda-news",
+      prepare: withNews,
+      act: async (page) => {
+        await waitForHearings(page);
+        await page.getByRole("list", { name: "Últimas novedades" }).waitFor();
+      },
     },
   ],
 };

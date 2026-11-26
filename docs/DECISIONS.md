@@ -1796,3 +1796,32 @@ Superseded decisions are marked, never deleted.
   (T49) if it gets noisy. Changes made with bulk SQL are not audited and so never reach the wall
   (ADR-0010 already forbids them for business data). Renaming an entity class would rename its
   `entity_type` and needs the query updated.
+
+## ADR-0039: News wall screens (T49)
+
+- **Date:** 2026-11-25
+- **Status:** accepted
+- **Context:** T48 exposes the wall; the UI must make it a daily glance without crowding the agenda,
+  and a sixth top-level section does not fit the phone's five-item bottom nav (ADR-0037).
+- **Decision:**
+  - `/novedades` is a sidebar item between Tareas and Personas. On phones it takes Personas' place in
+    the bottom nav (Personas is still a placeholder) and Personas moves to the account menu. The
+    bottom nav sizes items by label (flex) instead of five equal columns so "Novedades" fits 360 px.
+  - The screen shows "Vencen pronto" first (detainee deadlines first, red edge and badge; legal source
+    on every card; the disclaimer once when all share it, else per card), then the composer (React
+    Hook Form + Zod, 1000-character counter, "Publicá"), then the wall grouped by local day ("Hoy",
+    "Ayer", full dates) on a rail of icons, with "Mirá más novedades" as an infinite query. From
+    1280 px the deadlines move to the right column.
+  - Entries are sentences in Rioplatense Spanish: the member's name, "vos" forms for the user
+    ("Cargaste la audiencia…") and impersonal ones without a member ("Se abrió una causa nueva.").
+    Three or more "case opened" by the same member within a minute collapse into "abrió N causas
+    nuevas" with an expandable list.
+  - Archiving a post keeps it in place as "Archivaste esta publicación" with "Deshacé" (restore),
+    moving focus to the undo; the wall is not refetched until the next visit. Posts render as plain
+    text with their line breaks.
+  - The agenda home gets a "Novedades" card (latest 5 entries, deadlines due soon and how many are of
+    detained clients): after the hearings on phones, under "Tareas de hoy" in the right column from
+    1280 px. It is placed in the DOM per width (`useMediaQuery`) so the reading order matches what is
+    seen. A failure there never blocks the agenda.
+- **Consequences:** Personas is one more tap away on phones until it becomes a real screen; then the
+  bottom nav needs a "Más" menu.
