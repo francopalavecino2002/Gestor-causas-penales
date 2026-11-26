@@ -1856,3 +1856,8 @@ Superseded decisions are marked, never deleted.
   art. 9 are written for the old written procedure and are flagged until a lawyer maps them to the
   accusatory CPP. If firms ask for it, the history table already allows "JUS value at the date of the
   ruling" vs "at payment".
+- **UI:** "Honorarios" (`/honorarios`) is a sidebar item with the `Calculator` icon; on phones it joins
+  Personas in the account menu (ADR-0039), since it is an occasional tool and the bottom nav keeps five
+  items. The JUS value lives in Ajustes → "Valor del JUS" (`/ajustes/jus`), the first settings section
+  that owners and lawyers can both change. Archiving a value keeps it in place with "Deshacé". The
+  disclaimer and a line saying the judge sets the fee are visible in every state of the calculator.
