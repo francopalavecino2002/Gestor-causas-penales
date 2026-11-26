@@ -4,11 +4,7 @@ import type { IsoDate } from "../agenda/agenda-types";
 
 /** What an entry of the wall is about (backend `NewsKind`). */
 export type NewsKind =
-  | "CASE_OPENED"
-  | "HEARING_SCHEDULED"
-  | "HEARING_RESCHEDULED"
-  | "HEARING_RESULT"
-  | "POST";
+  "CASE_OPENED" | "HEARING_SCHEDULED" | "HEARING_RESCHEDULED" | "HEARING_RESULT" | "POST";
 
 /** Who did it; `displayName` is null only for a member whose record vanished. */
 export interface NewsActor {

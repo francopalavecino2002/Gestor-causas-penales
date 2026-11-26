@@ -27,7 +27,9 @@ const base: PublicCalculation = {
 
 describe("public deadline format", () => {
   it("keeps only the article of the source", () => {
-    expect(articleOf("Art. 112; 49 inc. 5 · CPP de Neuquén (Ley 2784)")).toBe("Art. 112; 49 inc. 5");
+    expect(articleOf("Art. 112; 49 inc. 5 · CPP de Neuquén (Ley 2784)")).toBe(
+      "Art. 112; 49 inc. 5",
+    );
     expect(articleOf("Art. 242")).toBe("Art. 242");
   });
 

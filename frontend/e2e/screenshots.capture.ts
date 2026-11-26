@@ -14,6 +14,7 @@ import { CASE_CIVIL } from "../src/test/area-fixtures";
 import type { JusValueView } from "../src/features/fees/fee-types";
 import { ALL_JUS_VALUES, MIN_EXCARCELACION } from "../src/test/fee-fixtures";
 import { CASE_EJEMPLAR, CASE_MODELO } from "../src/test/case-fixtures";
+import { ALL_PERSONS, PERSON_JULIAN } from "../src/test/person-fixtures";
 import { DEMO_ME, mockBackend } from "./mock-backend";
 
 /*
@@ -885,9 +886,7 @@ const SCREENS: Record<string, Screen[]> = {
       themes: ["light"],
       prepare: withFees(),
       act: async (page) => {
-        await page
-          .getByRole("button", { name: /^Archivá el valor de \$\s81\.250,00/ })
-          .click();
+        await page.getByRole("button", { name: /^Archivá el valor de \$\s81\.250,00/ }).click();
         const undo = page.getByRole("button", { name: "Deshacé" });
         await undo.waitFor();
         await undo.evaluate((element) =>
@@ -987,7 +986,72 @@ const SCREENS: Record<string, Screen[]> = {
       act: (page) => page.getByRole("link", { name: "calculadora de plazos gratuita" }).waitFor(),
     },
   ],
+  t60: [
+    {
+      path: "/personas",
+      name: "persons",
+      prepare: withPersons,
+      act: waitForArticleOrTable,
+    },
+    {
+      path: `/personas/${PERSON_JULIAN.id}`,
+      name: "person-client-detail",
+      prepare: withPersons,
+      act: (page) =>
+        page
+          .getByRole("region", { name: "Contactos autorizados" })
+          .getByRole("article")
+          .first()
+          .waitFor(),
+    },
+    {
+      path: "/personas",
+      name: "person-new-conflict",
+      themes: ["light", "dark"],
+      prepare: withPersons,
+      act: async (page) => {
+        await page.getByRole("button", { name: "Nueva persona" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Apellidos").fill("Ficticio");
+        await dialog.getByLabel("Nombres", { exact: true }).fill("Julián");
+        await dialog.getByLabel("Número de documento").fill("99.000.111");
+        await dialog.getByLabel("Número de documento").blur();
+        const found = dialog.getByText("Ya hay 2 personas con este documento");
+        await found.waitFor();
+        await found.scrollIntoViewIfNeeded();
+      },
+      fullPage: false,
+    },
+    {
+      path: "/personas",
+      name: "person-conflict-check",
+      themes: ["light"],
+      prepare: withPersons,
+      act: async (page) => {
+        await page.getByRole("button", { name: "Control de conflicto" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Número de documento").fill("30-99000333-1");
+        await dialog.getByRole("button", { name: "Buscá el documento" }).click();
+        await dialog.getByText("Ya hay 1 persona con este documento").waitFor();
+      },
+      fullPage: false,
+    },
+    {
+      path: "/personas?q=inexistente",
+      name: "persons-empty-search",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: withPersons,
+      act: (page) => page.getByRole("heading", { name: /No encontramos personas/ }).waitFor(),
+    },
+  ],
 };
+
+/** Signed in on 23 November 2026 with the fictitious persons and clients (T60). */
+async function withPersons(page: Page) {
+  await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+  await mockBackend(page, { signedIn: true, persons: ALL_PERSONS });
+}
 
 /** Anonymous, on 23 November 2026 (T51): the public calculator needs no session. */
 function publicCalculator(extra: { throttled?: boolean } = {}) {

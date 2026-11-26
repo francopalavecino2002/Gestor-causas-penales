@@ -12,12 +12,7 @@ import { CasesEmpty, LoadError } from "@/features/cases/case-states";
 import { NewsComposer } from "@/features/news/news-composer";
 import { NewsDueSoon } from "@/features/news/news-due-soon";
 import { NewsTimelineEntry } from "@/features/news/news-entry";
-import {
-  dayHeading,
-  groupNewsByDay,
-  uniqueById,
-  type NewsDay,
-} from "@/features/news/news-format";
+import { dayHeading, groupNewsByDay, uniqueById, type NewsDay } from "@/features/news/news-format";
 import { useNewsFeed, useSetPostArchived } from "@/features/news/news-queries";
 import type { NewsItem } from "@/features/news/news-types";
 import { isApiError, NETWORK_ERROR } from "@/lib/api";
@@ -181,13 +176,19 @@ export function NewsPage() {
             onClick={() => void feed.fetchNextPage()}
           >
             {feed.isFetchingNextPage && (
-              <LoaderCircle aria-hidden="true" className="animate-spin motion-reduce:animate-none" />
+              <LoaderCircle
+                aria-hidden="true"
+                className="animate-spin motion-reduce:animate-none"
+              />
             )}
             Mirá más novedades
           </Button>
         )}
         {feed.isFetchNextPageError && (
-          <p role="alert" className="flex items-start gap-2 text-meta font-semibold text-destructive">
+          <p
+            role="alert"
+            className="flex items-start gap-2 text-meta font-semibold text-destructive"
+          >
             <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
             No pudimos traer más novedades. Volvé a tocar «Mirá más novedades».
           </p>
@@ -213,7 +214,7 @@ export function NewsPage() {
           timeZone={timeZone}
           className="xl:sticky xl:top-10 xl:col-start-2 xl:row-start-1"
         />
-        <div className="grid min-w-0 max-w-3xl gap-7 xl:col-start-1 xl:row-start-1">
+        <div className="grid max-w-3xl min-w-0 gap-7 xl:col-start-1 xl:row-start-1">
           <NewsComposer
             textareaId={composerId}
             onPosted={() => {

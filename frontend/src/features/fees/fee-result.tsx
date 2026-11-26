@@ -56,8 +56,8 @@ export function FeeResultPlaceholder() {
     >
       <Calculator aria-hidden="true" className="size-6 text-primary" />
       <p className="max-w-prose text-body text-muted-foreground">
-        Elegí el tipo de asunto y tocá «Calculá el honorario». Vas a ver el rango en pesos y en
-        JUS, y cada paso con su artículo.
+        Elegí el tipo de asunto y tocá «Calculá el honorario». Vas a ver el rango en pesos y en JUS,
+        y cada paso con su artículo.
       </p>
       <FeeDisclaimer />
     </section>

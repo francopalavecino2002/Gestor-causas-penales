@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
+import { useCallback, useId, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
+import { SearchBox } from "@/components/forms/search-box";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { FIRM_TIME_ZONE } from "@/features/agenda/agenda-dates";
@@ -24,9 +24,6 @@ import { useAreaDirectory } from "@/features/practice-areas/practice-area-querie
 import { cn } from "@/lib/utils";
 
 const LIST_CATALOGS: CatalogId[] = ["stages", "hearing-types"];
-
-/** Wait this long after the last keystroke before searching. */
-export const SEARCH_DEBOUNCE_MS = 300;
 
 /** "1 causa", "12 causas". */
 function countCases(count: number): string {
@@ -48,71 +45,6 @@ function resultSummary(
       : `${countCases(total)} para «${q}»${scope}.`;
   }
   return total === 1 ? `1 causa en el estudio${scope}.` : `${total} causas en el estudio${scope}.`;
-}
-
-/**
- * The search box. It searches as you type (debounced) and keeps the text in the URL (`?q=`), so
- * back/forward and shared links bring the same results; Enter searches right away.
- */
-function CaseSearchBox({
-  value,
-  onSearch,
-}: {
-  value: string | undefined;
-  onSearch: (q: string | undefined) => void;
-}) {
-  const inputId = useId();
-  const hintId = useId();
-  const [draft, setDraft] = useState(value ?? "");
-  // What this box last put in the URL, to tell our own update from back/forward or a link.
-  const [pushed, setPushed] = useState(value);
-  const [synced, setSynced] = useState(value);
-  if (value !== synced) {
-    setSynced(value);
-    if (value !== pushed) setDraft(value ?? "");
-  }
-
-  const next = draft.trim() || undefined;
-  useEffect(() => {
-    if (next === value) return;
-    const timer = setTimeout(() => {
-      setPushed(next);
-      onSearch(next);
-    }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [next, value, onSearch]);
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    if (next === value) return;
-    setPushed(next);
-    onSearch(next);
-  };
-
-  return (
-    <form role="search" onSubmit={submit} className="grid w-full gap-1.5 md:max-w-xl">
-      <Label htmlFor={inputId}>Buscá una causa</Label>
-      <div className="relative">
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input
-          id={inputId}
-          type="search"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          aria-describedby={hintId}
-          autoComplete="off"
-          enterKeyHint="search"
-          className="pl-11"
-        />
-      </div>
-      <p id={hintId} className="text-small text-muted-foreground">
-        Por carátula, legajo del MPF, número de la OFIJU o número interno.
-      </p>
-    </form>
-  );
 }
 
 function Pagination({
@@ -219,7 +151,12 @@ export function CaseListPage({ search }: { search: CaseListSearch }) {
       </div>
 
       <div className="grid gap-4 md:flex md:items-start md:gap-6">
-        <CaseSearchBox value={search.q} onSearch={onSearch} />
+        <SearchBox
+          label="Buscá una causa"
+          hint="Por carátula, legajo del MPF, número de la OFIJU o número interno."
+          value={search.q}
+          onSearch={onSearch}
+        />
         {directory.multiple && (
           <AreaFilter
             areas={directory.areas}

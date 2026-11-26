@@ -47,7 +47,9 @@ for (const viewport of [
 
     const result = page.getByRole("region", { name: "Honorario estimado" });
     await expect(result.getByText("$ 949.632,50").first()).toBeVisible();
-    await expect(result.getByText("JUS de $ 94.963,25, vigente desde el 01/07/2026.")).toBeVisible();
+    await expect(
+      result.getByText("JUS de $ 94.963,25, vigente desde el 01/07/2026."),
+    ).toBeVisible();
     await expect(result.getByText("Cálculo asistido: verificá con la norma.")).toBeVisible();
 
     expect(

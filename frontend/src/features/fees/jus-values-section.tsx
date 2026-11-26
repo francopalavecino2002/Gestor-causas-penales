@@ -1,6 +1,14 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Archive, ArchiveRestore, CircleAlert, ExternalLink, Eye, LoaderCircle, Undo2 } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  CircleAlert,
+  ExternalLink,
+  Eye,
+  LoaderCircle,
+  Undo2,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -123,13 +131,7 @@ export function JusValuesSection() {
   );
 }
 
-function CurrentValue({
-  current,
-  jusSource,
-}: {
-  current: JusValueView | null;
-  jusSource: string;
-}) {
+function CurrentValue({ current, jusSource }: { current: JusValueView | null; jusSource: string }) {
   const titleId = useId();
   return (
     <section
@@ -198,7 +200,9 @@ function NewValueForm() {
     try {
       const created = await create.mutateAsync(jusValueDataOf(values));
       reset({ value: "", validFrom: today });
-      announce(`Guardado: el JUS de ${formatPesos(created.value)}, vigente desde el ${formatDay(created.validFrom)}.`);
+      announce(
+        `Guardado: el JUS de ${formatPesos(created.value)}, vigente desde el ${formatDay(created.validFrom)}.`,
+      );
     } catch (error) {
       const problem = jusValueProblem(error);
       let first = true;
@@ -211,7 +215,11 @@ function NewValueForm() {
     }
   });
 
-  const ids = { value: `${formId}-value`, validFrom: `${formId}-valid-from`, title: `${formId}-title` };
+  const ids = {
+    value: `${formId}-value`,
+    validFrom: `${formId}-valid-from`,
+    title: `${formId}-title`,
+  };
   const valueField = register("value");
 
   return (
@@ -254,7 +262,9 @@ function NewValueForm() {
                 }}
               />
             </div>
-            <FieldDescription id={`${ids.value}-help`}>En pesos, por ejemplo 94.963,25.</FieldDescription>
+            <FieldDescription id={`${ids.value}-help`}>
+              En pesos, por ejemplo 94.963,25.
+            </FieldDescription>
             <FieldError id={`${ids.value}-error`}>{errors.value?.message}</FieldError>
           </Field>
           <Field>
@@ -406,9 +416,7 @@ function History({
                   key={value.id}
                   className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 pr-2 pl-4 text-meta"
                 >
-                  <p className="min-w-0 flex-1 py-2 text-muted-foreground">
-                    Archivaste {label}.
-                  </p>
+                  <p className="min-w-0 flex-1 py-2 text-muted-foreground">Archivaste {label}.</p>
                   <Button
                     id={buttonId(value.id, "undo")}
                     variant="ghost"

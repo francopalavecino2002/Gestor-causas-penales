@@ -65,7 +65,12 @@ describe("NewsPage", () => {
     expect(body).toHaveClass("whitespace-pre-line");
 
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(
-      expect.arrayContaining(["Hoy", "Ayer", "Jueves 19 de noviembre", "Miércoles 18 de noviembre"]),
+      expect.arrayContaining([
+        "Hoy",
+        "Ayer",
+        "Jueves 19 de noviembre",
+        "Miércoles 18 de noviembre",
+      ]),
     );
   });
 
@@ -158,9 +163,7 @@ describe("NewsPage", () => {
     const field = screen.getByLabelText("Contale algo al estudio");
     fireEvent.change(field, { target: { value: "   " } });
     fireEvent.click(screen.getByRole("button", { name: "Publicá" }));
-    expect(
-      await screen.findByText("Escribí la novedad antes de publicarla."),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Escribí la novedad antes de publicarla.")).toBeInTheDocument();
     expect(field).toHaveAttribute("aria-invalid", "true");
     expect(requests.some((request) => request.path === "/api/v1/news/posts")).toBe(false);
 
@@ -254,7 +257,10 @@ describe("NewsPage", () => {
   it("shows a post as text, never as markup", async () => {
     const [post] = manyPosts(1);
     if (!post?.post) throw new Error("fixture");
-    const tricky = { ...post, post: { ...post.post, body: "<b>Ojo</b> <img src=x onerror=alert(1)>" } };
+    const tricky = {
+      ...post,
+      post: { ...post.post, body: "<b>Ojo</b> <img src=x onerror=alert(1)>" },
+    };
     signedIn(undefined, newsRoutes([tricky], []));
     const { container } = renderApp("/novedades");
 

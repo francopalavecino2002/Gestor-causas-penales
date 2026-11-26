@@ -67,13 +67,7 @@ function toneOf(item: NewsItem): keyof typeof TONE_CLASSES {
 }
 
 /** The round icon of an entry. Decorative: the sentence says what happened. */
-export function EntryIcon({
-  entry,
-  size = "md",
-}: {
-  entry: NewsEntry;
-  size?: "sm" | "md";
-}) {
+export function EntryIcon({ entry, size = "md" }: { entry: NewsEntry; size?: "sm" | "md" }) {
   const Icon = entry.kind === "bulk" ? FolderInput : KIND_ICONS[entry.item.kind];
   const tone = entry.kind === "bulk" ? "accent" : toneOf(entry.item);
   return (
@@ -257,7 +251,9 @@ function PostEntry({
   return (
     <TimelineRow icon={<EntryIcon entry={{ kind: "item", item }} />}>
       <p className="flex flex-wrap items-baseline gap-x-2 text-small text-muted-foreground">
-        <span className="text-body font-bold text-foreground">{mine ? `${author} (vos)` : author}</span>
+        <span className="text-body font-bold text-foreground">
+          {mine ? `${author} (vos)` : author}
+        </span>
         <EntryTime occurredAt={item.occurredAt} now={now} timeZone={timeZone} />
       </p>
       {archived ? (

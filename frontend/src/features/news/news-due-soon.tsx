@@ -59,13 +59,19 @@ function DueSoonCard({
         <div className="grid gap-1 text-meta">
           {alert.defendantName && (
             <p className="flex min-w-0 items-start gap-2">
-              <User aria-hidden="true" className="mt-0.75 size-4.5 shrink-0 text-muted-foreground" />
+              <User
+                aria-hidden="true"
+                className="mt-0.75 size-4.5 shrink-0 text-muted-foreground"
+              />
               <span className="sr-only">Imputado o imputada:</span>
               <span className="font-semibold">{alert.defendantName}</span>
             </p>
           )}
           <p className="flex min-w-0 items-start gap-2">
-            <Folder aria-hidden="true" className="mt-0.75 size-4.5 shrink-0 text-muted-foreground" />
+            <Folder
+              aria-hidden="true"
+              className="mt-0.75 size-4.5 shrink-0 text-muted-foreground"
+            />
             <span className="sr-only">Causa:</span>
             <Link
               to="/causas/$caseId"
@@ -116,7 +122,10 @@ export function NewsDueSoon({
         </h2>
         <Link
           to="/plazos"
-          className={cn(NEWS_LINK_CLASS, "inline-flex min-h-11 items-center text-meta font-semibold")}
+          className={cn(
+            NEWS_LINK_CLASS,
+            "inline-flex min-h-11 items-center text-meta font-semibold",
+          )}
         >
           Mirá todos los plazos
         </Link>

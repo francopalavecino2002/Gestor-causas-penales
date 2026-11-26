@@ -47,7 +47,9 @@ describe("Novedades on the agenda", () => {
     );
     expect(newsQueries(requests)).toEqual([{ page: "0", size: "5" }]);
     // The day's hearings stay the page's subject.
-    expect(screen.getByRole("heading", { level: 1, name: "Audiencias de hoy" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Audiencias de hoy" }),
+    ).toBeInTheDocument();
   });
 
   it("leaves out the detainee line when no deadline due soon is of a detained client", async () => {

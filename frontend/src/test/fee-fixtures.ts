@@ -110,7 +110,10 @@ export const JUS_TYPO: JusValueView = {
 export const ALL_JUS_VALUES: JusValueView[] = [JUS_JULY, JUS_MARCH, JUS_TYPO];
 
 const cents = (value: number) => Math.round(value * 100) / 100;
-const money = new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = new Intl.NumberFormat("es-AR", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 const pesos = (value: number) => `$ ${money.format(value)}`;
 const plain = (value: number) => new Intl.NumberFormat("es-AR").format(value);
 const day = (iso: string) => iso.split("-").reverse().join("/");
@@ -269,9 +272,7 @@ export function feesBackend(
       const jus = valueOn(request.date ?? today);
       if (!jus) return { status: 409, problem: "jus-value-missing" };
       const result = calculationFor(FEE_SCALE, request, jus);
-      return result
-        ? { status: 200, json: result }
-        : { status: 400, problem: "invalid-fee-data" };
+      return result ? { status: 200, json: result } : { status: 400, problem: "invalid-fee-data" };
     }
     const change = /^\/api\/v1\/fees\/jus-values\/([0-9a-f-]+)\/(archive|restore)$/.exec(path);
     if (method !== "POST" || !change) return undefined;

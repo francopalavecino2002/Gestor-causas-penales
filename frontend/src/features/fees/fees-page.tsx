@@ -39,11 +39,7 @@ import {
 } from "@/features/fees/fee-format";
 import { useCanManageJus } from "@/features/fees/fee-hooks";
 import { useCalculateFee, useFeeScale, useJusValues } from "@/features/fees/fee-queries";
-import {
-  FeeResult,
-  FeeResultPlaceholder,
-  JusMissing,
-} from "@/features/fees/fee-result";
+import { FeeResult, FeeResultPlaceholder, JusMissing } from "@/features/fees/fee-result";
 import type { FeeScaleView } from "@/features/fees/fee-types";
 import { DEFAULT_AREA } from "@/features/practice-areas/practice-area-format";
 import { useAreaDirectory } from "@/features/practice-areas/practice-area-queries";
@@ -119,8 +115,8 @@ export function FeesPage() {
     <>
       <PageHeader title="Honorarios">
         <p className="max-w-prose">
-          Estimá el honorario de un asunto según la Ley 1594 de Neuquén, en pesos y en JUS, con
-          cada paso y su artículo.
+          Estimá el honorario de un asunto según la Ley 1594 de Neuquén, en pesos y en JUS, con cada
+          paso y su artículo.
         </p>
       </PageHeader>
 
@@ -210,7 +206,9 @@ function Calculator({
       if (isApiError(error) && error.type === "invalid-fee-data") {
         setError(
           "minimumCode",
-          { message: "Ese tipo de asunto ya no está en la escala. Recargá la página y elegí otro." },
+          {
+            message: "Ese tipo de asunto ya no está en la escala. Recargá la página y elegí otro.",
+          },
           { shouldFocus: true },
         );
       }

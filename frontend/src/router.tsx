@@ -8,8 +8,6 @@ import {
   redirect,
   type RouterHistory,
 } from "@tanstack/react-router";
-import { Users } from "lucide-react";
-
 import { AppShell } from "@/components/shell/app-shell";
 import { parseAgendaSearch } from "@/features/agenda/agenda-search";
 import { CaseDetailPage } from "@/features/cases/case-detail-page";
@@ -25,6 +23,10 @@ import { FeesPage } from "@/features/fees/fees-page";
 import { JusValuesSection } from "@/features/fees/jus-values-section";
 import { ImportPage } from "@/features/imports/import-page";
 import { NewsPage } from "@/features/news/news-page";
+import { PersonDetailPage } from "@/features/persons/person-detail-page";
+import { isPersonId, parsePersonListSearch } from "@/features/persons/person-search";
+import { PersonNotFound } from "@/features/persons/person-states";
+import { PersonsPage } from "@/features/persons/persons-page";
 import { PUBLIC_CALCULATOR_PATH } from "@/features/public-deadlines/public-deadline-format";
 import { PublicDeadlinePage } from "@/features/public-deadlines/public-deadline-page";
 import { AiAssistSection } from "@/features/ai-assist/ai-assist-section";
@@ -40,7 +42,6 @@ import { parseTaskSearch } from "@/features/tasks/task-search";
 import { TasksPage } from "@/features/tasks/tasks-page";
 import { HomePage } from "@/pages/home-page";
 import { NotFoundPage } from "@/pages/not-found-page";
-import { PlaceholderPage } from "@/pages/placeholder-page";
 import { SessionErrorPage } from "@/pages/session-error-page";
 
 export interface RouterContext {
@@ -165,16 +166,29 @@ const newsRoute = createRoute({
   component: NewsPage,
 });
 
+/** Persons of the firm (T60). `?q`, `?pagina` and `?archivadas` keep a search linkable. */
 const personsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/personas",
-  component: () => (
-    <PlaceholderPage
-      title="Personas"
-      icon={Users}
-      description="Acá vas a tener a tus defendidos y a las demás personas de las causas, con sus datos de contacto."
-    />
-  ),
+  validateSearch: parsePersonListSearch,
+  component: function PersonsRoute() {
+    const search = personsRoute.useSearch();
+    return <PersonsPage search={search} />;
+  },
+});
+
+/** A person's detail: their cases and roles, data and client record. */
+const personRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/personas/$personId",
+  component: function PersonRoute() {
+    const { personId } = personRoute.useParams();
+    return isPersonId(personId) ? (
+      <PersonDetailPage key={personId} personId={personId} />
+    ) : (
+      <PersonNotFound />
+    );
+  },
 });
 
 /** Settings index and its sections (ADR-0026). Every member reads; only the owner changes. */
@@ -271,6 +285,7 @@ const routeTree = rootRoute.addChildren([
     tasksRoute,
     newsRoute,
     personsRoute,
+    personRoute,
     feesRoute,
     settingsRoute,
     settingsAreasRoute,

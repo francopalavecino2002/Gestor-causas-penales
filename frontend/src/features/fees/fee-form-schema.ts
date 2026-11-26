@@ -80,7 +80,10 @@ export const jusValueSchema = z.object({
     .string()
     .trim()
     .min(1, "Escribí el valor del JUS en pesos.")
-    .refine((value) => parsePesos(value) !== null, "Escribí el valor en pesos, por ejemplo 94.963,25.")
+    .refine(
+      (value) => parsePesos(value) !== null,
+      "Escribí el valor en pesos, por ejemplo 94.963,25.",
+    )
     .refine((value) => (parsePesos(value) ?? 1) > 0, "El valor tiene que ser mayor que cero.")
     .refine((value) => {
       const pesos = parsePesos(value);

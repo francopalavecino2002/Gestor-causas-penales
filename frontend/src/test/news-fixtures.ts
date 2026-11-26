@@ -227,7 +227,11 @@ export function manyPosts(count: number): NewsItem[] {
       kind: "POST",
       occurredAt: new Date(Date.parse("2026-11-23T12:00:00Z") - index * 3_600_000).toISOString(),
       actor: HUGO,
-      post: { id: postId(100 + index), body: `Aviso ficticio número ${index + 1}.`, canArchive: false },
+      post: {
+        id: postId(100 + index),
+        body: `Aviso ficticio número ${index + 1}.`,
+        canArchive: false,
+      },
     }),
   );
 }
@@ -236,7 +240,11 @@ export function manyPosts(count: number): NewsItem[] {
 export type NewsQuery = Partial<Record<string, string | null>>;
 
 /** What `GET /api/v1/news` answers, paged like the real one (size capped at 50). */
-export function newsFeedFor(items: NewsItem[], dueSoon: DeadlineAlert[], query: NewsQuery): NewsFeed {
+export function newsFeedFor(
+  items: NewsItem[],
+  dueSoon: DeadlineAlert[],
+  query: NewsQuery,
+): NewsFeed {
   const size = Math.min(Math.max(Number(query.size ?? 20), 1), 50);
   const page = Math.max(Number(query.page ?? 0), 0);
   return {

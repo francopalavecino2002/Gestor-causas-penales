@@ -566,6 +566,43 @@ class PersonApiTests {
     }
 
     @Test
+    void theOverviewShouldShowTheClientAndStayInsideTheFirm() throws Exception {
+        String person = createPerson(lawyer, human("Ana", "Quiroga Ejemplo", "DNI", "99123456"));
+
+        mockMvc.perform(get("/api/v1/persons/" + person + "/overview").with(paralegal))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName").value("Quiroga Ejemplo, Ana"))
+                .andExpect(jsonPath("$.clientId").doesNotExist())
+                .andExpect(jsonPath("$.caseRoles", hasSize(0)));
+
+        String client = makeClient(lawyer, person);
+        mockMvc.perform(get("/api/v1/persons/" + person + "/overview").with(paralegal))
+                .andExpect(jsonPath("$.clientId").value(client));
+        mockMvc.perform(get("/api/v1/persons").param("q", "99.123.456").with(paralegal))
+                .andExpect(jsonPath("$.items[0].clientId").value(client))
+                .andExpect(jsonPath("$.items[0].caseRoles", hasSize(0)));
+
+        mockMvc.perform(get("/api/v1/persons/" + person + "/overview").with(otherFirmOwner))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void anArchivedPersonShouldCarryTheirClientInTheListOnlyWhenArchivedAreIncluded() throws Exception {
+        String person = createPerson(lawyer, human("Bruno", "Archivado Ejemplo", null, null));
+        String client = makeClient(lawyer, person);
+        mockMvc.perform(post("/api/v1/persons/" + person + "/archive").with(lawyer).with(CSRF))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/persons").param("q", "archivado").with(lawyer))
+                .andExpect(jsonPath("$.items", hasSize(0)))
+                .andExpect(jsonPath("$.total").value(0));
+        mockMvc.perform(get("/api/v1/persons").param("q", "archivado").param("includeArchived", "true").with(lawyer))
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].archived").value(true))
+                .andExpect(jsonPath("$.items[0].clientId").value(client));
+    }
+
+    @Test
     void shouldRejectAnonymousRequestsAndRequestsWithoutCsrfToken() throws Exception {
         mockMvc.perform(get("/api/v1/persons"))
                 .andExpect(status().isUnauthorized())

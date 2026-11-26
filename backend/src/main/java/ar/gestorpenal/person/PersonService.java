@@ -62,6 +62,35 @@ class PersonService {
         return people.search("%" + text + "%", "%" + number + "%", includeArchived, pageRequest);
     }
 
+    /** A page of search results with each person's client record and roles in cases, in two queries. */
+    @Transactional(readOnly = true)
+    PersonPage searchWithRoles(String query, boolean includeArchived, int page, int size) {
+        Page<Person> found = search(query, includeArchived, page, size);
+        return new PersonPage(withRoles(found.getContent()), found.getNumber(), found.getSize(), found.getTotalElements());
+    }
+
+    /** One person with their client record and roles in cases, for the person detail. */
+    @Transactional(readOnly = true)
+    PersonListItem overview(UUID id) {
+        return withRoles(List.of(get(id))).getFirst();
+    }
+
+    private List<PersonListItem> withRoles(List<Person> persons) {
+        if (persons.isEmpty()) {
+            return List.of();
+        }
+        List<UUID> ids = persons.stream().map(Person::getId).toList();
+        Map<UUID, UUID> clientIds = clients.findByPersonIdIn(ids).stream()
+                .collect(Collectors.toMap(Client::getPersonId, Client::getId));
+        Map<UUID, List<CaseRole>> roles = caseRoles.rolesOf(ids);
+        return persons.stream()
+                .map(person -> new PersonListItem(
+                        PersonView.of(person),
+                        clientIds.get(person.getId()),
+                        roles.getOrDefault(person.getId(), List.of())))
+                .toList();
+    }
+
     @Transactional
     void archive(UUID id) {
         get(id).archive();
