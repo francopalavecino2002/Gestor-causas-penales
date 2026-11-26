@@ -218,3 +218,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Backed by anonymous, read-only `GET /api/v1/public/deadline-rules` and
   `GET /api/v1/public/deadline-calculation`, rate-limited per client address (30 per minute,
   `429` with `Retry-After`); nothing is stored (ADR-0041).
+- Personas screen (T60): search and list the firm's persons with their client badge and roles in
+  cases, a person detail with "Causas y roles" (reserved cases masked as "Causa reservada"),
+  create and edit humans and legal entities, the client record with intake, data-processing consent
+  and authorized contacts, and the conflict check by document number with its disclaimer (always a
+  POST body, never a URL). Backed by `clientId` and `caseRoles` on `GET /api/v1/persons` items and a
+  new `GET /api/v1/persons/{id}/overview` (ADR-0042).

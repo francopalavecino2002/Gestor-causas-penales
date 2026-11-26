@@ -1896,3 +1896,32 @@ Superseded decisions are marked, never deleted.
     ships rules.
 - **Consequences:** The public page shows the same due dates the firms see for the same rule and start
   date. Nothing a visitor types is stored or logged beyond the usual access log.
+
+## ADR-0042: Personas screen (T60)
+
+- **Date:** 2026-11-26
+- **Status:** accepted
+- **Context:** Persons and clients had an API (ADR-0014) but no screen: a lawyer could only reach a
+  person from inside a case. The list needs each person's roles in cases and whether they are a
+  client, and the detail needs the client record id.
+- **Decision:**
+  - `GET /api/v1/persons` items become `PersonListItem`: the `PersonView` fields stay flat
+    (`@JsonUnwrapped`), so the defendant picker reads them unchanged, plus `clientId` (or null) and
+    `caseRoles`. Roles come from `PersonCaseRoles.rolesOf` in one batch per page, already masked:
+    a reserved case the user is not on the team of comes as `reserved` with no id and no caption.
+    `GET /api/v1/persons/{id}/overview` answers the same shape for one person.
+  - UI: `/personas` (search, page and "Incluí las archivadas" in the URL, cards on phones, a table on
+    wide screens) and `/personas/$personId` (data, "Causas y roles", client section with consent and
+    authorized contacts). Archive and restore only for owner and lawyers, as the backend enforces.
+  - The conflict check runs in the create form when the document field is left with a well-formed
+    number, and as a standalone "Control de conflicto" dialog; the number always travels in a POST
+    body. In the form the matches are not links, so typed data is not lost; the dialog links them.
+    The backend's disclaimer is shown verbatim.
+  - A search text that looks like a document number stays out of the browser URL and history
+    (names do go to `?q=`, so a search can be shared). The API search is still a GET, as the
+    defendant picker's always was, so its query string may carry a number: access logs must not
+    record query strings (to be enforced by the production profile, T65).
+  - An empty document number means "no document"; archiving an authorized contact asks for
+    confirmation because contacts have no restore.
+- **Consequences:** One extra query per list page for client ids and one for roles. Persons who are
+  only in reserved cases still show that they have a role, without revealing the case.
