@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
+import { Hourglass } from "lucide-react";
 
 import { BrandMark } from "@/components/shell/brand-mark";
 import { login, verifySecondFactor, type Credentials } from "@/features/auth/auth-api";
@@ -15,6 +16,7 @@ import {
   readRememberedFirms,
   rememberFirm,
 } from "@/features/firms/remembered-firms";
+import { PUBLIC_CALCULATOR_PATH } from "@/features/public-deadlines/public-deadline-format";
 import { isApiError } from "@/lib/api";
 
 export interface LoginSearch {
@@ -128,6 +130,19 @@ export function LoginPage({ redirect, estudio }: LoginSearch) {
               onBack={backToPassword}
             />
           )}
+          <p className="flex items-start gap-2.5 border-t pt-6 text-meta text-muted-foreground">
+            <Hourglass aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
+            <span>
+              ¿Tenés que contar un plazo del CPP de Neuquén? Usá la{" "}
+              <Link
+                to={PUBLIC_CALCULATOR_PATH}
+                className="font-semibold text-primary underline underline-offset-4 hover:decoration-2"
+              >
+                calculadora de plazos gratuita
+              </Link>
+              , sin cuenta.
+            </span>
+          </p>
         </div>
       </main>
     </div>

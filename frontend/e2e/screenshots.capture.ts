@@ -917,7 +917,92 @@ const SCREENS: Record<string, Screen[]> = {
       fullPage: false,
     },
   ],
+  t51: [
+    {
+      path: "/calculadora-de-plazos",
+      name: "public-calculator-result",
+      prepare: publicCalculator(),
+      act: (page) =>
+        calculatePublic(page, "impugnacion-ordinaria", "2026-11-20").then(() =>
+          page.getByRole("region", { name: "Impugnación ordinaria: vence el" }).waitFor(),
+        ),
+    },
+    {
+      path: "/calculadora-de-plazos",
+      name: "public-calculator-hours",
+      themes: ["light"],
+      prepare: publicCalculator(),
+      act: async (page) => {
+        await page.getByLabel("Plazo", { exact: true }).selectOption("control-judicial-detencion");
+        await page.getByLabel("Hora de inicio").fill("10:30");
+        await calculatePublic(page, "control-judicial-detencion", "2026-11-20");
+        await page
+          .getByRole("region", { name: "Detención sin control judicial: vence el" })
+          .waitFor();
+      },
+    },
+    {
+      path: "/calculadora-de-plazos",
+      name: "public-calculator-form",
+      themes: ["light"],
+      prepare: publicCalculator(),
+      act: async (page) => {
+        await page.getByLabel("Plazo", { exact: true }).selectOption("control-judicial-detencion");
+        await page.getByLabel("Hora de inicio").waitFor();
+      },
+    },
+    {
+      path: "/calculadora-de-plazos",
+      name: "public-calculator-calendar-missing",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: publicCalculator(),
+      act: async (page) => {
+        await calculatePublic(page, "impugnacion-ordinaria", "2027-12-28");
+        await page.getByRole("heading", { name: /No se puede calcular/ }).waitFor();
+      },
+      fullPage: false,
+    },
+    {
+      path: "/calculadora-de-plazos",
+      name: "public-calculator-throttled",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: publicCalculator({ throttled: true }),
+      act: async (page) => {
+        await calculatePublic(page, "impugnacion-ordinaria", "2026-11-20");
+        const alert = page.getByRole("alert");
+        await alert.waitFor();
+        await alert.evaluate((element) =>
+          window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 360),
+        );
+      },
+      fullPage: false,
+    },
+    {
+      path: "/ingresar",
+      name: "login-calculator-link",
+      themes: ["light"],
+      prepare: (page) => mockBackend(page),
+      act: (page) => page.getByRole("link", { name: "calculadora de plazos gratuita" }).waitFor(),
+    },
+  ],
 };
+
+/** Anonymous, on 23 November 2026 (T51): the public calculator needs no session. */
+function publicCalculator(extra: { throttled?: boolean } = {}) {
+  return async (page: Page) => {
+    await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+    await mockBackend(page, { publicThrottled: extra.throttled });
+  };
+}
+
+async function calculatePublic(page: Page, rule: string, startDate: string) {
+  await page.getByLabel("Plazo", { exact: true }).selectOption(rule);
+  await page.getByLabel("Fecha de inicio").fill(startDate);
+  await page.getByRole("button", { name: "Calculá el vencimiento" }).click();
+  await page.mouse.move(0, 0);
+}
 
 /** Signed in on 23 November 2026 with the fictitious JUS values (T50). */
 function withFees(extra: { jusValues?: JusValueView[]; role?: "OWNER" | "PARALEGAL" } = {}) {
