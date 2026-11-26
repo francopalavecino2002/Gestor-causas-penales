@@ -28,7 +28,8 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
  * Cookie session + CSRF for the same-origin SPA (ADR-0008). Deny by default: only the health
- * check, the CSRF bootstrap, the two login steps (ADR-0009) and the calendar feed (ADR-0034) are public.
+ * check, the CSRF bootstrap, the two login steps (ADR-0009), the calendar feed (ADR-0034) and the
+ * read-only public deadline calculator (ADR-0041) are public.
  */
 @Configuration
 @EnableConfigurationProperties(LoginThrottleProperties.class)
@@ -39,6 +40,7 @@ public class SecurityConfig {
     static final String CSRF_PATH = "/api/v1/auth/csrf";
     static final String LOGOUT_PATH = "/api/v1/auth/logout";
     static final String CALENDAR_FEED_PATTERN = "/api/v1/calendar-feed/*.ics";
+    static final String PUBLIC_API_PATTERN = "/api/v1/public/**";
 
     @Bean
     SecurityFilterChain securityFilterChain(
@@ -74,6 +76,8 @@ public class SecurityConfig {
                         // Calendar apps cannot log in: the secret in the path is the credential (ADR-0034).
                         .requestMatchers(HttpMethod.GET, CALENDAR_FEED_PATTERN).permitAll()
                         .requestMatchers(HttpMethod.HEAD, CALENDAR_FEED_PATTERN).permitAll()
+                        // The public deadline calculator: read only and rate-limited (ADR-0041).
+                        .requestMatchers(HttpMethod.GET, PUBLIC_API_PATTERN).permitAll()
                         .anyRequest().authenticated());
         return http.build();
     }

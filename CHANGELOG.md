@@ -211,3 +211,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (`POST /api/v1/fees/calculations`) that shows every step with its article, the JUS value date and
   "Cálculo asistido: verificá con la norma"; "Honorarios" screen and Ajustes → "Valor del JUS"
   (ADR-0040).
+- Public deadline calculator (T51): a page without login (`/calculadora-de-plazos`, linked from the
+  login screen) that computes a CPP Neuquén deadline from a built-in rule and a start date (and time,
+  for terms in hours) with the same engine and court calendar the firms use, showing the article,
+  the computation type, the court calendar source and "Cálculo asistido: verificá con la norma".
+  Backed by anonymous, read-only `GET /api/v1/public/deadline-rules` and
+  `GET /api/v1/public/deadline-calculation`, rate-limited per client address (30 per minute,
+  `429` with `Retry-After`); nothing is stored (ADR-0041).

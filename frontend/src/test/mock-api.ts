@@ -21,6 +21,8 @@ import type { DeadlineAlert, NewsItem } from "@/features/news/news-types";
 import { ALL_DUE_SOON, ALL_NEWS, newsBackend } from "@/test/news-fixtures";
 import type { JusValueView } from "@/features/fees/fee-types";
 import { ALL_JUS_VALUES, feesBackend } from "@/test/fee-fixtures";
+import type { PublicRule } from "@/features/public-deadlines/public-deadline-types";
+import { PUBLIC_RULES, publicDeadlineBackend } from "@/test/public-deadline-fixtures";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
@@ -299,6 +301,21 @@ export function feeRoutes(
     routes[`POST /api/v1/fees/jus-values/${value.id}/restore`] = answer;
   }
   return routes;
+}
+
+/** The public calculator's two endpoints (anonymous) over the fictitious subset of rules. */
+export function publicDeadlineRoutes(rules: PublicRule[] = PUBLIC_RULES): Record<string, Handler> {
+  const backend = publicDeadlineBackend(rules);
+  const answer = (request: RecordedRequest) => {
+    const result = backend(request.path, request.query);
+    if (!result) return problem(404, "not-found");
+    if (result.problem) return problem(result.status, result.problem);
+    return json(result.status, result.json);
+  };
+  return {
+    "GET /api/v1/public/deadline-rules": answer,
+    "GET /api/v1/public/deadline-calculation": answer,
+  };
 }
 
 /** Anonymous session: /me answers 401. */

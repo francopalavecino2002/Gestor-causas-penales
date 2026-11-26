@@ -1861,3 +1861,38 @@ Superseded decisions are marked, never deleted.
   items. The JUS value lives in Ajustes → "Valor del JUS" (`/ajustes/jus`), the first settings section
   that owners and lawyers can both change. Archiving a value keeps it in place with "Deshacé". The
   disclaimer and a line saying the judge sets the fee are visible in every state of the calculator.
+
+## ADR-0041: Public deadline calculator (T51)
+
+- **Date:** 2026-11-25
+- **Status:** accepted
+- **Context:** A free calculator that any lawyer can open without an account is a cheap marketing
+  entry point, and it shows the deadline engine (ADR-0017) at work. Being public, it must not expose
+  firm data, store anything or become an easy way to load the server.
+- **Decision:**
+  - Two **anonymous GET** endpoints under `/api/v1/public/` (the only public prefix besides login,
+    health and the calendar feed): `deadline-rules` lists the built-in criminal rules of the default
+    jurisdiction (Neuquén, CPP Ley 2784) and `deadline-calculation?rule=&startDate=[&startTime=HH:mm]`
+    computes one. GET because they only compute: no CSRF token, no session, no database access.
+  - The computation reuses `DeadlineCalculator` and the jurisdiction's court calendar, with **no firm
+    settings, extensions or suspensions**: the rule exactly as the package ships it. Judicial deadlines
+    (`SET_BY_COURT`) are left out, since their date is the court's. Terms in hours need the start time
+    in Neuquén's zone. A business-day term that reaches a year the calendar lacks answers
+    `CALENDAR_NOT_LOADED` with the year, as inside the app. Every answer carries the source, the
+    flags and "Cálculo asistido: verificá con la norma".
+  - **Rate limit:** an in-memory sliding window per client address (`request.getRemoteAddr()`, so a
+    reverse proxy needs `server.forward-headers-strategy`, as for the login throttle), 30 requests a
+    minute by default (`app.public.deadline-calculator.*`), at most 50,000 tracked addresses (LRU),
+    `429` problem+json with `Retry-After`. Per instance and lost on restart: enough for one small
+    server; a shared limiter only if the app ever runs on several instances. Behind a proxy,
+    `SERVER_FORWARD_HEADERS_STRATEGY=native` is required (`.env.example`), or every visitor shares the
+    proxy's limit. An attacker with many addresses can evict others' windows from the LRU; acceptable
+    for a calculator that holds no data.
+  - **UI:** `/calculadora-de-plazos` is a root-level route with no session check and no `/api/v1/me`
+    call, linked from the login, so it works the same signed in or not. The calculation runs on submit
+    only (a mutation, nothing fetched while typing, which matters with the rate limit), the result is
+    announced through a live region, and the disclaimer is visible in every state.
+  - Only the default jurisdiction for now: a jurisdiction parameter is added when a second package
+    ships rules.
+- **Consequences:** The public page shows the same due dates the firms see for the same rule and start
+  date. Nothing a visitor types is stored or logged beyond the usual access log.

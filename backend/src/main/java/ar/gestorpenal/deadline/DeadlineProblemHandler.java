@@ -1,16 +1,28 @@
 package ar.gestorpenal.deadline;
 
 import java.net.URI;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /** problem+json bodies (RFC 9457) for deadline, rule and suspension errors. */
 @RestControllerAdvice(assignableTypes = {
-    DeadlineController.class, DeadlineRuleController.class, DeadlineSuspensionController.class
+    DeadlineController.class, DeadlineRuleController.class, DeadlineSuspensionController.class,
+    PublicDeadlineController.class
 })
 class DeadlineProblemHandler {
+
+    @ExceptionHandler(PublicCalculatorThrottledException.class)
+    ResponseEntity<ProblemDetail> throttled(PublicCalculatorThrottledException exception) {
+        ProblemDetail body = problem(HttpStatus.TOO_MANY_REQUESTS, "public-calculator-throttled", "Too many requests",
+                "Wait a moment before calculating again.");
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(exception.retryAfterSeconds()))
+                .body(body);
+    }
 
     @ExceptionHandler(DeadlineNotFoundException.class)
     ProblemDetail notFound(DeadlineNotFoundException exception) {

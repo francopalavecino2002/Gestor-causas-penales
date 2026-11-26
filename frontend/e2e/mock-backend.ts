@@ -31,6 +31,7 @@ import type { DeadlineAlert, NewsItem } from "../src/features/news/news-types";
 import { newsBackend } from "../src/test/news-fixtures";
 import type { JusValueView } from "../src/features/fees/fee-types";
 import { feesBackend } from "../src/test/fee-fixtures";
+import { publicDeadlineBackend } from "../src/test/public-deadline-fixtures";
 import {
   CASE_FIELDS,
   DEADLINE_RULES,
@@ -96,6 +97,8 @@ interface MockBackendOptions {
   jusValues?: JusValueView[];
   /** Today for the JUS value that applies; the machine's day by default. */
   today?: string;
+  /** The public calculation answers 429 (rate limit), to show its message. */
+  publicThrottled?: boolean;
 }
 
 /**
@@ -261,6 +264,8 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
     role: options.role ?? DEMO_ME.role,
   });
 
+  const publicDeadlines = publicDeadlineBackend();
+
   const problem = (route: Route, status: number, type: string) =>
     route.fulfill({
       status,
@@ -298,7 +303,23 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
       });
     }
 
-    const hearingIcs = /^\/api\/v1\/hearings\/([0-9a-f-]+)\/calendar\.ics$/.exec(path);
+    // The public calculator (T51) answers with or without a session.
+    if (options.publicThrottled && path === "/api/v1/public/deadline-calculation") {
+      return route.fulfill({
+        status: 429,
+        contentType: "application/problem+json",
+        headers: { "Retry-After": "30" },
+        body: JSON.stringify({ type: "/problems/public-calculator-throttled", status: 429 }),
+      });
+    }
+    const publicAnswer =
+      method === "GET" ? publicDeadlines(path, Object.fromEntries(url.searchParams)) : undefined;
+    if (publicAnswer) {
+      if (publicAnswer.problem) return problem(route, publicAnswer.status, publicAnswer.problem);
+      return route.fulfill({ status: publicAnswer.status, json: publicAnswer.json });
+    }
+
+    const hearingIcs =/^\/api\/v1\/hearings\/([0-9a-f-]+)\/calendar\.ics$/.exec(path);
     if (method === "GET" && hearingIcs && state.signedIn) {
       return route.fulfill({
         status: 200,

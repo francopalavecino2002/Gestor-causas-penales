@@ -25,6 +25,8 @@ import { FeesPage } from "@/features/fees/fees-page";
 import { JusValuesSection } from "@/features/fees/jus-values-section";
 import { ImportPage } from "@/features/imports/import-page";
 import { NewsPage } from "@/features/news/news-page";
+import { PUBLIC_CALCULATOR_PATH } from "@/features/public-deadlines/public-deadline-format";
+import { PublicDeadlinePage } from "@/features/public-deadlines/public-deadline-page";
 import { AiAssistSection } from "@/features/ai-assist/ai-assist-section";
 import { CalendarFeedSection } from "@/features/calendar-feed/calendar-feed-section";
 import { CatalogsSection } from "@/features/settings/catalogs-section";
@@ -79,6 +81,16 @@ const designSystemRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/design-system",
   component: lazyRouteComponent(() => import("@/pages/design-system-page"), "DesignSystemPage"),
+});
+
+/**
+ * Public deadline calculator (T51, ADR-0041): no session check at all, so it works the same for an
+ * anonymous visitor and for a signed-in member. It never asks for /me.
+ */
+const publicCalculatorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: PUBLIC_CALCULATOR_PATH,
+  component: PublicDeadlinePage,
 });
 
 /** Every signed-in screen lives under this layout; anonymous visitors go to the login. */
@@ -250,6 +262,7 @@ const importRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   loginRoute,
   designSystemRoute,
+  publicCalculatorRoute,
   appRoute.addChildren([
     agendaRoute,
     casesRoute,
