@@ -17,6 +17,8 @@ import { ALL_DEADLINES, caseDeadlines, upcomingDeadlines } from "@/test/deadline
 import { FORM_CATALOGS, MEMBERS } from "@/test/form-fixtures";
 import { ALL_TASKS, tasksBackend } from "@/test/task-fixtures";
 import type { TaskView } from "@/features/tasks/task-types";
+import type { DeadlineAlert, NewsItem } from "@/features/news/news-types";
+import { ALL_DUE_SOON, ALL_NEWS, newsBackend } from "@/test/news-fixtures";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
@@ -137,6 +139,8 @@ export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {})
     "GET /api/v1/deadlines": () => json(200, []),
     "GET /api/v1/tasks": ({ query }) =>
       json(200, { items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
+    "GET /api/v1/news": ({ query }) =>
+      json(200, { dueSoon: [], items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
     "GET /api/v1/users": () => json(200, MEMBERS),
     "GET /api/v1/practice-areas": () => json(200, [PENAL_AREA]),
     // The optional AI assistance is off unless a test turns it on.
@@ -234,6 +238,35 @@ export function taskRoutes(tasks: TaskView[] = ALL_TASKS): Record<string, Handle
     for (const action of ["done", "reopen", "archive", "restore"]) {
       routes[`POST /api/v1/tasks/${item.id}/${action}`] = answer;
     }
+  }
+  return routes;
+}
+
+/**
+ * `/api/v1/news` over the fictitious wall, with state: a new post, an archive or a restore shows
+ * up in the next GET.
+ */
+export function newsRoutes(
+  items: NewsItem[] = ALL_NEWS,
+  dueSoon: DeadlineAlert[] = ALL_DUE_SOON,
+): Record<string, Handler> {
+  const backend = newsBackend(items, dueSoon);
+  const answer = (request: RecordedRequest) => {
+    const result = backend(request.method, request.path, request.query, () => request.body);
+    if (!result) return problem(404, "not-found");
+    if (result.status === 400) return problem(400, "invalid-post");
+    if (result.status === 403) return problem(403, "access-denied");
+    if (result.status === 404) return problem(404, "not-found");
+    return result.json === undefined ? noContent() : json(result.status, result.json);
+  };
+  const routes: Record<string, Handler> = {
+    "GET /api/v1/news": answer,
+    "POST /api/v1/news/posts": answer,
+  };
+  for (const entry of items) {
+    if (!entry.post) continue;
+    routes[`POST /api/v1/news/posts/${entry.post.id}/archive`] = answer;
+    routes[`POST /api/v1/news/posts/${entry.post.id}/restore`] = answer;
   }
   return routes;
 }

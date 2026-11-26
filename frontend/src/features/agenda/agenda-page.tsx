@@ -32,6 +32,11 @@ import { useAreaDirectory } from "@/features/practice-areas/practice-area-querie
 import { TaskFormDialog, type TaskLinks } from "@/features/tasks/task-form-dialog";
 import { TaskQuickAddContext } from "@/features/tasks/task-quick-add-context";
 import { TodayTasksCard } from "@/features/tasks/today-tasks-card";
+import { NewsCard } from "@/features/news/news-card";
+import { useMediaQuery } from "@/lib/use-media-query";
+
+/** Tailwind's `xl`: from here the home has a right column. */
+const XL_QUERY = "(min-width: 80rem)";
 
 /** Which hearing form is open: a new one, or the edit of one hearing. */
 type HearingDialog = { mode: "new" } | { mode: "edit"; hearingId: string } | null;
@@ -106,6 +111,9 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
     ? undefined
     : cache.lawyers.find((lawyer) => lawyer.id === search.abogado);
 
+  const wide = useMediaQuery(XL_QUERY);
+  const newsCard = <NewsCard now={now} timeZone={timeZone} />;
+
   const [dialog, setDialog] = useState<HearingDialog>(null);
   const [taskLinks, setTaskLinks] = useState<TaskLinks | null>(null);
   // After a new hearing, show its day (or its week) so the lawyer sees it in place.
@@ -172,13 +180,17 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
           </div>
         </div>
 
-        {/* Below 1280 px one column: alerts, today's tasks, then the hearings. From 1280 px the
-          tasks card moves to the right column (DESIGN.md: 340 px aside). */}
+        {/* Below 1280 px one column: alerts, today's tasks, the hearings, then the news. From
+          1280 px the tasks and news cards move to the right column (DESIGN.md: 340 px aside). The
+          news card is placed in the DOM per width, so the reading order matches what is seen. */}
         <div className="grid gap-7 xl:grid-cols-with-aside xl:grid-rows-[auto_1fr] xl:items-start xl:gap-x-10">
           {/* The alerts are about criminal defendants: an area without them filters them out. */}
           {(!area || hasModule(area.modules, "detainee-alerts")) && <DetaineeAlerts />}
 
-          <TodayTasksCard today={today} className="xl:col-start-2 xl:row-span-2 xl:row-start-1" />
+          <div className="grid content-start gap-7 xl:col-start-2 xl:row-span-2 xl:row-start-1">
+            <TodayTasksCard today={today} />
+            {wide && newsCard}
+          </div>
 
           <div className="grid min-w-0 gap-7 xl:col-start-1">
             {agenda.isPending ? (
@@ -236,6 +248,7 @@ export function AgendaPage({ search }: { search: AgendaSearch }) {
                 <DayRail items={items} timeZone={timeZone} now={now} isToday={anchor === today} />
               </div>
             )}
+            {!wide && newsCard}
           </div>
         </div>
 

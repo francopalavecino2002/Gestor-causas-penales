@@ -27,6 +27,8 @@ import { ALL_DEADLINES, caseDeadlines, upcomingDeadlines } from "../src/test/dea
 import { cleanReport, reportWithErrors } from "../src/test/import-fixtures";
 import { tasksBackend } from "../src/test/task-fixtures";
 import type { TaskView } from "../src/features/tasks/task-types";
+import type { DeadlineAlert, NewsItem } from "../src/features/news/news-types";
+import { newsBackend } from "../src/test/news-fixtures";
 import {
   CASE_FIELDS,
   DEADLINE_RULES,
@@ -82,6 +84,12 @@ interface MockBackendOptions {
   calendarFeedSince?: string;
   /** Tasks `/api/v1/tasks` serves (filtered, paged, with state); none by default. */
   tasks?: TaskView[];
+  /** Entries the wall serves (paged, with state); none by default. */
+  news?: NewsItem[];
+  /** Deadlines due soon on the wall's first page; none by default. */
+  dueSoon?: DeadlineAlert[];
+  /** The wall answers 500, to show its error state. */
+  newsFails?: boolean;
 }
 
 /**
@@ -241,6 +249,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
   const settings = settingsBackend();
   const forms = formsBackend();
   const tasks = tasksBackend(options.tasks ?? [], DEMO_ME.id);
+  const news = newsBackend(options.news ?? [], options.dueSoon ?? []);
 
   const problem = (route: Route, status: number, type: string) =>
     route.fulfill({
@@ -473,6 +482,26 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
           return tasksAnswer.json === undefined
             ? route.fulfill({ status: tasksAnswer.status })
             : route.fulfill({ status: tasksAnswer.status, json: tasksAnswer.json });
+        }
+        if (state.signedIn && options.newsFails && path.startsWith("/api/v1/news")) {
+          return problem(route, 500, "internal");
+        }
+        const newsAnswer = state.signedIn
+          ? news(method, path, Object.fromEntries(url.searchParams), () => request.postDataJSON())
+          : undefined;
+        if (newsAnswer) {
+          if (newsAnswer.status >= 400) {
+            const type =
+              newsAnswer.status === 400
+                ? "invalid-post"
+                : newsAnswer.status === 403
+                  ? "access-denied"
+                  : "not-found";
+            return problem(route, newsAnswer.status, type);
+          }
+          return newsAnswer.json === undefined
+            ? route.fulfill({ status: newsAnswer.status })
+            : route.fulfill({ status: newsAnswer.status, json: newsAnswer.json });
         }
         const settingsAnswer = state.signedIn
           ? settings(method, url, () => request.postDataJSON())

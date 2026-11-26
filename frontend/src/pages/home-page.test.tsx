@@ -139,11 +139,11 @@ describe("HomePage (agenda)", () => {
     ).toBeInTheDocument();
     expect(agendaRequests(requests).at(-1)).toEqual({ from: "2026-11-23", to: "2026-11-29" });
 
-    // Every h2 but the "Tareas de hoy" card is a day of the week.
+    // Every h2 but the "Tareas de hoy" and "Novedades" cards is a day of the week.
     const days = screen
       .getAllByRole("heading", { level: 2 })
       .map((h) => h.textContent)
-      .filter((text) => text !== "Tareas de hoy");
+      .filter((text) => text !== "Tareas de hoy" && text !== "Novedades");
     expect(days).toEqual([
       "Lunes 23 de noviembre. Ver el día",
       "Martes 24 de noviembre. Ver el día",

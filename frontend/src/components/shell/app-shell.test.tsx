@@ -49,6 +49,7 @@ describe("app shell", () => {
       "Causas",
       "Plazos",
       "Tareas",
+      "Novedades",
       "Personas",
     ]);
     expect(within(nav).getByRole("link", { name: "Agenda" })).toHaveAttribute(
@@ -66,6 +67,30 @@ describe("app shell", () => {
       "page",
     );
     expect(within(nav).getByRole("link", { name: "Agenda" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("keeps five sections in the phone's bottom nav and Personas in its account menu", async () => {
+    signedIn();
+    renderApp("/");
+    await screen.findByRole("heading", { level: 1, name: "Audiencias de hoy" });
+
+    const [sidebarNav, bottomNav] = screen.getAllByRole("navigation", { name: "Secciones" });
+    if (!sidebarNav || !bottomNav) throw new Error("Both navigations should render");
+    expect(within(bottomNav).getAllByRole("link").map((link) => link.textContent)).toEqual([
+      "Agenda",
+      "Causas",
+      "Plazos",
+      "Tareas",
+      "Novedades",
+    ]);
+
+    // The top bar's menu comes first in the DOM.
+    openMenu(firstMatch(screen.getAllByRole("button", { name: /Tu cuenta/ })));
+    const menu = await screen.findByRole("menu");
+    expect(within(menu).getByRole("menuitem", { name: "Personas" })).toHaveAttribute(
+      "href",
+      "/personas",
+    );
   });
 
   it("has a skip link to the main content", async () => {

@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronsUpDown, LogOut, Monitor, Moon, Settings, Sun } from "lucide-react";
 
+import { MENU_NAV } from "@/components/shell/nav-items";
 import { initialsOf } from "@/components/shell/user-initials";
 import { useTheme, type ThemePreference } from "@/components/theme/theme-context";
 import {
@@ -78,6 +79,16 @@ export function UserMenu({
           <p className="text-small font-semibold text-muted-foreground">{role}</p>
         </div>
         <DropdownMenuSeparator />
+        {/* On phones these sections do not fit in the bottom nav; the sidebar lists them. */}
+        {variant === "bar" &&
+          MENU_NAV.map(({ to, label, icon: Icon }) => (
+            <DropdownMenuItem key={to} asChild>
+              <Link to={to}>
+                <Icon aria-hidden="true" />
+                {label}
+              </Link>
+            </DropdownMenuItem>
+          ))}
         <DropdownMenuItem asChild>
           <Link to="/ajustes">
             <Settings aria-hidden="true" />

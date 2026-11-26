@@ -22,6 +22,7 @@ import { LoginPage, type LoginSearch } from "@/features/auth/login-page";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { LOGIN_PATH, loginSearchFor } from "@/features/auth/redirect";
 import { ImportPage } from "@/features/imports/import-page";
+import { NewsPage } from "@/features/news/news-page";
 import { AiAssistSection } from "@/features/ai-assist/ai-assist-section";
 import { CalendarFeedSection } from "@/features/calendar-feed/calendar-feed-section";
 import { CatalogsSection } from "@/features/settings/catalogs-section";
@@ -143,6 +144,13 @@ const tasksRoute = createRoute({
   },
 });
 
+/** The firm's news wall (T49, ADR-0039). */
+const newsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/novedades",
+  component: NewsPage,
+});
+
 const personsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/personas",
@@ -232,6 +240,7 @@ const routeTree = rootRoute.addChildren([
     caseRoute,
     deadlinesRoute,
     tasksRoute,
+    newsRoute,
     personsRoute,
     settingsRoute,
     settingsAreasRoute,
