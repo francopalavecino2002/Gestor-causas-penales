@@ -79,6 +79,8 @@ const PAIRS: [string, string, number][] = [
   ["chart-3", "card", UI],
   ["chart-4", "card", UI],
   ["chart-5", "card", UI],
+  // QR modules must stay sharp for the camera: hold them to the text ratio.
+  ["qr-ink", "qr-surface", TEXT],
 ];
 
 describe.each([

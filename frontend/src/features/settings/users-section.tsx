@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { Info, ShieldCheck, ShieldOff } from "lucide-react";
+import { Info, ShieldOff } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { useMe } from "@/features/auth/me-query";
 import { ROLE_LABELS } from "@/features/auth/roles";
 import { ROLE_DESCRIPTIONS, ROLE_ORDER } from "@/features/settings/settings-copy";
 import { SettingsPage } from "@/features/settings/settings-layout";
+import { TwoFactorSection } from "@/features/two-factor/two-factor-section";
 
 /** Who is signed in, with which role, and whether the second step is on. */
 function AccountCard() {
@@ -55,29 +56,6 @@ function AccountCard() {
           </div>
         </dl>
       </div>
-      <p className="flex max-w-prose items-start gap-2 text-meta text-muted-foreground">
-        {me.twoFactorEnabled ? (
-          <>
-            <ShieldCheck
-              aria-hidden="true"
-              className="mt-0.5 size-5 shrink-0 text-status-efectiva"
-            />
-            <span>
-              Al ingresar te pedimos el código de tu app de autenticación. Si perdés el teléfono,
-              usá uno de tus códigos de recuperación.
-            </span>
-          </>
-        ) : (
-          <>
-            <Info aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
-            <span>
-              Te recomendamos activarla: protege datos de causas penales aunque alguien conozca tu
-              contraseña. Activarla desde esta pantalla llega con una próxima versión; mientras
-              tanto, pedíselo a quien administra el sistema.
-            </span>
-          </>
-        )}
-      </p>
     </section>
   );
 }
@@ -114,17 +92,19 @@ function RolesGuide() {
 }
 
 /**
- * `/ajustes/usuarios`: read only. The API has no endpoint to list, invite or change users yet
- * (ADR-0026), so the screen shows the account and the roles and says so plainly.
+ * `/ajustes/usuarios`: the account, its second factor (which the member turns on and off here) and
+ * the roles. The API has no endpoint to list, invite or change users yet (ADR-0026), so the screen
+ * says so plainly.
  */
 export function UsersSection() {
   return (
     <SettingsPage
       section="/ajustes/usuarios"
-      intro="Tu cuenta en este estudio y los permisos de cada rol."
+      intro="Tu cuenta en este estudio, su verificación en dos pasos y los permisos de cada rol."
     >
       <div className="grid max-w-3xl gap-7">
         <AccountCard />
+        <TwoFactorSection />
         <Alert>
           <Info aria-hidden="true" />
           <AlertDescription>

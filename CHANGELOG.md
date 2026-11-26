@@ -224,3 +224,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   and authorized contacts, and the conflict check by document number with its disclaimer (always a
   POST body, never a URL). Backed by `clientId` and `caseRoles` on `GET /api/v1/persons` items and a
   new `GET /api/v1/persons/{id}/overview` (ADR-0042).
+- Two-factor self-service (T61): in Ajustes → Usuarios every user turns on the second step with a
+  QR code drawn in the browser (or the manual key), confirms it with a code, sees and downloads the
+  10 recovery codes once (the dialog cannot be closed until they are saved), regenerates them and
+  turns two-factor off with password and code; owners without 2FA get a prompt on the Ajustes home.
+  Adds `qrcode.react` (ADR-0043).

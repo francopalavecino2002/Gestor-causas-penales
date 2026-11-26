@@ -130,3 +130,6 @@ task end to end. The loop for one task:
   Maven cache) is rate limiting, not a bug: `gh run rerun <run-id> --failed` and watch again.
 - `cd` and compound commands can be denied headless: run frontend checks as `npm --prefix frontend run <script>`
   (`npx playwright test` from the repo root misses the config and picks up Vitest files).
+- Headless runs may deny `rm` and `git rm`: a file that becomes unused cannot be deleted in that run.
+  Note it in the PR as a follow-up instead of leaving it unmentioned. GitHub has no area labels yet:
+  open PRs without `--label`.

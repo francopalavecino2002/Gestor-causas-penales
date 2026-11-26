@@ -34,6 +34,7 @@ import { feesBackend } from "../src/test/fee-fixtures";
 import { publicDeadlineBackend } from "../src/test/public-deadline-fixtures";
 import type { ClientView, PersonListItem } from "../src/features/persons/person-api";
 import { personsBackend } from "../src/test/person-fixtures";
+import { twoFactorBackend } from "../src/test/two-factor-fixtures";
 import {
   CASE_FIELDS,
   DEADLINE_RULES,
@@ -108,6 +109,8 @@ interface MockBackendOptions {
   persons?: PersonListItem[];
   /** The clients of those persons; the fictitious ones by default. */
   clients?: ClientView[];
+  /** The signed-in user's second factor (T61); on with 10 recovery codes by default. */
+  twoFactor?: { enabled: boolean; remaining?: number };
 }
 
 /**
@@ -273,6 +276,10 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
     role: options.role ?? DEMO_ME.role,
   });
 
+  const twoFactor = twoFactorBackend({
+    enabled: options.twoFactor?.enabled ?? DEMO_ME.twoFactorEnabled,
+    remaining: options.twoFactor?.remaining,
+  });
   const publicDeadlines = publicDeadlineBackend();
   const people = options.persons
     ? personsBackend(
@@ -334,6 +341,26 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
       return route.fulfill({ status: publicAnswer.status, json: publicAnswer.json });
     }
 
+    const twoFactorAnswer = state.signedIn
+      ? twoFactor.answer(method, path, () => request.postDataJSON())
+      : undefined;
+    if (twoFactorAnswer) {
+      if (twoFactorAnswer.problem) {
+        return route.fulfill({
+          status: twoFactorAnswer.status,
+          contentType: "application/problem+json",
+          headers: twoFactorAnswer.headers,
+          body: JSON.stringify({
+            type: `/problems/${twoFactorAnswer.problem}`,
+            status: twoFactorAnswer.status,
+          }),
+        });
+      }
+      return twoFactorAnswer.json === undefined
+        ? route.fulfill({ status: twoFactorAnswer.status })
+        : route.fulfill({ status: twoFactorAnswer.status, json: twoFactorAnswer.json });
+    }
+
     const hearingIcs = /^\/api\/v1\/hearings\/([0-9a-f-]+)\/calendar\.ics$/.exec(path);
     if (method === "GET" && hearingIcs && state.signedIn) {
       return route.fulfill({
@@ -392,7 +419,14 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
         });
       case "GET /api/v1/me":
         return state.signedIn
-          ? route.fulfill({ status: 200, json: { ...DEMO_ME, role: options.role ?? DEMO_ME.role } })
+          ? route.fulfill({
+              status: 200,
+              json: {
+                ...DEMO_ME,
+                role: options.role ?? DEMO_ME.role,
+                twoFactorEnabled: twoFactor.state.enabled,
+              },
+            })
           : problem(route, 401, "authentication-required");
       case "POST /api/v1/auth/login": {
         const body = request.postDataJSON() as { tenant: string; email: string; password: string };

@@ -15,6 +15,7 @@ import type { JusValueView } from "../src/features/fees/fee-types";
 import { ALL_JUS_VALUES, MIN_EXCARCELACION } from "../src/test/fee-fixtures";
 import { CASE_EJEMPLAR, CASE_MODELO } from "../src/test/case-fixtures";
 import { ALL_PERSONS, PERSON_JULIAN } from "../src/test/person-fixtures";
+import { DEMO_PASSWORD, DEMO_TOTP_CODE } from "../src/test/two-factor-fixtures";
 import { DEMO_ME, mockBackend } from "./mock-backend";
 
 /*
@@ -1045,7 +1046,76 @@ const SCREENS: Record<string, Screen[]> = {
       act: (page) => page.getByRole("heading", { name: /No encontramos personas/ }).waitFor(),
     },
   ],
+  t61: [
+    {
+      path: "/ajustes",
+      name: "settings-prompt",
+      prepare: withTwoFactor({ enabled: false }),
+      act: (page) => page.getByRole("link", { name: "Activala ahora" }).waitFor(),
+    },
+    {
+      path: "/ajustes/usuarios",
+      name: "enroll-qr",
+      prepare: withTwoFactor({ enabled: false }),
+      act: async (page) => {
+        await startEnrollment(page);
+        await page.mouse.move(0, 0);
+      },
+      fullPage: false,
+    },
+    {
+      path: "/ajustes/usuarios",
+      name: "enroll-recovery-codes",
+      prepare: withTwoFactor({ enabled: false }),
+      act: async (page) => {
+        await startEnrollment(page);
+        const dialog = page.getByRole("dialog");
+        await dialog.getByRole("button", { name: "Ya la agregué, continuá" }).click();
+        await dialog.getByLabel("Código de 6 números").fill(DEMO_TOTP_CODE);
+        await dialog.getByRole("button", { name: "Activá la verificación" }).click();
+        await dialog.getByRole("list", { name: "Códigos de recuperación" }).waitFor();
+        await page.mouse.move(0, 0);
+      },
+      fullPage: false,
+    },
+    {
+      path: "/ajustes/usuarios",
+      name: "two-factor-enabled",
+      themes: ["light"],
+      prepare: withTwoFactor({ enabled: true, remaining: 2 }),
+      act: (page) => page.getByRole("button", { name: "Generá códigos nuevos" }).waitFor(),
+    },
+    {
+      path: "/ajustes/usuarios",
+      name: "disable",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: withTwoFactor({ enabled: true }),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Desactivá la verificación" }).click();
+        await page.getByRole("dialog").waitFor();
+      },
+      fullPage: false,
+    },
+  ],
 };
+
+/** Signed in as the owner with the given second factor (T61). */
+function withTwoFactor(twoFactor: { enabled: boolean; remaining?: number }) {
+  return async (page: Page) => {
+    await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+    await mockBackend(page, { signedIn: true, twoFactor });
+  };
+}
+
+/** Opens the enrollment and gets past the password, to the QR step. */
+async function startEnrollment(page: Page) {
+  await page.getByRole("button", { name: "Activá la verificación en dos pasos" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Tu contraseña").fill(DEMO_PASSWORD);
+  await dialog.getByRole("button", { name: "Continuá" }).click();
+  await dialog.getByRole("img", { name: /Código QR/ }).waitFor();
+}
 
 /** Signed in on 23 November 2026 with the fictitious persons and clients (T60). */
 async function withPersons(page: Page) {

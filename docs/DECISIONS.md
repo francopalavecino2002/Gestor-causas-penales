@@ -1925,3 +1925,30 @@ Superseded decisions are marked, never deleted.
     confirmation because contacts have no restore.
 - **Consequences:** One extra query per list page for client ids and one for roles. Persons who are
   only in reserved cases still show that they have a role, without revealing the case.
+
+## ADR-0043: Two-factor self-service screens (T61)
+
+- **Date:** 2026-11-26
+- **Status:** accepted
+- **Context:** The TOTP API (ADR-0009) had no screen: users had to ask whoever ran the system. The
+  enrollment secret and the recovery codes are the most sensitive values the UI ever handles.
+- **Decision:**
+  - Ajustes → Usuarios gets a "Verificación en dos pasos" section: a four-step enrollment dialog
+    (password, QR and manual key in blocks of 4, 6-digit code, recovery codes), "Generá códigos
+    nuevos" and "Desactivá la verificación" (password and code, as the backend requires). Regenerate
+    and disable accept an app code or a recovery code; enrollment only an app code.
+  - The QR is drawn in the browser as inline SVG with **`qrcode.react` 4.2.0** (ISC, no runtime
+    dependencies): the secret never reaches an image URL or an external service. The QR tile stays
+    dark-on-white in both themes (`--qr-surface`, `--qr-ink`), since some apps cannot read an
+    inverted code. On phones the `otpauth://` link and the key come first: you cannot scan your own
+    screen.
+  - The secret and the codes live only in the dialog's state; the mutations are removed from the
+    query cache when they finish and nothing touches web storage. The codes step cannot be closed
+    until "Ya los guardé en un lugar seguro" is ticked, and leaving the page asks first. Codes are
+    downloaded as a `.txt` built in the browser.
+  - Owners without 2FA see a calm prompt on the Ajustes home; "Ahora no" lasts for the browser
+    session only (sessionStorage), so a security nudge cannot be dismissed for good.
+  - Errors: 422 with a message per step, 429 with the wait from `Retry-After`, 409 refreshes the
+    status and explains.
+- **Consequences:** A firm can require 2FA by habit without operator help. Enforcing it per firm is
+  a possible later setting.
