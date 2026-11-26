@@ -40,7 +40,7 @@ class PublicDeadlineCalculator {
         DeadlineRule rule = computableRules().stream()
                 .filter(candidate -> candidate.code().equals(ruleCode))
                 .findFirst()
-                .orElseThrow(() -> new DeadlineNotFoundException("There is no computable deadline rule " + ruleCode));
+                .orElseThrow(() -> new DeadlineNotFoundException("There is no computable deadline rule with that code"));
         if (startDate.getYear() < DeadlineRuleService.FIRST_CALENDAR_YEAR
                 || startDate.getYear() > DeadlineRuleService.LAST_CALENDAR_YEAR) {
             throw new InvalidDeadlineDataException("startDate must be between the years "
