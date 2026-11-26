@@ -33,7 +33,7 @@ class FeeService {
         FeeMinimum minimum = scale.minimum(request.minimumCode())
                 .orElseThrow(() -> new InvalidFeeDataException(
                         "minimumCode", "No conocemos el tipo de asunto " + request.minimumCode()));
-        LocalDate day = request.date() == null ? jusValues.today() : request.date();
+        LocalDate day = jusValues.calculationDay(request.date());
         JusValueRef jus = jusValues.valueOn(day).orElseThrow(JusValueMissingException::new);
         FeeQuery query = new FeeQuery(
                 request.amount(), request.lostEntirely(), request.roleOrDefault(), request.instanceOrDefault());

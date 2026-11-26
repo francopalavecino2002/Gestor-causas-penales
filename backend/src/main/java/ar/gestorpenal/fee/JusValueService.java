@@ -8,6 +8,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,9 +60,13 @@ class JusValueService {
         requireCanManage(user);
         checkDay(data.validFrom());
         requireFreeDay(data.validFrom());
-        JusValue created = values.saveAndFlush(
-                JusValue.create(user.userId(), data.value(), data.validFrom(), clock.instant()));
-        return JusValueView.of(created);
+        try {
+            JusValue created = values.saveAndFlush(
+                    JusValue.create(user.userId(), data.value(), data.validFrom(), clock.instant()));
+            return JusValueView.of(created);
+        } catch (DataIntegrityViolationException raced) {
+            throw duplicateDay();
+        }
     }
 
     @Transactional
@@ -77,7 +82,24 @@ class JusValueService {
         if (jus.isArchived()) {
             requireFreeDay(jus.getValidFrom());
             jus.restore();
+            try {
+                values.flush();
+            } catch (DataIntegrityViolationException raced) {
+                throw duplicateDay();
+            }
         }
+    }
+
+    /** The day of a calculation: today when absent, and inside the range a JUS value can have. */
+    LocalDate calculationDay(LocalDate requested) {
+        if (requested == null) {
+            return today();
+        }
+        if (requested.isBefore(FIRST_VALID_FROM) || requested.isAfter(today().plusYears(1))) {
+            throw new InvalidFeeDataException(
+                    "date", "La fecha tiene que estar entre el 1/1/2000 y un año desde hoy");
+        }
+        return requested;
     }
 
     private JusValue find(UUID id) {
@@ -96,9 +118,14 @@ class JusValueService {
 
     private void requireFreeDay(LocalDate validFrom) {
         if (values.existsByArchivedAtIsNullAndValidFrom(validFrom)) {
-            throw new DuplicateJusValueException(
-                    "Ya hay un valor del JUS vigente desde esa fecha: archivá el anterior si te equivocaste");
+            throw duplicateDay();
         }
+    }
+
+    /** Also covers two requests for the same day racing past the check into the unique index. */
+    private static DuplicateJusValueException duplicateDay() {
+        return new DuplicateJusValueException(
+                "Ya hay un valor del JUS vigente desde esa fecha: archivá el anterior si te equivocaste");
     }
 
     private static void requireCanManage(AuthenticatedUser user) {

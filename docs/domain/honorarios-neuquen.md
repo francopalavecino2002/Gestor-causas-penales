@@ -57,6 +57,9 @@ Cómo calcula, paso a paso:
    apreciables en dinero), el resultado es el mínimo.
 4. Rol: procurador × 40%; apoderado y patrocinante × 140%.
 5. Segunda instancia: el rango de primera instancia × 25% a 35% (o 35% fijo si se revocó todo).
+   Se aplica sobre el resultado del paso 4, ya elevado al mínimo y con el rol aplicado: se toma eso
+   como "lo regulado en primera instancia". [validar: ¿el apoderado y patrocinante suma el 40% también
+   en la alzada?]
 6. Se muestra en pesos y en JUS, con cada paso y su artículo.
 
 Lo que **no** hace: no aplica las pautas del art. 6 (complejidad, resultado, trascendencia), no
@@ -116,3 +119,5 @@ testamentos). Se agregan sin código nuevo en el YAML si un abogado los pide.
 2. ¿Cómo se aplican hoy los mínimos de "sumario" y "plenario" en el proceso acusatorio?
 3. ¿Usan el valor del JUS vigente a la fecha de la regulación o a la del pago?
 4. ¿Qué otros mínimos usan todos los días y conviene sumar?
+5. En segunda instancia, ¿el 25% a 35% se calcula sobre lo regulado en primera con el rol ya aplicado
+   (procurador 40%, apoderado y patrocinante 140%)?

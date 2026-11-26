@@ -162,6 +162,18 @@ class FeeApiTests extends FeeApiTestSupport {
     }
 
     @Test
+    void shouldRejectADateNoJusValueCanHave() throws Exception {
+        createJusValue(owner, "100.00", "2026-01-01");
+
+        postJson(owner, CALCULATIONS, "{\"minimumCode\": \"conocimiento\", \"date\": \"1999-12-31\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("date"));
+        postJson(owner, CALCULATIONS, "{\"minimumCode\": \"conocimiento\", \"date\": \"2099-01-01\"}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("date"));
+    }
+
+    @Test
     void shouldKeepTheJusValuesOfEachFirmApart() throws Exception {
         createJusValue(owner, "100.00", "2026-01-01");
 

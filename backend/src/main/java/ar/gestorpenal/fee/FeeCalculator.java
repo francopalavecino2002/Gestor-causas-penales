@@ -42,8 +42,8 @@ final class FeeCalculator {
             high = percentOf(query.amount(), percentages.maxPercent());
             String reason = query.clientLostEntirely() ? ", porque tu cliente perdió todo" : "";
             steps.add(new FeeStep(
-                    "Escala sobre el monto de " + pesos(query.amount()) + ": del " + percent(minPercent) + "% al "
-                            + percent(percentages.maxPercent()) + "%" + reason,
+                    "Escala sobre el monto de " + pesos(query.amount()) + ": del " + plain(minPercent) + "% al "
+                            + plain(percentages.maxPercent()) + "%" + reason,
                     percentages.article(), cents(low), cents(high)));
             flags.addAll(percentages.flags());
         }
@@ -86,9 +86,9 @@ final class FeeCalculator {
             low = percentOf(low, lowPercent);
             high = percentOf(high, highPercent);
             String description = fullyRevoked
-                    ? "Segunda instancia con todo revocado a favor del apelante: " + percent(highPercent)
+                    ? "Segunda instancia con todo revocado a favor del apelante: " + plain(highPercent)
                             + "% de lo regulado en primera"
-                    : "Segunda instancia: del " + percent(lowPercent) + "% al " + percent(highPercent)
+                    : "Segunda instancia: del " + plain(lowPercent) + "% al " + plain(highPercent)
                             + "% de lo regulado en primera";
             steps.add(new FeeStep(description, appeal.article(), cents(low), cents(high)));
             flags.addAll(appeal.flags());
@@ -119,10 +119,10 @@ final class FeeCalculator {
     private static String roleDescription(FeeRole role, FeeScale.Factor factor) {
         BigDecimal share = factor.factor().movePointRight(PERCENT_DIGITS);
         if (role == FeeRole.ATTORNEY) {
-            return "Como apoderado (procurador) cobrás el " + percent(share) + "% del honorario del patrocinante";
+            return "Como apoderado (procurador) cobrás el " + plain(share) + "% del honorario del patrocinante";
         }
         BigDecimal extra = share.subtract(ONE_HUNDRED);
-        return "Como apoderado y patrocinante a la vez cobrás el " + percent(share) + "% (100% + " + percent(extra)
+        return "Como apoderado y patrocinante a la vez cobrás el " + plain(share) + "% (100% + " + plain(extra)
                 + "%)";
     }
 
@@ -140,10 +140,6 @@ final class FeeCalculator {
 
     private static String plain(BigDecimal value) {
         return value.stripTrailingZeros().toPlainString().replace('.', ',');
-    }
-
-    private static String percent(BigDecimal value) {
-        return plain(value);
     }
 
     /** {@code $ 94.963,25}: dot for thousands and comma for cents, as in Argentina. */

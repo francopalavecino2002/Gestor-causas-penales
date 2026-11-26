@@ -18,7 +18,8 @@ class FeeProblemHandler {
     /** Names the offending request field in the {@code field} property. */
     @ExceptionHandler(InvalidFeeDataException.class)
     ProblemDetail invalid(InvalidFeeDataException exception) {
-        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "invalid-fee-data", "Invalid data", exception.getMessage());
+        ProblemDetail problem =
+                problem(HttpStatus.BAD_REQUEST, "invalid-fee-data", "Invalid data", exception.getMessage());
         problem.setProperty("field", exception.field());
         return problem;
     }
