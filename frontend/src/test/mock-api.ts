@@ -19,6 +19,8 @@ import { ALL_TASKS, tasksBackend } from "@/test/task-fixtures";
 import type { TaskView } from "@/features/tasks/task-types";
 import type { DeadlineAlert, NewsItem } from "@/features/news/news-types";
 import { ALL_DUE_SOON, ALL_NEWS, newsBackend } from "@/test/news-fixtures";
+import type { JusValueView } from "@/features/fees/fee-types";
+import { ALL_JUS_VALUES, feesBackend } from "@/test/fee-fixtures";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
@@ -267,6 +269,34 @@ export function newsRoutes(
     if (!entry.post) continue;
     routes[`POST /api/v1/news/posts/${entry.post.id}/archive`] = answer;
     routes[`POST /api/v1/news/posts/${entry.post.id}/restore`] = answer;
+  }
+  return routes;
+}
+
+/**
+ * `/api/v1/fees` over the fictitious scale and JUS values, with state: a new value, an archive or
+ * a restore shows up in the next GET; the calculation uses the chosen day's value.
+ */
+export function feeRoutes(
+  values: JusValueView[] = ALL_JUS_VALUES,
+  options: { today?: string; role?: string } = {},
+): Record<string, Handler> {
+  const backend = feesBackend(values, options);
+  const answer = (request: RecordedRequest) => {
+    const result = backend(request.method, request.path, request.query, () => request.body);
+    if (!result) return problem(404, "not-found");
+    if (result.problem) return problem(result.status, result.problem);
+    return result.json === undefined ? noContent() : json(result.status, result.json);
+  };
+  const routes: Record<string, Handler> = {
+    "GET /api/v1/fees/scale": answer,
+    "GET /api/v1/fees/jus-values": answer,
+    "POST /api/v1/fees/jus-values": answer,
+    "POST /api/v1/fees/calculations": answer,
+  };
+  for (const value of values) {
+    routes[`POST /api/v1/fees/jus-values/${value.id}/archive`] = answer;
+    routes[`POST /api/v1/fees/jus-values/${value.id}/restore`] = answer;
   }
   return routes;
 }

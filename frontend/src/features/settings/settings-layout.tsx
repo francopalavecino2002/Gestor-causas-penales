@@ -63,7 +63,7 @@ function SectionNav({ current }: { current: string }) {
                 )}
               >
                 {/* Icons only where all the sections fit with them on one row. */}
-                <section.icon aria-hidden="true" className="hidden size-5 min-[90rem]:block" />
+                <section.icon aria-hidden="true" className="hidden size-5 min-[100rem]:block" />
                 {section.title}
               </Link>
             </li>
@@ -78,14 +78,18 @@ function SectionNav({ current }: { current: string }) {
 export function SettingsPage({
   section,
   intro,
+  ownPermissions = false,
   children,
 }: {
   section: (typeof SETTINGS_SECTIONS)[number]["to"];
   intro: ReactNode;
+  /** The section says itself who can change it (not only the owner), e.g. the JUS value. */
+  ownPermissions?: boolean;
   children: ReactNode;
 }) {
   const canEdit = useCanEditSettings();
   const title = SETTINGS_SECTIONS.find((item) => item.to === section)?.title ?? "Ajustes";
+  const ownerOnlyNote = !canEdit && !ownPermissions && !PERSONAL_SECTIONS.has(section);
   return (
     <>
       <div className="grid gap-3 md:gap-6">
@@ -94,7 +98,7 @@ export function SettingsPage({
           <div className="max-w-prose">{intro}</div>
         </PageHeader>
       </div>
-      {!canEdit && !PERSONAL_SECTIONS.has(section) && <ReadOnlyNote />}
+      {ownerOnlyNote && <ReadOnlyNote />}
       {children}
     </>
   );

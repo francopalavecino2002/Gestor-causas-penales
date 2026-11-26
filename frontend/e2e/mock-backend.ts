@@ -29,6 +29,8 @@ import { tasksBackend } from "../src/test/task-fixtures";
 import type { TaskView } from "../src/features/tasks/task-types";
 import type { DeadlineAlert, NewsItem } from "../src/features/news/news-types";
 import { newsBackend } from "../src/test/news-fixtures";
+import type { JusValueView } from "../src/features/fees/fee-types";
+import { feesBackend } from "../src/test/fee-fixtures";
 import {
   CASE_FIELDS,
   DEADLINE_RULES,
@@ -90,6 +92,10 @@ interface MockBackendOptions {
   dueSoon?: DeadlineAlert[];
   /** The wall answers 500, to show its error state. */
   newsFails?: boolean;
+  /** The firm's JUS values (with state); the fictitious ones by default. */
+  jusValues?: JusValueView[];
+  /** Today for the JUS value that applies; the machine's day by default. */
+  today?: string;
 }
 
 /**
@@ -250,6 +256,10 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
   const forms = formsBackend();
   const tasks = tasksBackend(options.tasks ?? [], DEMO_ME.id);
   const news = newsBackend(options.news ?? [], options.dueSoon ?? []);
+  const fees = feesBackend(options.jusValues, {
+    today: options.today,
+    role: options.role ?? DEMO_ME.role,
+  });
 
   const problem = (route: Route, status: number, type: string) =>
     route.fulfill({
@@ -482,6 +492,15 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
           return tasksAnswer.json === undefined
             ? route.fulfill({ status: tasksAnswer.status })
             : route.fulfill({ status: tasksAnswer.status, json: tasksAnswer.json });
+        }
+        const feesAnswer = state.signedIn
+          ? fees(method, path, Object.fromEntries(url.searchParams), () => request.postDataJSON())
+          : undefined;
+        if (feesAnswer) {
+          if (feesAnswer.problem) return problem(route, feesAnswer.status, feesAnswer.problem);
+          return feesAnswer.json === undefined
+            ? route.fulfill({ status: feesAnswer.status })
+            : route.fulfill({ status: feesAnswer.status, json: feesAnswer.json });
         }
         if (state.signedIn && options.newsFails && path.startsWith("/api/v1/news")) {
           return problem(route, 500, "internal");

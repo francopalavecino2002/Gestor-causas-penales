@@ -204,3 +204,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   collapsed, short posts with "Archivá" and undo, and "Mirá más novedades" pagination; a compact
   "Novedades" card on the agenda home. On phones "Novedades" takes the bottom-nav slot of Personas,
   which moves to the account menu (ADR-0039).
+- Fees in JUS (T50): Ley 1594 research in `docs/domain/honorarios-neuquen.md` (all flagged); the
+  scale (art. 7 percentages and loser floor, art. 9 minimums, art. 10 procurador, art. 15 appeals) as
+  a jurisdiction YAML; JUS values entered by the firm (owner or lawyer) with their start date,
+  audited and archived instead of deleted, never scraped; a stateless calculator
+  (`POST /api/v1/fees/calculations`) that shows every step with its article, the JUS value date and
+  "Cálculo asistido: verificá con la norma"; "Honorarios" screen and Ajustes → "Valor del JUS"
+  (ADR-0040).

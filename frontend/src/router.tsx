@@ -21,6 +21,8 @@ import { parseDeadlineSearch } from "@/features/deadlines/deadline-search";
 import { LoginPage, type LoginSearch } from "@/features/auth/login-page";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { LOGIN_PATH, loginSearchFor } from "@/features/auth/redirect";
+import { FeesPage } from "@/features/fees/fees-page";
+import { JusValuesSection } from "@/features/fees/jus-values-section";
 import { ImportPage } from "@/features/imports/import-page";
 import { NewsPage } from "@/features/news/news-page";
 import { AiAssistSection } from "@/features/ai-assist/ai-assist-section";
@@ -224,6 +226,20 @@ const settingsCalendarRoute = createRoute({
   component: CalendarFeedSection,
 });
 
+/** The firm's JUS values (ADR-0040): the owner and lawyers change them, everyone reads. */
+const settingsJusRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/ajustes/jus",
+  component: JusValuesSection,
+});
+
+/** Fees calculator in JUS (T50, ADR-0040). Stateless: nothing is stored. */
+const feesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/honorarios",
+  component: FeesPage,
+});
+
 /** Import wizard (ADR-0027): reached from Ajustes and from the empty case list. */
 const importRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -242,6 +258,7 @@ const routeTree = rootRoute.addChildren([
     tasksRoute,
     newsRoute,
     personsRoute,
+    feesRoute,
     settingsRoute,
     settingsAreasRoute,
     settingsCatalogsRoute,
@@ -250,6 +267,7 @@ const routeTree = rootRoute.addChildren([
     settingsAiRoute,
     settingsUsersRoute,
     settingsCalendarRoute,
+    settingsJusRoute,
     importRoute,
   ]),
 ]);

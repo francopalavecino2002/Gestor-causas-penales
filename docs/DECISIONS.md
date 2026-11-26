@@ -1825,3 +1825,39 @@ Superseded decisions are marked, never deleted.
     seen. A failure there never blocks the agenda.
 - **Consequences:** Personas is one more tap away on phones until it becomes a real screen; then the
   bottom nav needs a "Más" menu.
+
+## ADR-0040: Fees calculator in JUS (T50)
+
+- **Date:** 2026-11-25
+- **Status:** accepted
+- **Context:** Neuquén lawyers estimate fees with Ley 1594: percentages of the amount at stake (art. 7),
+  minimums in JUS per kind of matter (art. 9), the procurador share (art. 10) and appeals (art. 15). The
+  JUS value changes several times a year and is published by the Poder Judicial. The product must not
+  scrape it and must never present a number as the fee the judge will set.
+- **Decision:**
+  - The scale is a **jurisdiction-level YAML** (`jurisdictions/neuquen/fees.yml`), shared by every
+    practice area, loaded and validated at startup like the deadline rules: the art. 7 percentages and
+    loser floor, the art. 10 and art. 15 factors and the art. 9 minimums, each with article, flags and
+    an optional list of practice areas it applies to. It is read-only for firms (no per-firm edits).
+    Source and flags: `docs/domain/honorarios-neuquen.md`.
+  - The **JUS value is entered by the firm** (owner or lawyer) with the date it applies from, in an
+    append-only, tenant-scoped, audited `jus_value` table. A correction is a new value; a wrong entry is
+    archived, never deleted. The calculation uses the latest non-archived value whose date is on or
+    before the chosen date; without one it answers 409 "Cargá el valor del JUS".
+  - The calculator is a **stateless POST** (`/api/v1/fees/calculations`): amount (optional), minimum
+    code, whether the client lost entirely, role (patrocinante, procurador, apoderado y patrocinante),
+    instance (first, appeal, appeal fully revoked) and date. It returns the range in pesos and in JUS,
+    every step with its article, the JUS value and its date, the flags and "Cálculo asistido: verificá
+    con la norma". Nothing about the calculation is stored. Money is `BigDecimal`, rounded half-up to
+    cents only at the end.
+  - Art. 6 criteria, stage splits (arts. 37 to 46), interest and VAT are out of scope: the judge sets
+    the fee and the lawyer controls it.
+- **Consequences:** A new province ships its own `fees.yml` without code. The criminal minimums of
+  art. 9 are written for the old written procedure and are flagged until a lawyer maps them to the
+  accusatory CPP. If firms ask for it, the history table already allows "JUS value at the date of the
+  ruling" vs "at payment".
+- **UI:** "Honorarios" (`/honorarios`) is a sidebar item with the `Calculator` icon; on phones it joins
+  Personas in the account menu (ADR-0039), since it is an occasional tool and the bottom nav keeps five
+  items. The JUS value lives in Ajustes → "Valor del JUS" (`/ajustes/jus`), the first settings section
+  that owners and lawyers can both change. Archiving a value keeps it in place with "Deshacé". The
+  disclaimer and a line saying the judge sets the fee are visible in every state of the calculator.
