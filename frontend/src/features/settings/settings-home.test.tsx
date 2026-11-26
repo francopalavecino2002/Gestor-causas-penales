@@ -55,7 +55,12 @@ describe("settings: index and users", () => {
     expect(account).toHaveTextContent("lucia.ejemplo@example.com");
     expect(account).toHaveTextContent("RolProcurador/a");
     expect(account).toHaveTextContent("Verificación en dos pasosDesactivada");
-    expect(account).toHaveTextContent("Te recomendamos activarla");
+    // Every role turns its own second factor on, here.
+    const twoFactor = screen.getByRole("region", { name: "Verificación en dos pasos" });
+    expect(
+      await within(twoFactor).findByRole("button", { name: "Activá la verificación en dos pasos" }),
+    ).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent("llega con una próxima versión; mientras");
     expect(
       screen.getByText(
         /Invitar personas, cambiar roles y desactivar cuentas llega con una próxima versión/,

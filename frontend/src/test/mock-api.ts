@@ -25,6 +25,7 @@ import type { PublicRule } from "@/features/public-deadlines/public-deadline-typ
 import { PUBLIC_RULES, publicDeadlineBackend } from "@/test/public-deadline-fixtures";
 import type { ClientView, PersonListItem } from "@/features/persons/person-api";
 import { personsBackend } from "@/test/person-fixtures";
+import { twoFactorBackend } from "@/test/two-factor-fixtures";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
@@ -138,6 +139,11 @@ export function mockFetch(routes: Record<string, Handler>) {
 export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {}) {
   return mockFetch({
     "GET /api/v1/me": () => json(200, me),
+    "GET /api/v1/me/two-factor": () =>
+      json(200, {
+        enabled: me.twoFactorEnabled,
+        recoveryCodesRemaining: me.twoFactorEnabled ? 10 : 0,
+      }),
     "GET /api/v1/agenda": ({ query }) =>
       json(200, {
         from: query.from,
@@ -350,6 +356,29 @@ export function publicDeadlineRoutes(rules: PublicRule[] = PUBLIC_RULES): Record
     "GET /api/v1/public/deadline-rules": answer,
     "GET /api/v1/public/deadline-calculation": answer,
   };
+}
+
+/**
+ * `/api/v1/me/two-factor` over the stateful fictitious backend, and a `/me` whose
+ * `twoFactorEnabled` follows it, so the badges update after turning it on or off.
+ */
+export function twoFactorRoutes(
+  initial: Parameters<typeof twoFactorBackend>[0] = {},
+  me: Me = DEMO_ME,
+) {
+  const backend = twoFactorBackend(initial);
+  const answer = (request: RecordedRequest) => {
+    const result = backend.answer(request.method, request.path, () => request.body);
+    if (!result) return problem(404, "not-found");
+    if (result.problem) return problem(result.status, result.problem, result.headers);
+    return result.json === undefined ? noContent() : json(result.status, result.json);
+  };
+  const routes: Record<string, Handler> = {
+    "GET /api/v1/me": () => json(200, { ...me, twoFactorEnabled: backend.state.enabled }),
+    "GET /api/v1/me/two-factor": answer,
+    "POST /api/v1/me/two-factor/*": answer,
+  };
+  return { routes, state: backend.state };
 }
 
 /** Anonymous session: /me answers 401. */

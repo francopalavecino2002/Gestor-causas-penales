@@ -165,6 +165,7 @@ added next to them and exposed to Tailwind with `@theme inline` (`bg-detained-so
 | `--sidebar-border` | `#CCD7DC` | |
 | `--sidebar-ring` | `#0B5267` | |
 | `--chart-1` … `--chart-5` | `#0B5267`, `#B07612`, `#5B3A96`, `#1B6436`, `#7A8E98` | Charts (no red: it is reserved) |
+| `--qr-surface` / `--qr-ink` | `#FFFFFF` / `#13232B` | Tile and modules of the 2FA QR code (T61) |
 
 "Cuarto intermedio" (continuation) is recorded by the OFIJU as a **result** of a hearing that
 did take place, not as a scheduling status [validar]. Show it as a result next to the status,
@@ -203,6 +204,7 @@ with `status-reprogramada` colors until a lawyer confirms how they read it.
 | `--sidebar-border` | `#2A3D46` |
 | `--sidebar-ring` | `#7CC6DA` |
 | `--chart-1` … `--chart-5` | `#7CC6DA`, `#F5C979`, `#CDB8F5`, `#9FDCB2`, `#A3B4BC` |
+| `--qr-surface` / `--qr-ink` | `#FFFFFF` / `#13232B` (same as light: an inverted QR code fails on some authenticator apps) |
 
 ### Dark mode wiring (Tailwind v4)
 

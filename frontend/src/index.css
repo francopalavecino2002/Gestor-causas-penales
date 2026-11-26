@@ -64,6 +64,10 @@
   --chart-4: #1b6436;
   --chart-5: #7a8e98;
 
+  /* The 2FA QR code: dark modules on a white tile in both themes, so every camera reads it. */
+  --qr-surface: #ffffff;
+  --qr-ink: #13232b;
+
   /* Scrim behind dialogs and sheets. */
   --overlay: rgb(19 35 43 / 0.55);
 
@@ -123,6 +127,10 @@
   --chart-3: #cdb8f5;
   --chart-4: #9fdcb2;
   --chart-5: #a3b4bc;
+
+  /* Same as light on purpose: an inverted QR code fails on some authenticator apps. */
+  --qr-surface: #ffffff;
+  --qr-ink: #13232b;
 
   --overlay: rgb(0 0 0 / 0.65);
 
@@ -251,6 +259,8 @@
   --color-chart-5: var(--chart-5);
 
   --color-overlay: var(--overlay);
+  --color-qr-surface: var(--qr-surface);
+  --color-qr-ink: var(--qr-ink);
 
   /* Only things that float get a shadow (DESIGN.md, Elevation). */
   --shadow-fab: 0 6px 16px color-mix(in srgb, var(--primary) 32%, transparent);

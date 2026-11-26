@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCanImport } from "@/features/imports/import-hooks";
 import { PERSONAL_SECTIONS, SETTINGS_SECTIONS } from "@/features/settings/settings-copy";
 import { useCanEditSettings } from "@/features/settings/settings-hooks";
+import { TwoFactorPrompt } from "@/features/two-factor/two-factor-prompt";
 import { cn } from "@/lib/utils";
 
 /** The result of the last change, kept on screen and announced politely. */
@@ -116,6 +117,8 @@ export function SettingsHomePage() {
             : "Mirá cómo está configurado tu estudio. Solo la persona titular puede cambiarlo."}
         </p>
       </PageHeader>
+
+      <TwoFactorPrompt />
 
       <nav aria-label="Secciones de ajustes" className="max-w-3xl">
         <ul className="divide-y overflow-hidden rounded-xl border bg-card">
