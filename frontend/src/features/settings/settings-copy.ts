@@ -1,5 +1,6 @@
 import {
   CalendarSync,
+  Coins,
   FolderCog,
   Hourglass,
   Landmark,
@@ -28,7 +29,8 @@ export interface SettingsSection {
     | "/ajustes/plazos"
     | "/ajustes/ia"
     | "/ajustes/usuarios"
-    | "/ajustes/calendario";
+    | "/ajustes/calendario"
+    | "/ajustes/jus";
   title: string;
   /** One line under the title in the index. */
   summary: string;
@@ -59,6 +61,12 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
     title: "Reglas de plazos",
     summary: "Qué plazos calcula el sistema y con cuántos días de aviso.",
     icon: Hourglass,
+  },
+  {
+    to: "/ajustes/jus",
+    title: "Valor del JUS",
+    summary: "El valor que usa la calculadora de honorarios, con la fecha desde la que rige.",
+    icon: Coins,
   },
   {
     to: "/ajustes/ia",

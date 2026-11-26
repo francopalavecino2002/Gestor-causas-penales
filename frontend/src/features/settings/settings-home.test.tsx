@@ -21,6 +21,7 @@ describe("settings: index and users", () => {
       "/ajustes/catalogos",
       "/ajustes/campos",
       "/ajustes/plazos",
+      "/ajustes/jus",
       "/ajustes/ia",
       "/ajustes/usuarios",
       "/ajustes/calendario",

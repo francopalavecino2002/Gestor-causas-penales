@@ -11,6 +11,8 @@ import {
 import { ALL_TASKS } from "../src/test/task-fixtures";
 import { ALL_DUE_SOON, ALL_NEWS } from "../src/test/news-fixtures";
 import { CASE_CIVIL } from "../src/test/area-fixtures";
+import type { JusValueView } from "../src/features/fees/fee-types";
+import { ALL_JUS_VALUES, MIN_EXCARCELACION } from "../src/test/fee-fixtures";
 import { CASE_EJEMPLAR, CASE_MODELO } from "../src/test/case-fixtures";
 import { DEMO_ME, mockBackend } from "./mock-backend";
 
@@ -834,7 +836,101 @@ const SCREENS: Record<string, Screen[]> = {
       },
     },
   ],
+  t50: [
+    {
+      path: "/honorarios",
+      name: "fees-result",
+      prepare: withFees(),
+      act: async (page) => {
+        await page.getByLabel("Tipo de asunto").selectOption(MIN_EXCARCELACION.code);
+        await page.getByLabel("Monto del proceso").fill("20000000");
+        await page.getByRole("radio", { name: /Apoderado y patrocinante/ }).check();
+        await page.getByRole("button", { name: "Calculá el honorario" }).click();
+        await page.getByRole("region", { name: "Honorario estimado" }).waitFor();
+        await page.mouse.move(0, 0);
+      },
+    },
+    {
+      path: "/honorarios",
+      name: "fees-form",
+      themes: ["light"],
+      prepare: withFees(),
+      act: (page) => page.getByLabel("Tipo de asunto").waitFor(),
+    },
+    {
+      path: "/honorarios",
+      name: "fees-no-jus",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: withFees({ jusValues: [], role: "PARALEGAL" }),
+      act: async (page) => {
+        const empty = page.getByRole("region", { name: "Cargá el valor del JUS" });
+        await empty.waitFor();
+        await empty.evaluate((element) =>
+          window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 80),
+        );
+      },
+      fullPage: false,
+    },
+    {
+      path: "/ajustes/jus",
+      name: "settings-jus",
+      prepare: withFees(),
+      act: (page) => page.getByRole("region", { name: "Historial" }).waitFor(),
+    },
+    {
+      path: "/ajustes/jus",
+      name: "settings-jus-archived",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: withFees(),
+      act: async (page) => {
+        await page
+          .getByRole("button", { name: /^Archivá el valor de \$\s81\.250,00/ })
+          .click();
+        const undo = page.getByRole("button", { name: "Deshacé" });
+        await undo.waitFor();
+        await undo.evaluate((element) =>
+          window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 300),
+        );
+      },
+      fullPage: false,
+    },
+    {
+      path: "/ajustes/jus",
+      name: "settings-jus-read-only",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: withFees({ role: "PARALEGAL" }),
+      act: (page) => page.getByRole("region", { name: "Historial" }).waitFor(),
+    },
+    {
+      path: "/causas",
+      name: "user-menu-fees",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: withFees(),
+      act: async (page) => {
+        await page.getByRole("button", { name: /Tu cuenta/ }).click();
+        await page.getByRole("menu").waitFor();
+      },
+      fullPage: false,
+    },
+  ],
 };
+
+/** Signed in on 23 November 2026 with the fictitious JUS values (T50). */
+function withFees(extra: { jusValues?: JusValueView[]; role?: "OWNER" | "PARALEGAL" } = {}) {
+  return async (page: Page) => {
+    await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+    await mockBackend(page, {
+      signedIn: true,
+      today: "2026-11-23",
+      jusValues: extra.jusValues ?? ALL_JUS_VALUES,
+      role: extra.role,
+    });
+  };
+}
 
 async function chooseImportKind(page: Page, title: string) {
   await page.getByRole("radio", { name: new RegExp(`^${title}`) }).check();

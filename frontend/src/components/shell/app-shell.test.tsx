@@ -51,6 +51,7 @@ describe("app shell", () => {
       "Tareas",
       "Novedades",
       "Personas",
+      "Honorarios",
     ]);
     expect(within(nav).getByRole("link", { name: "Agenda" })).toHaveAttribute(
       "aria-current",
@@ -69,7 +70,7 @@ describe("app shell", () => {
     expect(within(nav).getByRole("link", { name: "Agenda" })).not.toHaveAttribute("aria-current");
   });
 
-  it("keeps five sections in the phone's bottom nav and Personas in its account menu", async () => {
+  it("keeps five sections in the phone's bottom nav, Personas and Honorarios in its account menu", async () => {
     signedIn();
     renderApp("/");
     await screen.findByRole("heading", { level: 1, name: "Audiencias de hoy" });
@@ -90,6 +91,10 @@ describe("app shell", () => {
     expect(within(menu).getByRole("menuitem", { name: "Personas" })).toHaveAttribute(
       "href",
       "/personas",
+    );
+    expect(within(menu).getByRole("menuitem", { name: "Honorarios" })).toHaveAttribute(
+      "href",
+      "/honorarios",
     );
   });
 
