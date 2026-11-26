@@ -202,9 +202,9 @@ export function PublicDeadlineResult({ calculation }: { calculation: PublicCalcu
               {notLoadedTitle(calculation.missingYear)}
             </h2>
             <p className="max-w-prose text-body text-muted-foreground">
-              {rule.name} se cuenta en días hábiles y para eso hacen falta los feriados y las
-              ferias judiciales de ese año. Contalo a mano con la norma, o probá con una fecha de
-              inicio anterior.
+              {rule.name} se cuenta en días hábiles y para eso hacen falta los feriados y las ferias
+              judiciales de ese año. Contalo a mano con la norma, o probá con una fecha de inicio
+              anterior.
             </p>
           </div>
           <Facts facts={ruleFacts(rule, calculation)} />
@@ -226,7 +226,10 @@ export function PublicDeadlineResult({ calculation }: { calculation: PublicCalcu
           <p className="text-title font-bold tabular-nums">
             {due.time}
             {rule.computation === "HOURS" && (
-              <span className="text-meta font-normal text-muted-foreground"> (hora de Neuquén)</span>
+              <span className="text-meta font-normal text-muted-foreground">
+                {" "}
+                (hora de Neuquén)
+              </span>
             )}
           </p>
           {rule.computation !== "HOURS" && (

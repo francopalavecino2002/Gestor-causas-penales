@@ -95,11 +95,7 @@ export function newsSentence(item: NewsItem, timeZone: string, meId?: string): s
 }
 
 /** "Se abrieron 12 causas nuevas." for a bulk import collapsed into one entry. */
-export function bulkOpenedSentence(
-  actor: NewsActor | null,
-  count: number,
-  meId?: string,
-): string {
+export function bulkOpenedSentence(actor: NewsActor | null, count: number, meId?: string): string {
   return `${lead(VERBS.openedMany, actor, meId)} ${count} causas nuevas.`;
 }
 
@@ -118,8 +114,7 @@ export function uniqueById(items: NewsItem[]): NewsItem[] {
 
 /** One line of the wall: an item, or several cases opened at once (a bulk import). */
 export type NewsEntry =
-  | { kind: "item"; item: NewsItem }
-  | { kind: "bulk"; actor: NewsActor | null; items: NewsItem[] };
+  { kind: "item"; item: NewsItem } | { kind: "bulk"; actor: NewsActor | null; items: NewsItem[] };
 
 /** Cases opened by the same member within this span read as one import. */
 const BULK_WINDOW_MS = 60_000;
@@ -247,7 +242,10 @@ export function dueText(alert: DeadlineAlert, timeZone: string): string {
 
 /** Deadlines of people deprived of liberty first; otherwise the backend's order (soonest first). */
 export function detaineeFirst(alerts: DeadlineAlert[]): DeadlineAlert[] {
-  return [...alerts.filter((alert) => alert.detainee), ...alerts.filter((alert) => !alert.detainee)];
+  return [
+    ...alerts.filter((alert) => alert.detainee),
+    ...alerts.filter((alert) => !alert.detainee),
+  ];
 }
 
 /** "1 plazo vence pronto", "3 plazos vencen pronto". */

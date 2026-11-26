@@ -1,10 +1,5 @@
 import { reviewTags } from "@/features/catalogs/catalog-format";
-import type {
-  FeeInstance,
-  FeeMinimum,
-  FeeRole,
-  FeeScaleView,
-} from "@/features/fees/fee-types";
+import type { FeeInstance, FeeMinimum, FeeRole, FeeScaleView } from "@/features/fees/fee-types";
 
 const MONEY = new Intl.NumberFormat("es-AR", {
   minimumFractionDigits: 2,

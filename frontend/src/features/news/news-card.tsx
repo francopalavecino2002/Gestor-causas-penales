@@ -91,7 +91,12 @@ export function NewsCard({
   let body;
   if (preview.isPending) {
     body = (
-      <div role="status" aria-busy="true" aria-label="Cargando las novedades" className="grid gap-2">
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label="Cargando las novedades"
+        className="grid gap-2"
+      >
         <Skeleton className="h-6 w-4/5" />
         <Skeleton className="h-6 w-3/5" />
       </div>
@@ -107,9 +112,7 @@ export function NewsCard({
     );
   } else if (entries.length === 0) {
     body = (
-      <p className="text-meta text-muted-foreground">
-        Todavía no hay novedades en el estudio.
-      </p>
+      <p className="text-meta text-muted-foreground">Todavía no hay novedades en el estudio.</p>
     );
   } else {
     body = (

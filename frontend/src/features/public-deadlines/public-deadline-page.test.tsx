@@ -21,7 +21,10 @@ const calculations = (requests: RecordedRequest[]) =>
   requests.filter((request) => request.path === "/api/v1/public/deadline-calculation");
 
 async function openCalculator() {
-  await screen.findByRole("heading", { level: 1, name: "Calculadora de plazos del CPP de Neuquén" });
+  await screen.findByRole("heading", {
+    level: 1,
+    name: "Calculadora de plazos del CPP de Neuquén",
+  });
   return screen.findByLabelText("Plazo");
 }
 
@@ -98,7 +101,9 @@ describe("public deadline calculator", () => {
     expect(within(result).getByText("a las 24 h")).toBeVisible();
     expect(within(result).getByText("20/11/2026")).toBeVisible();
     expect(within(result).getByText("30/11/2026, 24 h")).toBeVisible();
-    expect(result).toHaveTextContent("Art. 242 · CPP de Neuquén (Ley 2784) [validar] [no verificado]");
+    expect(result).toHaveTextContent(
+      "Art. 242 · CPP de Neuquén (Ley 2784) [validar] [no verificado]",
+    );
     expect(result).toHaveTextContent(`Calendario judicial: ${CALENDAR_SOURCE} [validar]`);
     expect(within(result).getByText("Cálculo asistido: verificá con la norma.")).toBeVisible();
     expect(result).toHaveTextContent("No guardamos nada de lo que cargás");

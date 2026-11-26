@@ -32,7 +32,9 @@ test("an anonymous visitor computes a deadline from the login, without signing i
   expect(overflow).toBeLessThanOrEqual(0);
 
   // The page itself never asks for the session (the login before it did).
-  const afterLogin = backend.calls.slice(backend.calls.indexOf("GET /api/v1/public/deadline-rules"));
+  const afterLogin = backend.calls.slice(
+    backend.calls.indexOf("GET /api/v1/public/deadline-rules"),
+  );
   expect(afterLogin).not.toContain("GET /api/v1/me");
 
   await page.getByRole("link", { name: "Ingresá a tu estudio" }).click();

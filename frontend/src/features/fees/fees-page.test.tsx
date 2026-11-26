@@ -47,9 +47,13 @@ describe("fees calculator", () => {
         name: "Pedido de excarcelación: 10 JUS (art. 9, I) [validar]",
       }),
     ).toBeInTheDocument();
-    expect(within(select).getByRole("group", { name: "Para todos los fueros" })).toBeInTheDocument();
+    expect(
+      within(select).getByRole("group", { name: "Para todos los fueros" }),
+    ).toBeInTheDocument();
     // The firm only works in penal: family matters are not offered.
-    expect(within(select).queryByRole("option", { name: new RegExp(MIN_DIVORCIO.name) })).toBeNull();
+    expect(
+      within(select).queryByRole("option", { name: new RegExp(MIN_DIVORCIO.name) }),
+    ).toBeNull();
 
     fireEvent.change(select, { target: { value: MIN_DEFENSA_PLENARIO.code } });
     expect(screen.getByText("Mínimo de 40 JUS (Ley 1594, art. 9, I, 16) [validar]")).toBeVisible();

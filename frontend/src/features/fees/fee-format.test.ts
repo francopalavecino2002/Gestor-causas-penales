@@ -55,8 +55,9 @@ describe("fee format", () => {
     );
 
     const both = [...penal, { code: "familia", name: "Familia" }];
-    expect(groupMinimums(FEE_SCALE.minimums, both, "familia").map((group) => group.label)).toEqual(
-      ["Familia", "Para todos los fueros"],
-    );
+    expect(groupMinimums(FEE_SCALE.minimums, both, "familia").map((group) => group.label)).toEqual([
+      "Familia",
+      "Para todos los fueros",
+    ]);
   });
 });

@@ -57,7 +57,8 @@ export function NewsComposer({
       onPosted();
     } catch (error) {
       const problem = postProblem(error);
-      if (problem.fields.body) setError("body", { message: problem.fields.body }, { shouldFocus: true });
+      if (problem.fields.body)
+        setError("body", { message: problem.fields.body }, { shouldFocus: true });
       setGeneral(problem.general ?? null);
     }
   });

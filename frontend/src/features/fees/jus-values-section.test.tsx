@@ -47,7 +47,10 @@ describe("settings: the JUS value", () => {
   });
 
   it("lets other roles read, but not load or archive", async () => {
-    const requests = signedIn({ ...DEMO_ME, role: "PARALEGAL" }, feeRoutes(undefined, { today: TODAY }));
+    const requests = signedIn(
+      { ...DEMO_ME, role: "PARALEGAL" },
+      feeRoutes(undefined, { today: TODAY }),
+    );
     renderApp("/ajustes/jus");
 
     await openSection();
@@ -61,7 +64,10 @@ describe("settings: the JUS value", () => {
   });
 
   it("lets a lawyer load a new value with the day it applies from", async () => {
-    const requests = signedIn({ ...DEMO_ME, role: "LAWYER" }, feeRoutes(undefined, { today: TODAY }));
+    const requests = signedIn(
+      { ...DEMO_ME, role: "LAWYER" },
+      feeRoutes(undefined, { today: TODAY }),
+    );
     renderApp("/ajustes/jus");
     await openSection();
 
@@ -110,11 +116,15 @@ describe("settings: the JUS value", () => {
     await openSection();
 
     fireEvent.click(
-      screen.getByRole("button", { name: nb("Archivá el valor de $ 81.250,00 desde el 01/03/2026") }),
+      screen.getByRole("button", {
+        name: nb("Archivá el valor de $ 81.250,00 desde el 01/03/2026"),
+      }),
     );
 
     const undo = await screen.findByRole("button", { name: "Deshacé" });
-    expect(screen.getByText("Archivaste el valor de $ 81.250,00 desde el 01/03/2026.")).toBeVisible();
+    expect(
+      screen.getByText("Archivaste el valor de $ 81.250,00 desde el 01/03/2026."),
+    ).toBeVisible();
     await waitFor(() => expect(undo).toHaveFocus());
 
     fireEvent.click(undo);
