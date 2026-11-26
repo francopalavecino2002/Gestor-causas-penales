@@ -28,6 +28,12 @@ export function normalizeDocument(number: string): string {
   return number.replace(/[\s.-]/g, "").toUpperCase();
 }
 
+/** Why a normalized number does not fit its document type, or null when it fits. */
+export function documentShapeError(type: DocumentType, normalized: string): string | null {
+  const shape = DOCUMENT_SHAPES[type];
+  return shape.pattern.test(normalized) ? null : shape.message;
+}
+
 /**
  * Who the defendant is: a person already in the firm (`existing`, by id) or a new one typed in
  * the form (`new`). The new person is created right before the defendant.
@@ -75,11 +81,9 @@ export function checkPersonChoice(
     ctx.addIssue({ code: "custom", path: [...path, "lastNames"], message: "Escribí el apellido." });
   }
   const number = normalizeDocument(choice.documentNumber);
-  if (number) {
-    const shape = DOCUMENT_SHAPES[choice.documentType];
-    if (!shape.pattern.test(number)) {
-      ctx.addIssue({ code: "custom", path: [...path, "documentNumber"], message: shape.message });
-    }
+  const shapeError = number ? documentShapeError(choice.documentType, number) : null;
+  if (shapeError) {
+    ctx.addIssue({ code: "custom", path: [...path, "documentNumber"], message: shapeError });
   }
 }
 

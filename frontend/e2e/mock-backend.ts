@@ -32,6 +32,8 @@ import { newsBackend } from "../src/test/news-fixtures";
 import type { JusValueView } from "../src/features/fees/fee-types";
 import { feesBackend } from "../src/test/fee-fixtures";
 import { publicDeadlineBackend } from "../src/test/public-deadline-fixtures";
+import type { ClientView, PersonListItem } from "../src/features/persons/person-api";
+import { personsBackend } from "../src/test/person-fixtures";
 import {
   CASE_FIELDS,
   DEADLINE_RULES,
@@ -99,6 +101,13 @@ interface MockBackendOptions {
   today?: string;
   /** The public calculation answers 429 (rate limit), to show its message. */
   publicThrottled?: boolean;
+  /**
+   * Persons the Personas screen serves (with state, clients and contacts too). Off by default:
+   * the T35 forms backend then answers the defendant picker's searches.
+   */
+  persons?: PersonListItem[];
+  /** The clients of those persons; the fictitious ones by default. */
+  clients?: ClientView[];
 }
 
 /**
@@ -265,6 +274,12 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
   });
 
   const publicDeadlines = publicDeadlineBackend();
+  const people = options.persons
+    ? personsBackend(
+        { persons: options.persons, clients: options.clients },
+        { role: options.role ?? DEMO_ME.role },
+      )
+    : undefined;
 
   const problem = (route: Route, status: number, type: string) =>
     route.fulfill({
@@ -319,7 +334,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
       return route.fulfill({ status: publicAnswer.status, json: publicAnswer.json });
     }
 
-    const hearingIcs =/^\/api\/v1\/hearings\/([0-9a-f-]+)\/calendar\.ics$/.exec(path);
+    const hearingIcs = /^\/api\/v1\/hearings\/([0-9a-f-]+)\/calendar\.ics$/.exec(path);
     if (method === "GET" && hearingIcs && state.signedIn) {
       return route.fulfill({
         status: 200,
@@ -504,6 +519,28 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
             });
           }
           return route.fulfill({ status: 200, json: report });
+        }
+        const peopleAnswer =
+          state.signedIn && people
+            ? people(method, path, Object.fromEntries(url.searchParams), () =>
+                request.postDataJSON(),
+              )
+            : undefined;
+        if (peopleAnswer) {
+          if (peopleAnswer.problem) {
+            return route.fulfill({
+              status: peopleAnswer.status,
+              contentType: "application/problem+json",
+              body: JSON.stringify({
+                type: `/problems/${peopleAnswer.problem}`,
+                status: peopleAnswer.status,
+                ...peopleAnswer.members,
+              }),
+            });
+          }
+          return peopleAnswer.json === undefined
+            ? route.fulfill({ status: peopleAnswer.status })
+            : route.fulfill({ status: peopleAnswer.status, json: peopleAnswer.json });
         }
         const tasksAnswer = state.signedIn
           ? tasks(method, path, Object.fromEntries(url.searchParams), () => request.postDataJSON())

@@ -77,13 +77,11 @@ describe("app shell", () => {
 
     const [sidebarNav, bottomNav] = screen.getAllByRole("navigation", { name: "Secciones" });
     if (!sidebarNav || !bottomNav) throw new Error("Both navigations should render");
-    expect(within(bottomNav).getAllByRole("link").map((link) => link.textContent)).toEqual([
-      "Agenda",
-      "Causas",
-      "Plazos",
-      "Tareas",
-      "Novedades",
-    ]);
+    expect(
+      within(bottomNav)
+        .getAllByRole("link")
+        .map((link) => link.textContent),
+    ).toEqual(["Agenda", "Causas", "Plazos", "Tareas", "Novedades"]);
 
     // The top bar's menu comes first in the DOM.
     openMenu(firstMatch(screen.getAllByRole("button", { name: /Tu cuenta/ })));

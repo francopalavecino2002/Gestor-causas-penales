@@ -23,6 +23,8 @@ import type { JusValueView } from "@/features/fees/fee-types";
 import { ALL_JUS_VALUES, feesBackend } from "@/test/fee-fixtures";
 import type { PublicRule } from "@/features/public-deadlines/public-deadline-types";
 import { PUBLIC_RULES, publicDeadlineBackend } from "@/test/public-deadline-fixtures";
+import type { ClientView, PersonListItem } from "@/features/persons/person-api";
+import { personsBackend } from "@/test/person-fixtures";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
@@ -115,7 +117,13 @@ export function mockFetch(routes: Record<string, Handler>) {
             : undefined,
     };
     requests.push(request);
-    const handler = table[`${method} ${url.pathname}`];
+    const key = `${method} ${url.pathname}`;
+    // "METHOD /prefix/*" keys answer every path under the prefix (e.g. ids created by a test).
+    const handler =
+      table[key] ??
+      Object.entries(table).find(
+        ([pattern]) => pattern.endsWith("*") && key.startsWith(pattern.slice(0, -1)),
+      )?.[1];
     return handler ? handler(request) : problem(404, "not-found");
   });
 
@@ -145,6 +153,8 @@ export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {})
       json(200, { items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
     "GET /api/v1/news": ({ query }) =>
       json(200, { dueSoon: [], items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
+    "GET /api/v1/persons": ({ query }) =>
+      json(200, { items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
     "GET /api/v1/users": () => json(200, MEMBERS),
     "GET /api/v1/practice-areas": () => json(200, [PENAL_AREA]),
     // The optional AI assistance is off unless a test turns it on.
@@ -299,6 +309,30 @@ export function feeRoutes(
   for (const value of values) {
     routes[`POST /api/v1/fees/jus-values/${value.id}/archive`] = answer;
     routes[`POST /api/v1/fees/jus-values/${value.id}/restore`] = answer;
+  }
+  return routes;
+}
+
+/**
+ * `/api/v1/persons` and `/api/v1/clients` over the fictitious persons and clients, with state:
+ * a create, an edit, an archive, a new client or contact shows up in the next GET.
+ */
+export function personRoutes(
+  initial: { persons?: PersonListItem[]; clients?: ClientView[] } = {},
+  options: { role?: string } = {},
+): Record<string, Handler> {
+  const backend = personsBackend(initial, options);
+  const answer = (request: RecordedRequest) => {
+    const result = backend(request.method, request.path, request.query, () => request.body);
+    if (!result) return problem(404, "not-found");
+    if (result.problem) return problemWith(result.status, result.problem, result.members ?? {});
+    return result.json === undefined ? noContent() : json(result.status, result.json);
+  };
+  const routes: Record<string, Handler> = {};
+  for (const method of ["GET", "POST", "PUT"]) {
+    routes[`${method} /api/v1/persons`] = answer;
+    routes[`${method} /api/v1/persons/*`] = answer;
+    routes[`${method} /api/v1/clients/*`] = answer;
   }
   return routes;
 }
