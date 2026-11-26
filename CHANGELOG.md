@@ -199,3 +199,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   plus short manual posts (`/api/v1/news/posts`, archived by the author or the owner); entries of
   reserved cases reach only their team and the owner, archived records drop out; the first page also
   lists the deadlines due soon with their legal source and the disclaimer (ADR-0038).
+- Firm news wall UI (T49): "Novedades" screen with the deadlines due soon (legal source and
+  disclaimer, detainee first), the feed grouped by day with one sentence per change, bulk imports
+  collapsed, short posts with "Archivá" and undo, and "Mirá más novedades" pagination; a compact
+  "Novedades" card on the agenda home. On phones "Novedades" takes the bottom-nav slot of Personas,
+  which moves to the account menu (ADR-0039).
