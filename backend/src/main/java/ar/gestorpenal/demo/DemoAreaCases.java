@@ -16,8 +16,11 @@ final class DemoAreaCases {
     static final String CIVIL = "civil";
     static final String LABORAL = "laboral";
 
-    private static final String CONFLUENCIA = "i-confluencia";
-    private static final LocalTime EVENING = LocalTime.of(17, 30);
+    /** Every case of the segment is in the I Circunscripción. */
+    static final String CONFLUENCIA = "i-confluencia";
+    /** After every criminal hearing of the demo (the latest ends at 17:00). */
+    static final LocalTime EVENING = LocalTime.of(17, 30);
+    static final int HEARING_MINUTES = 60;
 
     private static final DemoUser LUCIA = DemoData.OWNER;
     private static final DemoUser MARTIN = DemoData.LAWYER;
@@ -96,12 +99,7 @@ final class DemoAreaCases {
             DemoUser responsible,
             List<PartySpec> parties,
             AreaHearing hearing,
-            List<ManualDeadline> deadlines) {
-
-        String circumscription() {
-            return CONFLUENCIA;
-        }
-    }
+            List<ManualDeadline> deadlines) {}
 
     /** A person (first and last names) or a company (legal name) with a role of the area's party-roles catalog. */
     record PartySpec(String role, PartyName name) {}
@@ -113,16 +111,7 @@ final class DemoAreaCases {
         }
     }
 
-    record AreaHearing(int weekday, String type, String room) {
-
-        LocalTime time() {
-            return EVENING;
-        }
-
-        int minutes() {
-            return 60;
-        }
-    }
+    record AreaHearing(int weekday, String type, String room) {}
 
     /** A judicial deadline that started {@code triggeredDaysAgo} and falls due {@code dueInDays} from today. */
     record ManualDeadline(int triggeredDaysAgo, int dueInDays, String notes) {}

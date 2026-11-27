@@ -53,7 +53,10 @@ class DemoAreaPortfolio {
         this.deadlineSeeding = deadlineSeeding;
     }
 
-    /** Call it inside the demo firm's tenant scope, once its users exist. */
+    /**
+     * Call it inside the demo firm's tenant scope, once its users exist, and outside any
+     * transaction: each seeding call runs in its own.
+     */
     void createMissingCases() {
         practiceAreas.enable(DemoAreaCases.CIVIL, DemoAreaCases.LABORAL);
         LocalDate today = hearingSeeding.today();
@@ -75,7 +78,7 @@ class DemoAreaPortfolio {
     private UUID createCase(AreaCaseSpec spec, UUID responsibleId) {
         UUID caseId = caseSeeding.createAreaCase(
                 new AreaCaseSeed(
-                        spec.area(), spec.caption(), spec.number(), spec.circumscription(),
+                        spec.area(), spec.caption(), spec.number(), DemoAreaCases.CONFLUENCIA,
                         spec.actionType(), spec.represents(), spec.stage()),
                 responsibleId);
         log.info("Demo case created: {} ({})", spec.number(), spec.area());
@@ -97,8 +100,8 @@ class DemoAreaPortfolio {
 
     private void createHearing(UUID caseId, AreaHearing hearing, UUID lawyerId, LocalDate today) {
         LocalDate day = DemoCalendar.weekday(today, hearing.weekday());
-        hearingSeeding.createHearing(caseId, hearing.type(), hearingSeeding.at(day, hearing.time()),
-                hearing.minutes(), hearing.room(), List.of(), List.of(lawyerId));
+        hearingSeeding.createHearing(caseId, hearing.type(), hearingSeeding.at(day, DemoAreaCases.EVENING),
+                DemoAreaCases.HEARING_MINUTES, hearing.room(), List.of(), List.of(lawyerId));
     }
 
     private void createDeadline(UUID caseId, String area, ManualDeadline deadline, LocalDate today) {
