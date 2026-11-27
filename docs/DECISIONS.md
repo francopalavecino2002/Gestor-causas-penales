@@ -2113,3 +2113,52 @@ Superseded decisions are marked, never deleted.
   temporary password appears on the operator's console, and on a platform's job log when run there:
   it stops working at the first login, so the owner should log in right away. A firm whose only
   owner is locked out still needs the operator (ADR-0044); a recovery command is a later task.
+
+## ADR-0048: Outbound email behind a port, SMTP adapter, off when unset (T70)
+
+- **Date:** 2026-11-27
+- **Status:** accepted
+- **Context:** Password recovery (T71), self sign-up (T72) and the daily digest (T76) need to send
+  email. No provider account exists yet and none may be created by the agent; the price target is
+  close to the hosting bill; bodies can carry one-time links and case data.
+- **Decision:**
+  - **A port, two adapters.** `MailTransport` is the port. `SmtpMailTransport` (Spring's
+    `JavaMailSenderImpl` from `spring-boot-starter-mail`) works with any provider, so switching from
+    Brevo to Resend or anything else is a change of environment variables. Provider HTTP APIs were
+    rejected: one SDK per provider for no gain at this volume. `MailConfig` picks the adapter: with
+    `MAIL_SMTP_HOST` unset it is `LoggingMailTransport`, which logs the template and a masked
+    recipient (`t***@dominio`), **never the body**. Boot's own `spring.mail.*` auto-configuration is
+    not used, so an empty host can mean "off" and the app's `app.mail.*` names stay in one place.
+  - **Safe defaults.** `STARTTLS` is *required* by default (`TLS` for port 465, `NONE` only for a
+    local catcher), server identity is checked, connect/read/write time out after 10 s. The app
+    refuses to start with an SMTP host but no real `MAIL_FROM` (every email would fail quietly), or
+    with `NONE` on a host other than localhost (the password would travel in clear text). The SMTP
+    settings never print the password.
+  - **`Mailer` is the only entry point.** It sends on behalf of the firm in scope (logged-in user or
+    `TenantContext`), renders the template with the firm's name (the sender's display name, the
+    header and the footer), and returns `SENT`, `LOGGED` or `FAILED`; a failure is an outcome, not an
+    exception, so recovery flows can answer the same either way. The recipient must be one plain
+    address (no display name, no list), which also rules out header injection; the subject and the
+    sender's display name are collapsed to one line. A failure is logged with the exception type only,
+    since SMTP replies echo addresses. Callers send after their own transaction commits; the attempt
+    is recorded in a transaction of its own (`REQUIRES_NEW`), so it survives a later rollback.
+  - **Templates are files**, `mail/<name>.html` and `.txt` inside `mail/layout.*`, with `{{key}}`
+    placeholders: values are HTML-escaped in the HTML part, never re-expanded, and a missing value
+    fails. A template engine (Thymeleaf) was rejected: one more dependency for string substitution.
+  - **Every attempt is recorded without the body** in `mail_delivery` (template, recipient, subject,
+    outcome, time), an `@Audited` entity, so it is also in the firm's history. The news wall ignores
+    it (it lists only cases, hearings and posts).
+  - **Test email.** `POST /api/v1/mail/test`, owner only, to the owner's own address, 5 per hour per
+    firm: checks the settings after a deploy without becoming a way to mail anyone else. The limit
+    is a count without a lock, so simultaneous requests can pass it by a few; acceptable, since the
+    only recipient is the owner.
+  - **Local and tests.** Mailpit in `docker-compose.yml` under the `mail` profile (SMTP 1025, UI
+    8025, bound to 127.0.0.1); integration tests use GreenMail in process on a free port, so CI needs
+    no extra container.
+  - **Provider:** Brevo recommended over Resend (`docs/HOSTING.md`, *Correo saliente*): 300 emails a
+    day free against 100, a cheaper first paid plan, and an EU company for data that includes
+    clients' names `[validar]`.
+- **Consequences:** Nothing is sent until Franco opens a provider account, verifies the domain and
+  sets `MAIL_*` (T77). Sending is synchronous: a slow server delays the request up to the timeout,
+  acceptable at this volume; a queue would be a later change behind the same `Mailer`. Until then,
+  flows that depend on email work locally with Mailpit.
