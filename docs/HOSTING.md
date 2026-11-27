@@ -56,6 +56,38 @@ referencia completa está en [`.env.example`](../.env.example).
 
 No muestran detalles internos. El resto de `/actuator` pide sesión.
 
+### Alta del primer estudio y su titular
+
+`prod` arranca sin estudios ni usuarios, y no hay ninguna pantalla ni endpoint para crearlos. El
+primer estudio se crea **una sola vez** con la misma imagen y el perfil `bootstrap`
+([ADR-0047](DECISIONS.md#adr-0047-first-firm-bootstrap-a-one-time-command-on-an-empty-database-t66)):
+
+```bash
+docker run --rm \
+  -e SPRING_PROFILES_ACTIVE=prod,bootstrap \
+  -e DB_URL='jdbc:postgresql://<host>:5432/<base>?sslmode=require' \
+  -e DB_USERNAME='<usuario>' -e DB_PASSWORD='<clave>' -e TOTP_ENCRYPTION_KEY='<la misma clave de la app>' \
+  -e BOOTSTRAP_FIRM_NAME='Estudio Ejemplo' -e BOOTSTRAP_FIRM_SLUG='estudio-ejemplo' \
+  -e BOOTSTRAP_OWNER_EMAIL='titular@ejemplo.test' -e BOOTSTRAP_OWNER_NAME='Titular Ejemplo' \
+  gestor-causas
+```
+
+- Corre desde cualquier máquina con Docker que llegue a la base (por ejemplo la de Franco contra
+  Neon). En una plataforma con *one-off jobs* o consola, es el mismo comando con esas variables
+  `[validar]` con el proveedor elegido.
+- Aplica las migraciones de Flyway, crea el estudio y su titular **en una sola transacción**,
+  muestra la contraseña temporal **una vez** en la consola (no en el log) y termina. No abre ningún
+  puerto.
+- **Se niega si ya existe algún estudio**, aunque esté archivado: no sirve para agregar estudios ni
+  titulares a una base en uso, y dos corridas al mismo tiempo crean uno solo. Si falla por un dato
+  inválido, no deja nada creado: se corrige y se vuelve a correr.
+- El slug (`BOOTSTRAP_FIRM_SLUG`) es lo que los usuarios escriben como "estudio" para entrar:
+  minúsculas, números y guiones, hasta 63 caracteres. No se puede cambiar después.
+- El alta queda en el historial del estudio sin autor (lo hizo el sistema).
+- Después: entregale la contraseña temporal al titular por un canal seguro. Al entrar el sistema le
+  pide elegir su propia contraseña; que active el segundo factor en *Ajustes* y cree a los demás
+  usuarios desde ahí (ADR-0044). Las variables `BOOTSTRAP_*` no se cargan en la plataforma.
+
 ## Las opciones
 
 Un solo despliegue sirve a varios estudios (es multi-estudio desde el día uno), así que el costo se
@@ -145,10 +177,9 @@ región según esa respuesta.
 
 ## Antes de publicar (pendientes)
 
-1. **Alta del primer estudio y su titular en producción.** Hoy solo el perfil `demo` crea usuarios
-   y `prod` arranca sin ninguno: falta una forma segura de crear el primer estudio (ROADMAP T66).
-2. Elegir proveedor y región según *Datos personales*; Franco abre las cuentas.
-3. Generar `TOTP_ENCRYPTION_KEY` y guardar una copia offline.
-4. Configurar los health checks con las rutas de arriba.
-5. Probar una restauración de la base del proveedor antes del primer estudio real.
-6. Dominio propio con HTTPS (lo dan Render y Caddy sin costo).
+1. Elegir proveedor y región según *Datos personales*; Franco abre las cuentas.
+2. Generar `TOTP_ENCRYPTION_KEY` y guardar una copia offline.
+3. Configurar los health checks con las rutas de arriba.
+4. Probar una restauración de la base del proveedor antes del primer estudio real.
+5. Dominio propio con HTTPS (lo dan Render y Caddy sin costo).
+6. Crear el primer estudio y su titular con el comando de *Alta del primer estudio* (una sola vez).

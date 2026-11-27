@@ -36,4 +36,5 @@ EXPOSE 8081
 # (the smallest recommended instance, tested in CI by scripts/docker-smoke.sh) gives ~300 MB of heap.
 # Serial GC is the lightest collector for one or two CPUs. Platforms probe
 # /actuator/health/liveness and /actuator/health/readiness themselves (docs/HOSTING.md).
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60", "-XX:+UseSerialGC", "-XX:+ExitOnOutOfMemoryError", "-jar", "/app/app.jar"]
+# UTF-8 console: the first-firm bootstrap (T66) prints Spanish text, and a bare container has no locale.
+ENTRYPOINT ["java", "-Dstdout.encoding=UTF-8", "-Dstderr.encoding=UTF-8", "-XX:MaxRAMPercentage=60", "-XX:+UseSerialGC", "-XX:+ExitOnOutOfMemoryError", "-jar", "/app/app.jar"]

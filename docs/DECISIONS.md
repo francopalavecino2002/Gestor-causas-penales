@@ -2073,3 +2073,43 @@ Superseded decisions are marked, never deleted.
   fallback. Non-hashed static files (icons) keep Spring Security's no-store header, and the SPA has
   no Content-Security-Policy yet: both are small follow-ups. `prod` starts with no users: creating the first firm and owner safely is a new task
   (T66). Prices are a snapshot and must be re-checked before contracting.
+
+## ADR-0047: First-firm bootstrap: a one-time command on an empty database (T66)
+
+- **Date:** 2026-11-27
+- **Status:** accepted
+- **Context:** `prod` starts with no firm and no user (ADR-0046), and only the `demo` profile creates
+  them, with fictitious data and a shared password. The first real firm and its owner need a way in
+  that cannot be reused against a live database, leaves a trace, and never puts a chosen password in
+  a file or an environment variable.
+- **Decision:**
+  - **A Spring profile, not an endpoint.** `bootstrap` (`application-bootstrap.properties`) turns
+    the web server off (`web-application-type=none`); `FirstFirmBootstrapRunner` creates the firm
+    from `BOOTSTRAP_FIRM_NAME`, `BOOTSTRAP_FIRM_SLUG`, `BOOTSTRAP_OWNER_EMAIL` and
+    `BOOTSTRAP_OWNER_NAME`, and `GestorPenalApplication` exits when the profile is active. It runs as
+    `SPRING_PROFILES_ACTIVE=prod,bootstrap` with the same image, so it goes through Flyway and
+    `ProductionSafetyCheck`. A public "set up your firm" page was rejected: it would be an
+    unauthenticated write on the internet until someone used it. A separate CLI jar was rejected:
+    a second artifact to build and keep in step with the schema.
+  - **Refused once any firm exists**, archived ones included (`FirmAlreadyExistsException`, non-zero
+    exit). More firms or owners are not its job: owners add users from Ajustes (ADR-0044).
+  - **One transaction, no half state.** Under a `TenantContext` scope with a fresh UUID,
+    `TenantService.createFirstFirmInScope` takes `LOCK TABLE tenant IN EXCLUSIVE MODE`, checks that
+    the table is empty and inserts the firm with the scope's id (native SQL, since `Tenant`'s id is
+    generated); the owner is then created in the same transaction and stamped with that id by
+    Hibernate. Two runs at once create one firm (a concurrency test covers it); an invalid email
+    rolls the firm back, so the command can simply run again.
+  - **Temporary password.** The owner gets a server-generated temporary password with
+    `password_change_required` (ADR-0044), printed once to the console and never to the log; the
+    operator hands it over and the owner must replace it at the first login. The image sets
+    `-Dstdout.encoding=UTF-8`, so the Spanish console text survives a container without a locale.
+  - **Audited.** `AuditJournal.recordCreate` writes the firm's creation (name and slug) and `AppUser`
+    is audited as usual; both entries have no author, which is how the history shows the system.
+  - **Web security only with a web server:** `SecurityConfig.securityFilterChain` is
+    `@ConditionalOnWebApplication`, the only bean that needed a servlet environment.
+  - CI runs the command in `scripts/docker-smoke.sh` against the image: first run creates one owner
+    who must change the password, a second run is refused and creates nothing.
+- **Consequences:** Going live is: deploy, run the command once, hand the password over. The
+  temporary password appears on the operator's console, and on a platform's job log when run there:
+  it stops working at the first login, so the owner should log in right away. A firm whose only
+  owner is locked out still needs the operator (ADR-0044); a recovery command is a later task.

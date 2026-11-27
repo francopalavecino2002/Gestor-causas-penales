@@ -253,3 +253,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (`scripts/docker-smoke.sh`) without pushing it; `docs/HOSTING.md` (Spanish) compares Render + Neon,
   Render Postgres and a Hetzner server with prices of 2026-11-27 and recommends Render + Neon
   (≈ US$ 7/month for the demo, ≈ US$ 13 for a first firm) (ADR-0046).
+- First firm in production (T66): a one-time `bootstrap` profile (`SPRING_PROFILES_ACTIVE=prod,bootstrap`
+  with `BOOTSTRAP_FIRM_NAME`, `BOOTSTRAP_FIRM_SLUG`, `BOOTSTRAP_OWNER_EMAIL`, `BOOTSTRAP_OWNER_NAME`)
+  creates the first firm and its owner in one locked transaction, prints a temporary password that must
+  be changed at the first login, records both creations in the history and exits; it refuses once any
+  firm exists. Documented in `docs/HOSTING.md` and smoke-tested on the image in CI (ADR-0047).

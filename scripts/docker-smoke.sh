@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Smoke test of the production image (T65, ADR-0046), run by CI. It builds backend/Dockerfile, starts
 # it with the `prod` profile next to a throwaway Postgres on a private network, and checks the health
-# probes, the served frontend, the protected API and that `prod` refuses the demo profile.
+# probes, the served frontend, the protected API, that `prod` refuses the demo profile and the
+# one-time first-firm bootstrap (T66).
 # Nothing is pushed or deployed. Locally: bash scripts/docker-smoke.sh (needs Docker, ~5 minutes).
 set -euo pipefail
 
@@ -103,6 +104,34 @@ csrf_headers="$(headers "$BASE/api/v1/auth/csrf")"
 [[ "$csrf_headers" == *'XSRF-TOKEN='*'Secure'* ]] || fail "the CSRF cookie is not Secure."
 users="$(docker exec "$DB_CONTAINER" psql -U gestor -d gestor -tA -c 'SELECT count(*) FROM app_user')"
 [ "$users" = "0" ] || fail "the prod profile created $users users (demo seeding?)."
+
+# The one-time command of docs/HOSTING.md (T66, ADR-0047), against the same empty database.
+bootstrap() {
+  timeout 180 docker run --rm --network "$NETWORK" \
+    -e SPRING_PROFILES_ACTIVE=prod,bootstrap \
+    -e DB_URL="jdbc:postgresql://$DB_CONTAINER:5432/gestor" \
+    -e DB_USERNAME=gestor -e DB_PASSWORD="$DB_PASSWORD" -e TOTP_ENCRYPTION_KEY="$TOTP_KEY" \
+    -e BOOTSTRAP_FIRM_NAME="Estudio Ficticio Smoke" -e BOOTSTRAP_FIRM_SLUG="$1" \
+    -e BOOTSTRAP_OWNER_EMAIL=titular@ejemplo.test -e BOOTSTRAP_OWNER_NAME="Titular Ficticio" \
+    "$IMAGE"
+}
+info "First firm: the bootstrap command creates the firm and its owner, then exits"
+BOOTSTRAP_LOG="$ROOT/.demo-logs/docker-smoke-bootstrap.log"
+bootstrap estudio-smoke >"$BOOTSTRAP_LOG" 2>&1 || fail "the bootstrap failed: $(tail -n 20 "$BOOTSTRAP_LOG")"
+# ASCII only, so the check does not depend on the console's encoding. The log holds a throwaway
+# password of this test database only.
+grep -q "temporal: " "$BOOTSTRAP_LOG" || fail "the bootstrap printed no temporary password."
+owner="$(docker exec "$DB_CONTAINER" psql -U gestor -d gestor -tA \
+  -c "SELECT t.slug, u.role, u.password_change_required FROM app_user u JOIN tenant t ON t.id = u.tenant_id")"
+[ "$owner" = "estudio-smoke|OWNER|t" ] || fail "the bootstrap left '$owner' instead of one owner of estudio-smoke."
+
+info "First firm: a second run is refused and creates nothing"
+if bootstrap otro-estudio >"$BOOTSTRAP_LOG" 2>&1; then
+  fail "a second bootstrap succeeded."
+fi
+grep -q "A firm already exists" "$BOOTSTRAP_LOG" || fail "the second bootstrap failed for another reason: $(tail -n 20 "$BOOTSTRAP_LOG")"
+tenants="$(docker exec "$DB_CONTAINER" psql -U gestor -d gestor -tA -c 'SELECT count(*) FROM tenant')"
+[ "$tenants" = "1" ] || fail "there are $tenants firms after a refused bootstrap."
 
 [ "$(docker inspect -f '{{.State.OOMKilled}}' "$APP_CONTAINER")" = "false" ] || fail "the app was OOM-killed at 512 MB."
 info "Memory after the checks: $(docker stats --no-stream --format '{{.MemUsage}}' "$APP_CONTAINER")"

@@ -29,6 +29,34 @@ public class TenantService {
         return TenantSummary.of(tenants.save(new Tenant(name, slug)));
     }
 
+    /**
+     * Creates the first firm of an empty database (T66, ADR-0047) inside the caller's transaction, or
+     * returns empty when any firm, archived or not, already exists. The {@code tenant} table stays
+     * locked until the caller commits, so two runs at once create one firm and the second sees it.
+     *
+     * <p>The firm gets the id of the explicit {@link TenantContext} scope the caller entered, so its
+     * owner can be created in the same transaction: either both exist afterwards or neither does. The
+     * name and slug must already be valid; the table's constraints are the last line of defense.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<TenantSummary> createFirstFirmInScope(String name, String slug) {
+        UUID id = TenantContext.explicitTenant()
+                .orElseThrow(() -> new IllegalStateException("Enter the new firm's TenantContext scope first"));
+        // EXCLUSIVE still lets readers in but blocks every other writer, this same lock included.
+        entityManager.createNativeQuery("LOCK TABLE tenant IN EXCLUSIVE MODE").executeUpdate();
+        if (tenants.count() > 0) {
+            return Optional.empty();
+        }
+        // Native: the entity's id is generated, and this one must be the scope's. The other columns
+        // take their defaults (jurisdiction, practice areas, created_at), like a new Tenant.
+        entityManager.createNativeQuery("INSERT INTO tenant (id, name, slug) VALUES (?1, ?2, ?3)")
+                .setParameter(1, id)
+                .setParameter(2, name)
+                .setParameter(3, slug)
+                .executeUpdate();
+        return Optional.of(new TenantSummary(id, name, slug));
+    }
+
     /** The id of a non-archived firm, used to scope the login lookup. */
     @Transactional(readOnly = true)
     public Optional<UUID> findActiveIdBySlug(String slug) {
