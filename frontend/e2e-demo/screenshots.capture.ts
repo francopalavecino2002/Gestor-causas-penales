@@ -16,6 +16,7 @@ import {
   DEMO_FIRM,
   DETAINEES_CASE,
   FIRM_TIME_ZONE,
+  LABORAL_CASE,
   LUCIA,
   PROBATION_CASE,
   SOFIA,
@@ -237,6 +238,18 @@ for (const viewport of Object.keys(VIEWPORTS) as ViewportName[]) {
 
     await page.goto("/personas");
     await shot(page, "20-persons", viewport);
+
+    // Other areas: the civil cases of the firm, then a laboral case with its parties.
+    await page.goto("/causas?fuero=civil");
+    await page.locator("article:visible, table:visible").first().waitFor();
+    await shot(page, "21-case-list-civil", viewport);
+    await openCase(page, LABORAL_CASE);
+    await page
+      .getByRole("region", { name: "Plazos", exact: true })
+      .getByRole("article")
+      .first()
+      .waitFor();
+    await shot(page, "22-case-laboral", viewport);
 
     await page.context().close();
   });
