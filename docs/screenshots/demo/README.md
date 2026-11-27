@@ -20,7 +20,8 @@ siguen el orden del guion: `NN-pantalla-{mobile,desktop}.png`.
 | 07 a 11 | Causas: lista, resumen e imputados de DEMO-004, plazos de DEMO-001, período de prueba de DEMO-005 |
 | 12 a 16 | Ajustes: índice, catálogos, campos propios, reglas de plazos, usuarios y roles |
 | 17 a 19 | Importar: qué importás, fila para corregir, listo |
-| 20 | Personas (todavía "Próximamente") |
+| 20 | Personas |
+| 21, 22 | Otros fueros: causas civiles y una causa laboral con sus partes (T63) |
 
 ## Revisión visual contra `docs/design/DESIGN.md`
 

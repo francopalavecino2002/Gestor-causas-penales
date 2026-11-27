@@ -34,8 +34,8 @@ El script:
    de la semana y los plazos por vencer siempre caen alrededor de hoy. La base de desarrollo
    (`gestor_causas`) no se toca.
 3. Arranca el backend en `:8081` con los perfiles `dev,demo`, que siembran un estudio ficticio
-   con 25 causas, la agenda de la semana, dos detenidos con plazos que vencen en menos de 48 h y
-   los ítems marcados `[validar]`.
+   con 25 causas penales (más 5 de civil y laboral), la agenda de la semana, dos detenidos con
+   plazos que vencen en menos de 48 h y los ítems marcados `[validar]`.
 4. Arranca el frontend en `:5173`, espera a que los dos respondan y abre el navegador en el login
    con el estudio ya cargado.
 5. Imprime las direcciones, la clave y los usuarios de demo.
@@ -110,8 +110,8 @@ Las capturas de cada paso, en celular (390×844) y en compu (1440×900), están 
   - "Cada estudio tiene su espacio separado: nadie de otro estudio ve tus causas".
   - "Hay verificación en dos pasos con una app de códigos, como la del banco. Son datos de causas
     penales: aunque alguien sepa tu clave, sin el código no entra".
-  - En los datos de demo nadie tiene el segundo factor activado y todavía no se activa desde la
-    pantalla: mostrá la captura del paso del código.
+  - En los datos de demo nadie tiene el segundo factor activado (cada uno lo activa en **Ajustes >
+    Usuarios y roles**): mostrá la captura del paso del código.
 - **Capturas:** [ingreso, compu](screenshots/demo/01-login-desktop.png),
   [ingreso, celular](screenshots/demo/01-login-mobile.png),
   [código de verificación, celular](screenshots/demo/02-second-factor-mobile.png).
@@ -162,7 +162,7 @@ Las capturas de cada paso, en celular (390×844) y en compu (1440×900), están 
 
 ### 4:30 a 6:00. Una causa con varios imputados
 
-- **Qué hacés:** andá a **Causas** (25 en el estudio). Buscá `DEMO-004` y abrí *Benítez Ejemplo,
+- **Qué hacés:** andá a **Causas** (30 en el estudio, 25 penales). Buscá `DEMO-004` y abrí *Benítez Ejemplo,
   Carla y otros s/ homicidio (ficticio)*. Bajá hasta **Imputados**.
 - **Qué decís:**
   - "Una causa, tres imputados, y cada uno con su etapa, su estado y su situación de libertad:
@@ -254,8 +254,30 @@ Las capturas de cada paso, en celular (390×844) y en compu (1440×900), están 
     audiencia. Letra grande, botones grandes y el aviso de detenidos arriba".
   - "Cerramos con las preguntas: son las que todavía no podemos responder sin vos".
 - **Capturas:** [hoy, celular](screenshots/demo/03-agenda-today-mobile.png),
-  [plazos, celular](screenshots/demo/05-deadlines-mobile.png). La sección **Personas** todavía
-  dice "Próximamente" ([captura](screenshots/demo/20-persons-mobile.png)): no la abras en la demo.
+  [plazos, celular](screenshots/demo/05-deadlines-mobile.png),
+  [personas, celular](screenshots/demo/20-persons-mobile.png).
+
+### 10:00 a 11:00. Otros fueros (opcional)
+
+Un minuto más si el estudio no es solo penal, o si te preguntan "¿y lo civil?".
+
+- **Qué hacés:** andá a **Causas** y en **Fuero** elegí **Civil y comercial** (3 causas). Volvé a
+  **Todos los fueros**, elegí **Laboral** y abrí `DEMO-LAB-002` (*Arce Prueba, Nélida c/ Obras del
+  Sur Ficticia S.A. y ART Muestra S.A. s/ accidente de trabajo*). Si querés, mostrá **Ajustes >
+  Fueros**.
+- **Qué decís:**
+  - "El mismo estudio lleva causas penales, civiles y laborales. Cada fuero trae sus etapas, sus
+    tipos de audiencia y sus roles: actor, demandado, la ART".
+  - "Una causa civil o laboral no tiene imputados: la etapa y el estado van en la causa".
+  - "En estos fueros el sistema todavía no calcula plazos: los cargás a mano como plazos judiciales
+    y te avisa igual. Los fueros nuevos están marcados **[validar]**: son un borrador para revisar
+    con un abogado del fuero".
+  - "Las audiencias civiles y laborales de la semana aparecen en la misma agenda, con su fuero
+    al lado; el filtro **Fuero** de la agenda te deja ver uno solo".
+- **Capturas:** [causas civiles, compu](screenshots/demo/21-case-list-civil-desktop.png),
+  [causas civiles, celular](screenshots/demo/21-case-list-civil-mobile.png),
+  [causa laboral, compu](screenshots/demo/22-case-laboral-desktop.png),
+  [causa laboral, celular](screenshots/demo/22-case-laboral-mobile.png).
 
 ## Preguntas para el abogado
 

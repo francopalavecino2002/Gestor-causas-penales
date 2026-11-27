@@ -133,3 +133,6 @@ task end to end. The loop for one task:
 - Headless runs may deny `rm` and `git rm`: a file that becomes unused cannot be deleted in that run.
   Note it in the PR as a follow-up instead of leaving it unmentioned. GitHub has no area labels yet:
   open PRs without `--label`.
+- In a worktree `docker compose` clashes with the main checkout's `gestor-penal-postgres` container, so
+  `scripts/e2e-demo.sh` cannot run locally: refresh the demo screenshots with `gh workflow run ci.yml
+  --ref <branch>` and `gh run download <run-id> -n demo-screenshots -D docs/screenshots/demo`.

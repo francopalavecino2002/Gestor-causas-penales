@@ -235,3 +235,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   Every user changes their own password (`POST /api/v1/me/password`), which logs out every device; a
   temporary password must be replaced before anything else, enforced by the server
   (`/problems/password-change-required`). Flyway V19 (ADR-0044).
+- Multi-area demo (T63): the demo firm also works in civil and laboral, with three civil and two
+  laboral fictitious cases, their parties (people and companies, no document numbers), one evening
+  hearing each in the coming days and judicial deadlines loaded by hand. `docs/DEMO.md` gains an
+  optional "Otros fueros" minute after the criminal story; CI now captures the demo screenshots as
+  an artifact (`demo-screenshots`) so they can be refreshed without a local Docker setup.
