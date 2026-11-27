@@ -1,0 +1,5 @@
+Hola, {{displayName}}:
+
+Este es un correo de prueba. Si lo estás leyendo, el envío de correos del gestor funciona.
+
+No hace falta que respondas.

@@ -16,5 +16,15 @@ services:
       timeout: 5s
       retries: 10
 
+  # Local SMTP server that catches every email (ADR-0048); nothing leaves the machine. Not started by
+  # default: `docker compose --profile mail up -d mailpit`, then read the emails at http://localhost:8025.
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    container_name: gestor-penal-mailpit
+    profiles: ["mail"]
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
 volumes:
   postgres_data:

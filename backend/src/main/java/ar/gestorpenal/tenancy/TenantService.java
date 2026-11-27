@@ -85,6 +85,12 @@ public class TenantService {
         return currentTenant().getJurisdictionCode();
     }
 
+    /** The name of the firm in scope, as its emails are signed. Fails closed when no firm is in scope. */
+    @Transactional(readOnly = true)
+    public String currentFirmName() {
+        return currentTenant().getName();
+    }
+
     private Tenant currentTenant() {
         UUID current = new CurrentTenantResolver().resolveCurrentTenantIdentifier();
         return tenants.findById(current).orElseThrow(() -> new IllegalStateException("No firm in scope"));
