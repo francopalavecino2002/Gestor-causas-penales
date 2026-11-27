@@ -115,7 +115,7 @@ if ((Invoke-Sql "SELECT count(*) FROM pg_database WHERE datname = '$Db'") -eq "1
   }
   if (-not $renamed) {
     Invoke-Sql "ALTER DATABASE $Db WITH ALLOW_CONNECTIONS true" | Out-Null
-    Stop-Restore "algo sigue conectado a $Db: quedo como estaba. Los datos restaurados estan en $staging; cerra el backend y proba de nuevo."
+    Stop-Restore "algo sigue conectado a ${Db}: quedo como estaba. Los datos restaurados estan en $staging; cerra el backend y proba de nuevo."
   }
   Invoke-Sql "ALTER DATABASE $previousDb WITH ALLOW_CONNECTIONS true" | Out-Null
 }
