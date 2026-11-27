@@ -126,7 +126,8 @@ Levanta Postgres, el backend con datos ficticios de hoy (base `gestor_demo`, rec
 corrida) y el frontend; abre el navegador e imprime los usuarios y la clave. También publica la app
 en la IP de la red local para abrirla desde un celular en el mismo Wi-Fi (`--local` / `-Local` lo
 desactiva). Detalles, usuarios, guion de 10 minutos y problemas comunes en
-[`docs/DEMO.md`](docs/DEMO.md). Respaldos diarios y restauración: [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
+[`docs/DEMO.md`](docs/DEMO.md). Respaldos diarios y restauración: [`docs/OPERATIONS.md`](docs/OPERATIONS.md). Publicarlo en un
+hosting barato (preparado, sin deploy): [`docs/HOSTING.md`](docs/HOSTING.md).
 
 ### Paso a paso
 

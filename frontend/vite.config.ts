@@ -13,8 +13,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      // Navigations to the backend must reach the network, never the SPA shell.
-      workbox: { navigateFallbackDenylist: [/^\/api\//] },
+      // Navigations to the backend must reach the network, never the SPA shell. In production the
+      // backend serves this build on the same origin (ADR-0046), health checks included.
+      workbox: { navigateFallbackDenylist: [/^\/api\//, /^\/actuator\//] },
       // Placeholder icons generated from public/favicon.svg with @vite-pwa/assets-generator
       // (preset minimal-2023). Brand icons are pending (see docs/DECISIONS.md, T20).
       includeAssets: ["favicon.ico", "favicon.svg", "apple-touch-icon-180x180.png"],
