@@ -34,17 +34,20 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
  * Cookie session + CSRF for the same-origin SPA (ADR-0008). Deny by default: only the health
- * check, the CSRF bootstrap, the two login steps (ADR-0009), the calendar feed (ADR-0034) and the
+ * check, the CSRF bootstrap, the two login steps (ADR-0009), password recovery (ADR-0049), the
+ * calendar feed (ADR-0034) and the
  * read-only public deadline calculator (ADR-0041) and the built frontend (ADR-0046) are public.
  * There is no CORS configuration on purpose: the SPA and the API share one origin, so a browser on
  * any other origin gets no {@code Access-Control-Allow-*} header (ADR-0046).
  */
 @Configuration
-@EnableConfigurationProperties(LoginThrottleProperties.class)
+@EnableConfigurationProperties({LoginThrottleProperties.class, PasswordResetProperties.class})
 public class SecurityConfig {
 
     static final String LOGIN_PATH = "/api/v1/auth/login";
     static final String SECOND_FACTOR_PATH = "/api/v1/auth/login/second-factor";
+    static final String PASSWORD_RESET_PATH = "/api/v1/auth/password-reset";
+    static final String PASSWORD_RESET_CONFIRM_PATH = "/api/v1/auth/password-reset/confirm";
     static final String CSRF_PATH = "/api/v1/auth/csrf";
     static final String LOGOUT_PATH = "/api/v1/auth/logout";
     static final String CALENDAR_FEED_PATTERN = "/api/v1/calendar-feed/*.ics";
@@ -83,6 +86,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers(HttpMethod.GET, CSRF_PATH).permitAll()
                         .requestMatchers(HttpMethod.POST, LOGIN_PATH, SECOND_FACTOR_PATH).permitAll()
+                        // Password recovery by email (ADR-0049): rate-limited, CSRF-protected like the login.
+                        .requestMatchers(HttpMethod.POST, PASSWORD_RESET_PATH, PASSWORD_RESET_CONFIRM_PATH).permitAll()
                         // Calendar apps cannot log in: the secret in the path is the credential (ADR-0034).
                         .requestMatchers(HttpMethod.GET, CALENDAR_FEED_PATTERN).permitAll()
                         .requestMatchers(HttpMethod.HEAD, CALENDAR_FEED_PATTERN).permitAll()

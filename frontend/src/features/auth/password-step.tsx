@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleAlert, Eye, EyeOff, LoaderCircle } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
+import { Link } from "@tanstack/react-router";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
   TENANT_MAX,
   type CredentialsValues,
 } from "@/features/auth/login-schemas";
+import { RECOVER_PASSWORD_PATH } from "@/features/auth/redirect";
 import type { RememberedFirm } from "@/features/firms/remembered-firms";
 
 interface PasswordStepProps {
@@ -38,11 +40,14 @@ export function PasswordStep({
     handleSubmit,
     setValue,
     setFocus,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CredentialsValues>({
     resolver: zodResolver(credentialsSchema),
     defaultValues: { ...defaultValues, password: "" },
   });
+  // The recovery link carries the firm already typed, so it is not asked twice.
+  const tenant = useWatch({ control, name: "tenant" });
 
   // Coming from the firm switcher (or back from an expired code), the firm is already there.
   useEffect(() => {
@@ -167,6 +172,13 @@ export function PasswordStep({
             </Button>
           </div>
           <FieldError id="login-password-error">{errors.password?.message}</FieldError>
+          <Link
+            to={RECOVER_PASSWORD_PATH}
+            search={tenant.trim() ? { estudio: tenant.trim().toLowerCase() } : {}}
+            className="inline-flex min-h-11 w-fit items-center text-meta font-semibold text-primary underline underline-offset-4 hover:decoration-2"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
         </Field>
 
         <Button type="submit" size="lg" className="mt-1 w-full" disabled={isSubmitting}>

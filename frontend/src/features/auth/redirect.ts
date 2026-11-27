@@ -1,8 +1,15 @@
 export const LOGIN_PATH = "/ingresar";
 
+/** Asks for a password reset link by email (T71). */
+export const RECOVER_PASSWORD_PATH = "/recuperar-clave";
+
+/** Where the emailed link lands: `?estudio=<slug>#token=<token>` (T71). */
+export const RESET_PASSWORD_PATH = "/restablecer-clave";
+
 /** Messages the login shows on arrival, from `?aviso=`. */
 export const LOGIN_NOTICES = {
   "contrasena-cambiada": "Listo. Ingresá con tu contraseña nueva.",
+  "clave-restablecida": "Listo, ya podés ingresar con tu nueva contraseña.",
 } as const;
 
 export type LoginNotice = keyof typeof LOGIN_NOTICES;

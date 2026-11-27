@@ -2162,3 +2162,49 @@ Superseded decisions are marked, never deleted.
   sets `MAIL_*` (T77). Sending is synchronous: a slow server delays the request up to the timeout,
   acceptable at this volume; a queue would be a later change behind the same `Mailer`. Until then,
   flows that depend on email work locally with Mailpit.
+
+## ADR-0049: Password recovery by email (T71)
+
+- **Date:** 2026-11-27
+- **Status:** accepted
+- **Context:** A lawyer who forgets the password today depends on the owner handing out a temporary
+  one (ADR-0044); an owner who forgets theirs has nobody. Recovery is the classic way to enumerate
+  accounts and to take one over, and the firm's data is sensitive (Ley 25.326, art. 7).
+- **Decision:**
+  - **Two public endpoints**, CSRF-protected like the login: `POST /api/v1/auth/password-reset`
+    (`{tenant, email}`) and `POST /api/v1/auth/password-reset/confirm` (`{token, newPassword}`).
+  - **Same answer for every account.** Asking for a link always answers `202` with no body. The
+    lookup and the email run afterwards on one background thread of `PasswordResetService` (a
+    bounded queue of 100; a full queue drops the request and logs it), so neither the answer nor its
+    timing (an SMTP send takes seconds) reveals whether the firm or the email exist. Archived users
+    and archived firms get nothing.
+  - **Request limits** with their own counters (the login throttle's sliding window, not shared with
+    logins so asking for links never locks anyone out): 3 per hour per firm + email and 10 per hour
+    per client address, `429` `password-reset-throttled` with `Retry-After`. They count every
+    request alike, so a `429` says nothing about existence either. Using a link draws on the
+    **login** throttle (per link and per client, refunded on success), so guessing links costs the
+    same budget as guessing passwords.
+  - **The link.** 256 random bits in base64url, stored only as SHA-256 in `password_reset_token`
+    (an `@Audited` entity, the hash redacted): issuing, using and revoking are in the firm's history,
+    and the password change is in the user's. Valid 30 minutes (`app.security.password-reset.token-ttl`),
+    once; a new request revokes the open links, and a reset revokes the rest. Using it locks the
+    row, so two simultaneous uses cannot both succeed. A rejected new password (too short or long)
+    rolls back and leaves the link usable. Unknown, used, revoked and expired links get one answer,
+    `400` `invalid-reset-token`. Rows are never deleted.
+  - **Where the link points.** `APP_PUBLIC_URL` + `/restablecer-clave?estudio=<slug>#token=<secret>`.
+    The base comes from configuration, never from the request's `Host` header, which a visitor
+    controls (a poisoned link would deliver the secret to them). The secret travels in the fragment:
+    browsers never send it to a server, so it is not in access logs or a `Referer`, and the SPA
+    removes it from the address bar after reading it. In `prod`, `ProductionSafetyCheck` refuses to
+    start with an SMTP host and a public URL that is not `https://`.
+  - **After the reset** the password is replaced (and a temporary one stops being temporary), which
+    ends every session of the user through `credentials_changed_at` (ActiveUserFilter), and the
+    browser's own session is invalidated. The user is **not** logged in: the next login asks for the
+    second factor when they have one, so a stolen mailbox alone does not open an account with 2FA.
+- **Consequences:** Recovery depends on email: until `MAIL_*` is set (T77) the link is only logged
+  as `LOGGED` without its body, and the owner's temporary password stays the fallback. The request
+  limits and the queue are per instance and reset on restart, like the login throttle. Anyone can
+  spend an account's 3 requests and delay that user's recovery for up to an hour; accepted, since it
+  reveals nothing and the owner's temporary password still works. A rejected new password (only
+  possible with a usable link) is refunded to the login throttle: it is not a guess. A firm whose
+  only owner lost both the password and the second factor still needs the operator.

@@ -3,11 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { CircleCheck, Hourglass } from "lucide-react";
 
-import { BrandMark } from "@/components/shell/brand-mark";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { login, verifySecondFactor, type Credentials } from "@/features/auth/auth-api";
+import { AuthLayout } from "@/features/auth/auth-layout";
 import { EXPIRED_MESSAGE, loginErrorMessage } from "@/features/auth/login-errors";
-import { LoginPanel } from "@/features/auth/login-panel";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { PasswordStep } from "@/features/auth/password-step";
 import { LOGIN_NOTICES, safeRedirect, type LoginNotice } from "@/features/auth/redirect";
@@ -106,54 +105,45 @@ export function LoginPage({ redirect, estudio, aviso }: LoginSearch) {
     setStep((current) => ({ ...current, name: "password", error: undefined }));
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <LoginPanel />
-      <main
-        id="contenido"
-        className="flex min-h-dvh flex-col px-4 pt-6 pb-10 sm:px-8 lg:justify-center lg:px-10"
-      >
-        <div className="mx-auto grid w-full max-w-md gap-10">
-          <BrandMark className="lg:hidden" />
-          {aviso && step.attempt === 0 && step.name === "password" && (
-            <Alert role="status">
-              <CircleCheck aria-hidden="true" />
-              <AlertDescription className="font-semibold">{LOGIN_NOTICES[aviso]}</AlertDescription>
-            </Alert>
-          )}
-          {step.name === "password" ? (
-            <PasswordStep
-              key={step.attempt}
-              defaultValues={{ tenant: step.tenant, email: step.email }}
-              rememberedFirms={rememberedFirms}
-              error={step.error}
-              onSubmit={submitCredentials}
-            />
-          ) : (
-            <SecondFactorStep
-              email={step.email}
-              tenant={step.tenant}
-              error={step.error}
-              attempt={step.attempt}
-              onSubmit={submitCode}
-              onModeChange={() => setStep((current) => ({ ...current, error: undefined }))}
-              onBack={backToPassword}
-            />
-          )}
-          <p className="flex items-start gap-2.5 border-t pt-6 text-meta text-muted-foreground">
-            <Hourglass aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
-            <span>
-              ¿Tenés que contar un plazo del CPP de Neuquén? Usá la{" "}
-              <Link
-                to={PUBLIC_CALCULATOR_PATH}
-                className="font-semibold text-primary underline underline-offset-4 hover:decoration-2"
-              >
-                calculadora de plazos gratuita
-              </Link>
-              , sin cuenta.
-            </span>
-          </p>
-        </div>
-      </main>
-    </div>
+    <AuthLayout>
+      {aviso && step.attempt === 0 && step.name === "password" && (
+        <Alert role="status">
+          <CircleCheck aria-hidden="true" />
+          <AlertDescription className="font-semibold">{LOGIN_NOTICES[aviso]}</AlertDescription>
+        </Alert>
+      )}
+      {step.name === "password" ? (
+        <PasswordStep
+          key={step.attempt}
+          defaultValues={{ tenant: step.tenant, email: step.email }}
+          rememberedFirms={rememberedFirms}
+          error={step.error}
+          onSubmit={submitCredentials}
+        />
+      ) : (
+        <SecondFactorStep
+          email={step.email}
+          tenant={step.tenant}
+          error={step.error}
+          attempt={step.attempt}
+          onSubmit={submitCode}
+          onModeChange={() => setStep((current) => ({ ...current, error: undefined }))}
+          onBack={backToPassword}
+        />
+      )}
+      <p className="flex items-start gap-2.5 border-t pt-6 text-meta text-muted-foreground">
+        <Hourglass aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
+        <span>
+          ¿Tenés que contar un plazo del CPP de Neuquén? Usá la{" "}
+          <Link
+            to={PUBLIC_CALCULATOR_PATH}
+            className="font-semibold text-primary underline underline-offset-4 hover:decoration-2"
+          >
+            calculadora de plazos gratuita
+          </Link>
+          , sin cuenta.
+        </span>
+      </p>
+    </AuthLayout>
   );
 }

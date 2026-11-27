@@ -11,7 +11,8 @@ import org.springframework.stereotype.Component;
 /**
  * Refuses to start the {@code prod} profile with a setting that is only safe on a developer's
  * machine (ADR-0046): the dev or demo profile, session cookies without {@code Secure}, Hibernate
- * changing the schema, or the fictitious development TOTP key. A wrong environment variable then
+ * changing the schema, the fictitious development TOTP key, or emails with links that are not
+ * HTTPS. A wrong environment variable then
  * fails the deployment instead of weakening a live firm.
  */
 @Component
@@ -46,6 +47,12 @@ class ProductionSafetyCheck {
         }
         if (DEV_TOTP_KEY.equals(environment.getProperty("app.security.two-factor.encryption-key"))) {
             problems.add("TOTP_ENCRYPTION_KEY is the development key");
+        }
+        // Emails carry links to the app (ADR-0049): once they are really sent, the links must be HTTPS.
+        String smtpHost = environment.getProperty("app.mail.smtp.host", "");
+        String publicUrl = environment.getProperty("app.public-url", "");
+        if (!smtpHost.isBlank() && !publicUrl.startsWith("https://")) {
+            problems.add("MAIL_SMTP_HOST is set but APP_PUBLIC_URL is not an https:// address");
         }
         return problems;
     }

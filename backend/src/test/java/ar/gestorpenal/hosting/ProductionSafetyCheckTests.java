@@ -55,6 +55,26 @@ class ProductionSafetyCheckTests {
     }
 
     @Test
+    void shouldRejectEmailLinksWithoutHttpsOnceMailIsSent() {
+        MockEnvironment environment = production()
+                .withProperty("app.mail.smtp.host", "smtp.ejemplo.test")
+                .withProperty("app.public-url", "http://localhost:5173");
+
+        assertThat(ProductionSafetyCheck.problems(environment))
+                .containsExactly("MAIL_SMTP_HOST is set but APP_PUBLIC_URL is not an https:// address");
+    }
+
+    @Test
+    void shouldAcceptHttpsEmailLinksOrNoMailAtAll() {
+        assertThat(ProductionSafetyCheck.problems(production()
+                        .withProperty("app.mail.smtp.host", "smtp.ejemplo.test")
+                        .withProperty("app.public-url", "https://gestor.ejemplo.test")))
+                .isEmpty();
+        assertThat(ProductionSafetyCheck.problems(production().withProperty("app.public-url", "http://localhost:5173")))
+                .isEmpty();
+    }
+
+    @Test
     void shouldFailTheStartupWhenSomethingIsUnsafe() {
         MockEnvironment environment = production().withProperty("server.servlet.session.cookie.secure", "false");
 

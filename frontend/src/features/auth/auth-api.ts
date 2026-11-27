@@ -63,6 +63,25 @@ export async function changeOwnPassword(currentPassword: string, newPassword: st
   });
 }
 
+/**
+ * Asks for a password reset link by email. The server answers 202 whether or not the account
+ * exists, so the screen never learns (nor tells) which emails have an account.
+ */
+export async function requestPasswordReset(tenant: string, email: string): Promise<void> {
+  await apiFetch("/api/v1/auth/password-reset", { method: "POST", body: { tenant, email } });
+}
+
+/**
+ * Sets a new password with the token of the emailed link. On 204 the server has closed every
+ * session of the user: they sign in again as usual, second factor included.
+ */
+export async function confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+  await apiFetch("/api/v1/auth/password-reset/confirm", {
+    method: "POST",
+    body: { token, newPassword },
+  });
+}
+
 export async function logout(): Promise<void> {
   await apiFetch("/api/v1/auth/logout", { method: "POST" });
 }

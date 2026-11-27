@@ -12,7 +12,31 @@ const utf8Length = (value: string) => new TextEncoder().encode(value).length;
 export const TOO_LONG_MESSAGE =
   "La contraseña nueva es demasiado larga. Usá hasta 72 letras y números; las letras con acento y la ñ cuentan doble.";
 
-/** Passwords are sent exactly as typed: no trimming. */
+export const MISMATCH_MESSAGE =
+  "Las dos contraseñas nuevas no coinciden. Escribila igual en los dos campos.";
+
+// Passwords are sent exactly as typed: no trimming.
+const newPassword = z
+  .string()
+  .min(
+    NEW_PASSWORD_MIN,
+    `La contraseña nueva tiene que tener al menos ${NEW_PASSWORD_MIN} caracteres.`,
+  )
+  .refine((value) => utf8Length(value) <= NEW_PASSWORD_MAX_BYTES, TOO_LONG_MESSAGE);
+
+const repeatPassword = z.string().min(1, "Repetí la contraseña nueva.");
+
+/** A new password and the same again, for the reset link (T71): there is no current one. */
+export const passwordResetSchema = z
+  .object({ newPassword, repeatPassword })
+  .superRefine((values, context) => {
+    if (values.repeatPassword && values.repeatPassword !== values.newPassword) {
+      context.addIssue({ code: "custom", path: ["repeatPassword"], message: MISMATCH_MESSAGE });
+    }
+  });
+
+export type PasswordResetValues = z.infer<typeof passwordResetSchema>;
+
 export function passwordChangeSchema(currentLabel: "actual" | "temporal") {
   return z
     .object({
@@ -20,14 +44,8 @@ export function passwordChangeSchema(currentLabel: "actual" | "temporal") {
         .string()
         .min(1, `Escribí tu contraseña ${currentLabel}.`)
         .max(PASSWORD_MAX, `La contraseña tiene como máximo ${PASSWORD_MAX} caracteres.`),
-      newPassword: z
-        .string()
-        .min(
-          NEW_PASSWORD_MIN,
-          `La contraseña nueva tiene que tener al menos ${NEW_PASSWORD_MIN} caracteres.`,
-        )
-        .refine((value) => utf8Length(value) <= NEW_PASSWORD_MAX_BYTES, TOO_LONG_MESSAGE),
-      repeatPassword: z.string().min(1, "Repetí la contraseña nueva."),
+      newPassword,
+      repeatPassword,
     })
     .superRefine((values, context) => {
       if (values.newPassword && values.newPassword === values.currentPassword) {
@@ -38,11 +56,7 @@ export function passwordChangeSchema(currentLabel: "actual" | "temporal") {
         });
       }
       if (values.repeatPassword && values.repeatPassword !== values.newPassword) {
-        context.addIssue({
-          code: "custom",
-          path: ["repeatPassword"],
-          message: "Las dos contraseñas nuevas no coinciden. Escribila igual en los dos campos.",
-        });
+        context.addIssue({ code: "custom", path: ["repeatPassword"], message: MISMATCH_MESSAGE });
       }
     });
 }

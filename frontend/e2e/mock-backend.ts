@@ -117,7 +117,12 @@ interface MockBackendOptions {
    * /me, the CSRF token, the password change and the logout then answers 403.
    */
   passwordChangeRequired?: boolean;
+  /** Asking for a password reset link answers 429 (T71), to show its message. */
+  passwordResetThrottled?: boolean;
 }
+
+/** The fictitious token of the emailed reset link (T71): 43 base64url characters. */
+export const RESET_TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCdE";
 
 /**
  * The settings endpoints (T25) over the fictitious fixtures, with state so a change shows up in
@@ -499,6 +504,25 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
       case "POST /api/v1/auth/logout":
         state.signedIn = false;
         return route.fulfill({ status: 204 });
+      // Like PasswordResetController: the same 202 whether or not the account exists.
+      case "POST /api/v1/auth/password-reset":
+        if (options.passwordResetThrottled) {
+          return route.fulfill({
+            status: 429,
+            contentType: "application/problem+json",
+            headers: { "Retry-After": "600" },
+            body: JSON.stringify({ type: "/problems/password-reset-throttled", status: 429 }),
+          });
+        }
+        return route.fulfill({ status: 202 });
+      case "POST /api/v1/auth/password-reset/confirm": {
+        const reset = request.postDataJSON() as { token: string; newPassword: string };
+        if (reset.token !== RESET_TOKEN) return problem(route, 400, "invalid-reset-token");
+        if (reset.newPassword.length < 12) return problem(route, 400, "invalid-password");
+        state.password = reset.newPassword;
+        state.signedIn = false;
+        return route.fulfill({ status: 204 });
+      }
       case "GET /api/v1/agenda": {
         if (!state.signedIn) return problem(route, 401, "authentication-required");
         if (options.agendaFails) return problem(route, 500, "internal");

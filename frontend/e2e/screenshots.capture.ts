@@ -16,7 +16,7 @@ import { ALL_JUS_VALUES, MIN_EXCARCELACION } from "../src/test/fee-fixtures";
 import { CASE_EJEMPLAR, CASE_MODELO } from "../src/test/case-fixtures";
 import { ALL_PERSONS, PERSON_JULIAN } from "../src/test/person-fixtures";
 import { DEMO_PASSWORD, DEMO_TOTP_CODE } from "../src/test/two-factor-fixtures";
-import { DEMO_ME, mockBackend } from "./mock-backend";
+import { DEMO_ME, mockBackend, RESET_TOKEN } from "./mock-backend";
 
 /*
  * Captures the screens of each task for its PR. Not a regression check: it is excluded from
@@ -25,7 +25,8 @@ import { DEMO_ME, mockBackend } from "./mock-backend";
  * docs/screenshots/<task id>/ at the repository root.
  */
 
-type ViewportName = "mobile" | "desktop";
+/** "small" is the narrowest phone the product supports (360 px). */
+type ViewportName = "small" | "mobile" | "desktop";
 type Theme = "light" | "dark";
 
 interface Screen {
@@ -1199,6 +1200,85 @@ const SCREENS: Record<string, Screen[]> = {
       fullPage: false,
     },
   ],
+  t71: [
+    {
+      path: "/recuperar-clave?estudio=estudio-demo",
+      name: "recover",
+      viewports: ["small", "desktop"],
+      prepare: (page) => mockBackend(page),
+    },
+    {
+      path: "/recuperar-clave?estudio=estudio-demo",
+      name: "recover-sent",
+      viewports: ["small", "desktop"],
+      prepare: (page) => mockBackend(page),
+      act: async (page) => {
+        await page.getByLabel("Email", { exact: true }).fill(DEMO_ME.email);
+        await page.getByRole("button", { name: "Enviame el enlace" }).click();
+        await page.getByRole("heading", { name: "Revisá tu correo" }).waitFor();
+        // Keep the pointer off "Pedí otro enlace", which takes the clicked button's place.
+        await page.mouse.move(0, 0);
+      },
+    },
+    {
+      path: "/recuperar-clave?estudio=estudio-demo",
+      name: "recover-throttled",
+      viewports: ["small"],
+      themes: ["light"],
+      prepare: (page) => mockBackend(page, { passwordResetThrottled: true }),
+      act: async (page) => {
+        await page.getByLabel("Email", { exact: true }).fill(DEMO_ME.email);
+        await page.getByRole("button", { name: "Enviame el enlace" }).click();
+        await page.getByRole("alert").waitFor();
+      },
+    },
+    {
+      path: `/restablecer-clave?estudio=estudio-demo#token=${RESET_TOKEN}`,
+      name: "reset",
+      viewports: ["small", "desktop"],
+      prepare: (page) => mockBackend(page),
+    },
+    {
+      path: `/restablecer-clave?estudio=estudio-demo#token=${RESET_TOKEN}`,
+      name: "reset-mismatch",
+      viewports: ["small"],
+      themes: ["light"],
+      prepare: (page) => mockBackend(page),
+      act: async (page) => {
+        await page.getByLabel("Nueva contraseña", { exact: true }).fill("una frase larga ficticia");
+        await page.getByLabel("Repetila", { exact: true }).fill("otra frase distinta");
+        await page.getByRole("button", { name: "Guardá la contraseña nueva" }).click();
+        await page
+          .getByText("Las dos contraseñas nuevas no coinciden.", { exact: false })
+          .waitFor();
+      },
+    },
+    {
+      path: "/restablecer-clave?estudio=estudio-demo",
+      name: "reset-invalid",
+      viewports: ["small", "desktop"],
+      prepare: (page) => mockBackend(page),
+    },
+    {
+      path: "/ingresar",
+      name: "login-forgot-link",
+      viewports: ["small"],
+      themes: ["light"],
+      prepare: (page) => mockBackend(page),
+      fullPage: false,
+    },
+    {
+      path: "/ingresar?estudio=estudio-demo&aviso=clave-restablecida",
+      name: "login-reset-done",
+      viewports: ["small"],
+      themes: ["light"],
+      prepare: async (page) => {
+        await rememberFirms(page);
+        await mockBackend(page);
+      },
+      fullPage: false,
+    },
+  ],
 };
 
 /** Signed in as the owner with the given second factor (T61). */
@@ -1269,6 +1349,7 @@ async function uploadImport(page: Page, name: string) {
 }
 
 const VIEWPORTS: Record<ViewportName, { width: number; height: number }> = {
+  small: { width: 360, height: 780 },
   mobile: { width: 390, height: 844 },
   desktop: { width: 1440, height: 900 },
 };

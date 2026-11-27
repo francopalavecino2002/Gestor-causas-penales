@@ -264,3 +264,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   (`mail_delivery`), an owner-only test email (`POST /api/v1/mail/test`, 5 per hour), Mailpit in
   Docker Compose (`--profile mail`, ports 1025 and 8025), GreenMail integration tests, and a Brevo vs
   Resend comparison in `docs/HOSTING.md` (ADR-0048).
+- Password recovery by email (T71): "¿Olvidaste tu contraseña?" on the login leads to
+  `/recuperar-clave`, which always answers the same whether or not the account exists (the lookup and
+  the email run in the background); the emailed link (`APP_PUBLIC_URL`, secret in the URL fragment) is
+  stored hashed, works once for 30 minutes and is revoked by a newer one; 3 requests per hour per firm
+  and email and 10 per client address; `/restablecer-clave` sets the new password, closes every
+  session and leaves two-factor in place; links and password changes are in the firm's history
+  (ADR-0049).
