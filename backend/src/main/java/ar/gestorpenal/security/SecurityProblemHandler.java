@@ -83,6 +83,22 @@ class SecurityProblemHandler {
                 .body(body);
     }
 
+    /** More specific than {@link LoginThrottledException}, so it wins over {@link #loginThrottled}. */
+    @ExceptionHandler(PasswordResetThrottledException.class)
+    ResponseEntity<ProblemDetail> passwordResetThrottled(PasswordResetThrottledException exception) {
+        ProblemDetail body = problem(HttpStatus.TOO_MANY_REQUESTS, "password-reset-throttled",
+                "Too many reset requests", "Wait before asking for another password reset link.");
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(exception.retryAfterSeconds()))
+                .body(body);
+    }
+
+    @ExceptionHandler(InvalidResetTokenException.class)
+    ProblemDetail invalidResetToken() {
+        return problem(HttpStatus.BAD_REQUEST, "invalid-reset-token", "Invalid reset link",
+                "The password reset link is not valid, was already used or expired. Ask for a new one.");
+    }
+
     private static ProblemDetail problem(HttpStatus status, String type, String title, String detail) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setType(URI.create("/problems/" + type));

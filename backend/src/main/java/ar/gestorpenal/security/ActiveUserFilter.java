@@ -93,7 +93,9 @@ class ActiveUserFilter extends OncePerRequestFilter {
                     || plainPathUnder(CALENDAR_FEED_PREFIX, path);
             case "POST" -> PasswordController.PATH.equals(path)
                     || SecurityConfig.LOGIN_PATH.equals(path)
-                    || SecurityConfig.SECOND_FACTOR_PATH.equals(path);
+                    || SecurityConfig.SECOND_FACTOR_PATH.equals(path)
+                    || SecurityConfig.PASSWORD_RESET_PATH.equals(path)
+                    || SecurityConfig.PASSWORD_RESET_CONFIRM_PATH.equals(path);
             default -> false;
         };
     }

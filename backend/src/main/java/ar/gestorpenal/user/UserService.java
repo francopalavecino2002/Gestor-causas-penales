@@ -85,6 +85,26 @@ public class UserService {
         user.replacePassword(passwordEncoder.encode(newPassword), false, clock.instant());
     }
 
+    /**
+     * Sets the password a user chose through a recovery link (ADR-0049): the link proved they own the
+     * email, so the current password is not asked. Every session of the user ends; two-factor stays on.
+     *
+     * @return false when the user is archived (or not of the current firm) and nothing changed
+     * @throws InvalidPasswordException if the new password is too short or too long
+     */
+    @Transactional
+    public boolean resetForgottenPassword(UUID userId, String newPassword) {
+        try {
+            requireAcceptablePassword(newPassword);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidPasswordException(e.getMessage());
+        }
+        return users.findById(userId).filter(AppUser::isActive).map(user -> {
+            user.replacePassword(passwordEncoder.encode(newPassword), false, clock.instant());
+            return true;
+        }).orElse(false);
+    }
+
     @Transactional
     public AppUser createUser(String email, String displayName, String rawPassword, Role role) {
         return users.save(newUser(email, displayName, rawPassword, role));
