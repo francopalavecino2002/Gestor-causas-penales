@@ -45,6 +45,7 @@ jobs:
             scripts:
               - 'scripts/**'
               - 'docker-compose.yml'
+              - 'backend/Dockerfile*'
       - id: decide
         env:
           IS_PR: ${{ github.event_name == 'pull_request' }}
@@ -169,6 +170,25 @@ jobs:
             .demo-logs/
           retention-days: 7
 
+  # The production image (T65): built and started with the prod profile, never pushed or deployed.
+  docker-image:
+    needs: changes
+    if: >-
+      needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' ||
+      needs.changes.outputs.scripts == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash scripts/docker-smoke.sh
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: docker-smoke-logs
+          path: .demo-logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
   repo-hygiene:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -185,7 +205,7 @@ jobs:
       - name: Lint the demo and backup scripts
         run: >-
           shellcheck scripts/demo.sh scripts/e2e-demo.sh scripts/backup.sh scripts/restore.sh
-          scripts/backup-smoke.sh
+          scripts/backup-smoke.sh scripts/docker-smoke.sh
       - name: Check PowerShell scripts parse
         shell: pwsh
         run: |
