@@ -26,6 +26,8 @@ import { PUBLIC_RULES, publicDeadlineBackend } from "@/test/public-deadline-fixt
 import type { ClientView, PersonListItem } from "@/features/persons/person-api";
 import { personsBackend } from "@/test/person-fixtures";
 import { twoFactorBackend } from "@/test/two-factor-fixtures";
+import type { FirmUser } from "@/features/firm-users/firm-users-api";
+import { FIRM_USERS, firmUsersBackend } from "@/test/firm-user-fixtures";
 
 /** A request as the fake backend sees it. */
 export interface RecordedRequest {
@@ -67,6 +69,7 @@ export const DEMO_ME: Me = {
   displayName: "Lucía Ejemplo",
   role: "OWNER",
   twoFactorEnabled: false,
+  passwordChangeRequired: false,
   tenant: {
     id: "00000000-0000-4000-8000-0000000000aa",
     name: "Estudio Demo (ficticio)",
@@ -162,6 +165,12 @@ export function signedIn(me: Me = DEMO_ME, routes: Record<string, Handler> = {})
     "GET /api/v1/persons": ({ query }) =>
       json(200, { items: [], page: Number(query.page ?? 0), size: 20, total: 0 }),
     "GET /api/v1/users": () => json(200, MEMBERS),
+    // The owner's users screen: only the owner, unless a test passes firmUserRoutes().
+    "GET /api/v1/firm/users": () =>
+      json(
+        200,
+        FIRM_USERS.filter((user) => user.id === me.id),
+      ),
     "GET /api/v1/practice-areas": () => json(200, [PENAL_AREA]),
     // The optional AI assistance is off unless a test turns it on.
     "GET /api/v1/ai-assist": () =>
@@ -379,6 +388,60 @@ export function twoFactorRoutes(
     "POST /api/v1/me/two-factor/*": answer,
   };
   return { routes, state: backend.state };
+}
+
+/**
+ * `/api/v1/firm/users` over the stateful fictitious backend: a create, a role change, an archive,
+ * a restore or a reset shows up in the next GET.
+ */
+export function firmUserRoutes(
+  initial?: FirmUser[],
+  options: Parameters<typeof firmUsersBackend>[1] = {},
+) {
+  const backend = firmUsersBackend(initial, options);
+  const answer = (request: RecordedRequest) => {
+    const result = backend.answer(request.method, request.path, () => request.body);
+    if (!result) return problem(404, "not-found");
+    if (result.problem) return problem(result.status, result.problem);
+    return json(result.status, result.json);
+  };
+  const routes: Record<string, Handler> = {
+    "GET /api/v1/firm/users": answer,
+    "POST /api/v1/firm/users": answer,
+    "PUT /api/v1/firm/users/*": answer,
+    "POST /api/v1/firm/users/*": answer,
+  };
+  return { routes, users: backend.users };
+}
+
+/**
+ * `POST /api/v1/me/password` like PasswordController: the current password must match, the new one
+ * has at least 12 characters and differs; a 204 ends the session, so /me answers 401 afterwards.
+ */
+export function passwordRoutes(me: Me, currentPassword: string) {
+  const state = { signedIn: true, changedTo: null as string | null };
+  const routes: Record<string, Handler> = {
+    "GET /api/v1/me": () =>
+      state.signedIn ? json(200, me) : problem(401, "authentication-required"),
+    "POST /api/v1/me/password": ({ body }) => {
+      const change = body as { currentPassword: string; newPassword: string };
+      if (change.currentPassword !== currentPassword) return problem(422, "invalid-confirmation");
+      if (change.newPassword.length < 12) {
+        return problemWith(400, "invalid-password", {
+          detail: "Password must have at least 12 characters",
+        });
+      }
+      if (change.newPassword === change.currentPassword) {
+        return problemWith(400, "invalid-password", {
+          detail: "The new password must be different from the current one",
+        });
+      }
+      state.signedIn = false;
+      state.changedTo = change.newPassword;
+      return noContent();
+    },
+  };
+  return { routes, state };
 }
 
 /** Anonymous session: /me answers 401. */

@@ -1,9 +1,11 @@
 package ar.gestorpenal.user;
 
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,6 +18,17 @@ public interface UserRepository extends JpaRepository<AppUser, UUID> {
 
     /** The active members, by name: what forms offer as responsible or attending lawyers. */
     List<AppUser> findByArchivedAtIsNullOrderByDisplayNameAscIdAsc();
+
+    /** Every user of the firm, archived included, by name: the owner's users screen. */
+    List<AppUser> findAllByOrderByDisplayNameAscIdAsc();
+
+    /**
+     * The active users with {@code role}, locked until the transaction ends, so two owners archiving
+     * or demoting each other at the same time cannot leave the firm without one. Ordered by id so
+     * concurrent callers lock the rows in the same order and never deadlock.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<AppUser> findByRoleAndArchivedAtIsNullOrderByIdAsc(Role role);
 
     /**
      * Records {@code step} as the last used TOTP step only if it is newer than the stored one. A

@@ -18,7 +18,7 @@ import { DeadlinesPage } from "@/features/deadlines/deadlines-page";
 import { parseDeadlineSearch } from "@/features/deadlines/deadline-search";
 import { LoginPage, type LoginSearch } from "@/features/auth/login-page";
 import { meQueryOptions } from "@/features/auth/me-query";
-import { LOGIN_PATH, loginSearchFor } from "@/features/auth/redirect";
+import { LOGIN_PATH, loginSearchFor, parseLoginNotice } from "@/features/auth/redirect";
 import { FeesPage } from "@/features/fees/fees-page";
 import { JusValuesSection } from "@/features/fees/jus-values-section";
 import { ImportPage } from "@/features/imports/import-page";
@@ -65,6 +65,7 @@ const loginRoute = createRoute({
   validateSearch: (search: Record<string, unknown>): LoginSearch => ({
     redirect: optionalString(search.redirect),
     estudio: optionalString(search.estudio),
+    aviso: parseLoginNotice(search.aviso),
   }),
   beforeLoad: async ({ context }) => {
     const me = await context.queryClient.ensureQueryData(meQueryOptions);

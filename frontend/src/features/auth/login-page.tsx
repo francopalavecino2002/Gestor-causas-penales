@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
-import { Hourglass } from "lucide-react";
+import { CircleCheck, Hourglass } from "lucide-react";
 
 import { BrandMark } from "@/components/shell/brand-mark";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { login, verifySecondFactor, type Credentials } from "@/features/auth/auth-api";
 import { EXPIRED_MESSAGE, loginErrorMessage } from "@/features/auth/login-errors";
 import { LoginPanel } from "@/features/auth/login-panel";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { PasswordStep } from "@/features/auth/password-step";
-import { safeRedirect } from "@/features/auth/redirect";
+import { LOGIN_NOTICES, safeRedirect, type LoginNotice } from "@/features/auth/redirect";
 import { SecondFactorStep, type CodeMode } from "@/features/auth/second-factor-step";
 import {
   findRememberedFirm,
@@ -24,6 +25,8 @@ export interface LoginSearch {
   redirect?: string;
   /** Firm slug to prefill (from the firm switcher). */
   estudio?: string;
+  /** A message to show on arrival, e.g. after changing the password. */
+  aviso?: LoginNotice;
 }
 
 interface Step {
@@ -39,7 +42,7 @@ interface Step {
 }
 
 /** Two-step login: firm + email + password, then the TOTP or a recovery code when enabled. */
-export function LoginPage({ redirect, estudio }: LoginSearch) {
+export function LoginPage({ redirect, estudio, aviso }: LoginSearch) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [rememberedFirms] = useState(readRememberedFirms);
@@ -111,6 +114,12 @@ export function LoginPage({ redirect, estudio }: LoginSearch) {
       >
         <div className="mx-auto grid w-full max-w-md gap-10">
           <BrandMark className="lg:hidden" />
+          {aviso && step.attempt === 0 && step.name === "password" && (
+            <Alert role="status">
+              <CircleCheck aria-hidden="true" />
+              <AlertDescription className="font-semibold">{LOGIN_NOTICES[aviso]}</AlertDescription>
+            </Alert>
+          )}
           {step.name === "password" ? (
             <PasswordStep
               key={step.attempt}

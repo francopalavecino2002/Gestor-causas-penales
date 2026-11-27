@@ -229,3 +229,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   10 recovery codes once (the dialog cannot be closed until they are saved), regenerates them and
   turns two-factor off with password and code; owners without 2FA get a prompt on the Ajustes home.
   Adds `qrcode.react` (ADR-0043).
+- Users of the firm (T62): the owner lists every user (archived included), adds one with a
+  server-generated temporary password shown once, changes roles, archives and restores (never
+  deletes) and resets a forgotten password, all audited; the firm always keeps an active owner.
+  Every user changes their own password (`POST /api/v1/me/password`), which logs out every device; a
+  temporary password must be replaced before anything else, enforced by the server
+  (`/problems/password-change-required`). Flyway V19 (ADR-0044).

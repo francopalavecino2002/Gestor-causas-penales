@@ -34,9 +34,22 @@ class MeController {
         TenantSummary tenant = tenants.describe(principal.tenantId())
                 .orElseThrow(() -> new InsufficientAuthenticationException("The firm no longer exists"));
         return new MeResponse(
-                user.getId(), user.getEmail(), user.getDisplayName(), user.getRole(), user.isTotpEnabled(), tenant);
+                user.getId(),
+                user.getEmail(),
+                user.getDisplayName(),
+                user.getRole(),
+                user.isTotpEnabled(),
+                user.isPasswordChangeRequired(),
+                tenant);
     }
 
+    /** {@code passwordChangeRequired}: the SPA must ask for a new password before anything else. */
     record MeResponse(
-            UUID id, String email, String displayName, Role role, boolean twoFactorEnabled, TenantSummary tenant) {}
+            UUID id,
+            String email,
+            String displayName,
+            Role role,
+            boolean twoFactorEnabled,
+            boolean passwordChangeRequired,
+            TenantSummary tenant) {}
 }

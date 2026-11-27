@@ -1952,3 +1952,40 @@ Superseded decisions are marked, never deleted.
     status and explains.
 - **Consequences:** A firm can require 2FA by habit without operator help. Enforcing it per firm is
   a possible later setting.
+
+## ADR-0044: The owner manages the firm's users; temporary passwords (T62)
+
+- **Date:** 2026-11-26
+- **Status:** accepted
+- **Context:** Users were created only by the seeder or an operator (ADR-0026). A real firm needs the
+  owner (titular) to add a colleague, change a role and take access away, without ever deleting a
+  user (their name stays on cases, hearings and the history) and without locking the firm out.
+- **Decision:**
+  - Owner-only endpoints under `/api/v1/firm/users` (list with archived, create, change role,
+    archive, restore, reset password); other roles get 403. `GET /api/v1/users` stays as the
+    names-and-roles list every member reads for forms. `AppUser` is audited, so every change lands
+    in the history with who did it.
+  - **Temporary passwords:** the server generates them (four groups of four characters without
+    look-alikes, about 90 bits) and returns them once with `Cache-Control: no-store`. The owner never
+    chooses a colleague's password. `password_change_required` (V19) makes `ActiveUserFilter`
+    answer `403 /problems/password-change-required` to everything except `GET /api/v1/me`,
+    `POST /api/v1/me/password`, a new login and the public endpoints (logout is served earlier by
+    Spring Security's logout filter), so the server, not only the SPA, enforces the change. Paths are
+    matched exactly on the raw URI, so variants fail closed.
+  - **`POST /api/v1/me/password`** (current + new, on the login throttle) for every user. A password
+    change or reset sets `credentials_changed_at`, and `ActiveUserFilter` drops every session opened
+    before it: an owner's reset or the user's own change logs out every device, the current one too.
+    A role change or archiving already logged the user out (ADR-0008).
+  - **The firm keeps an active owner:** an owner cannot change, archive or reset their own account
+    here (`409 own-account`). Every change reads the active owners `FOR UPDATE` in id order and
+    refuses it (403) if the actor is no longer one of them, so when two owners demote each other at
+    once the second waits for the lock and is refused (a concurrency test covers it); `409 last-owner`
+    stays as a second line of defense. A password reset of an archived user is refused
+    (`409 archived-user`): restore them first.
+  - An owner can reset another owner's password: owners trust each other by definition in a 1–5
+    lawyer firm, and that owner's 2FA still protects their account.
+  - No email is sent (no mail service, no cost): the owner hands the temporary password over in
+    person or by a safe channel. Invitations by email can come with hosting (T65).
+- **Consequences:** A forgotten password is solved by the owner in the app. A firm whose only owner
+  forgets their password still needs the operator: acceptable for a 1–5 lawyer firm, documented in
+  `docs/OPERATIONS.md` later.

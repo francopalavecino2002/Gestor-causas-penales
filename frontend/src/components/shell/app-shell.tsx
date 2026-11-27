@@ -6,6 +6,7 @@ import type { FirmSwitchRequest } from "@/components/shell/firm-switcher";
 import { Sidebar } from "@/components/shell/sidebar";
 import { TopBar } from "@/components/shell/top-bar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ForcedPasswordPage } from "@/features/account/forced-password-page";
 import { useMe } from "@/features/auth/me-query";
 import { useLogout } from "@/features/auth/use-logout";
 
@@ -19,6 +20,8 @@ export function AppShell() {
 
   // The guard guarantees a user; null only lasts until the 401 handler opens the login.
   if (!me) return null;
+  // A temporary password: the server refuses everything else, so the app is not shown at all.
+  if (me.passwordChangeRequired) return <ForcedPasswordPage me={me} />;
 
   const switchFirm = (request: FirmSwitchRequest) => logout.mutate(request);
   const signOut = () => logout.mutate({});

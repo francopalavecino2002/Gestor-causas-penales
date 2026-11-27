@@ -1,4 +1,6 @@
-import { apiFetch, isUnauthorized } from "@/lib/api";
+// Relative imports only: the shared fictitious backends (also used by the e2e mock,
+// tsconfig.node.json) import the `Role` type from here and have no "@/" alias.
+import { apiFetch, isUnauthorized } from "../../lib/api";
 
 export type Role = "OWNER" | "LAWYER" | "PARALEGAL" | "ADMIN_STAFF";
 
@@ -9,6 +11,11 @@ export interface Me {
   displayName: string;
   role: Role;
   twoFactorEnabled: boolean;
+  /**
+   * The user still has the temporary password the owner gave them (ADR-0044): until they choose
+   * their own, every other call answers 403 `password-change-required`.
+   */
+  passwordChangeRequired: boolean;
   tenant: { id: string; name: string; slug: string };
 }
 
@@ -43,6 +50,17 @@ export async function login(credentials: Credentials): Promise<LoginResult> {
 /** Second login step: a 6-digit TOTP code or a recovery code. */
 export async function verifySecondFactor(code: string): Promise<void> {
   await apiFetch("/api/v1/auth/login/second-factor", { method: "POST", body: { code } });
+}
+
+/**
+ * Replaces the user's own password, also a temporary one. The server ends every session of the
+ * user, this one included: after a 204 the user must sign in again with the new password.
+ */
+export async function changeOwnPassword(currentPassword: string, newPassword: string) {
+  await apiFetch("/api/v1/me/password", {
+    method: "POST",
+    body: { currentPassword, newPassword },
+  });
 }
 
 export async function logout(): Promise<void> {

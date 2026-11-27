@@ -1098,6 +1098,107 @@ const SCREENS: Record<string, Screen[]> = {
       fullPage: false,
     },
   ],
+  t62: [
+    {
+      path: "/ajustes/usuarios",
+      name: "users-list",
+      prepare: withTwoFactor({ enabled: true }),
+      act: async (page) => {
+        const section = page.getByRole("region", { name: "Personas del estudio" });
+        await section.getByText("Paula Demo").first().waitFor();
+        await section.getByRole("switch", { name: /Mostrá las archivadas/ }).click();
+        await section.getByText("Sofía Muestra").first().waitFor();
+        await section.evaluate((element) =>
+          window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 80),
+        );
+        await page.mouse.move(0, 0);
+      },
+    },
+    {
+      path: "/ajustes/usuarios",
+      name: "new-user-form",
+      themes: ["light"],
+      prepare: withTwoFactor({ enabled: true }),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Sumá una persona" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Nombre y apellido").fill("Rocío Ficticia");
+        await dialog.getByLabel("Email").fill("rocio.ficticia@ejemplo.test");
+        await dialog.getByLabel("Rol").selectOption("PARALEGAL");
+        await page.mouse.move(0, 0);
+      },
+      fullPage: false,
+    },
+    {
+      path: "/ajustes/usuarios",
+      name: "new-user-temporary-password",
+      themes: ["light", "dark"],
+      prepare: withTwoFactor({ enabled: true }),
+      act: async (page) => {
+        await page.getByRole("button", { name: "Sumá una persona" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("Nombre y apellido").fill("Rocío Ficticia");
+        await dialog.getByLabel("Email").fill("rocio.ficticia@ejemplo.test");
+        await dialog.getByLabel("Rol").selectOption("PARALEGAL");
+        await dialog.getByRole("button", { name: "Creá la cuenta" }).click();
+        await dialog.getByRole("checkbox", { name: "Ya la anoté" }).waitFor();
+        await page.mouse.move(0, 0);
+      },
+      fullPage: false,
+    },
+    {
+      path: "/ajustes/usuarios",
+      name: "role-change",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: withTwoFactor({ enabled: true }),
+      act: async (page) => {
+        await page
+          .getByRole("article", { name: "Paula Demo" })
+          .getByRole("button", { name: "Cambiá el rol" })
+          .click();
+        await page.getByRole("dialog").getByLabel("Rol nuevo").selectOption("PARALEGAL");
+        await page.mouse.move(0, 0);
+      },
+      fullPage: false,
+    },
+    {
+      path: "/ajustes/usuarios",
+      name: "users-non-owner",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: async (page) => {
+        await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+        await mockBackend(page, { signedIn: true, role: "LAWYER" });
+      },
+      act: (page) => page.getByRole("region", { name: "Personas del estudio" }).waitFor(),
+    },
+    {
+      path: "/",
+      name: "forced-password-change",
+      themes: ["light", "dark"],
+      prepare: async (page) => {
+        await page.clock.setFixedTime(new Date(FIXTURE_NOW));
+        await mockBackend(page, {
+          signedIn: true,
+          passwordChangeRequired: true,
+          role: "PARALEGAL",
+        });
+      },
+      act: (page) => page.getByRole("heading", { name: "Elegí tu contraseña" }).waitFor(),
+    },
+    {
+      path: "/ingresar?estudio=estudio-demo&aviso=contrasena-cambiada",
+      name: "login-password-changed",
+      viewports: ["mobile"],
+      themes: ["light"],
+      prepare: async (page) => {
+        await rememberFirms(page);
+        await mockBackend(page);
+      },
+      fullPage: false,
+    },
+  ],
 };
 
 /** Signed in as the owner with the given second factor (T61). */
