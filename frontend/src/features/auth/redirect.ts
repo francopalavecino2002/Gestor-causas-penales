@@ -1,5 +1,18 @@
 export const LOGIN_PATH = "/ingresar";
 
+/** Messages the login shows on arrival, from `?aviso=`. */
+export const LOGIN_NOTICES = {
+  "contrasena-cambiada": "Listo. Ingresá con tu contraseña nueva.",
+} as const;
+
+export type LoginNotice = keyof typeof LOGIN_NOTICES;
+
+export function parseLoginNotice(value: unknown): LoginNotice | undefined {
+  return typeof value === "string" && Object.hasOwn(LOGIN_NOTICES, value)
+    ? (value as LoginNotice)
+    : undefined;
+}
+
 // Tabs and newlines are dropped by URL parsing, so "/\t/evil" would become "//evil".
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;

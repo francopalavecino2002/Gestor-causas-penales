@@ -34,7 +34,8 @@ import { feesBackend } from "../src/test/fee-fixtures";
 import { publicDeadlineBackend } from "../src/test/public-deadline-fixtures";
 import type { ClientView, PersonListItem } from "../src/features/persons/person-api";
 import { personsBackend } from "../src/test/person-fixtures";
-import { twoFactorBackend } from "../src/test/two-factor-fixtures";
+import { DEMO_PASSWORD, twoFactorBackend } from "../src/test/two-factor-fixtures";
+import { FIRM_USERS, firmUsersBackend } from "../src/test/firm-user-fixtures";
 import {
   CASE_FIELDS,
   DEADLINE_RULES,
@@ -111,6 +112,11 @@ interface MockBackendOptions {
   clients?: ClientView[];
   /** The signed-in user's second factor (T61); on with 10 recovery codes by default. */
   twoFactor?: { enabled: boolean; remaining?: number };
+  /**
+   * The user signs in with a temporary password and must choose their own (T62). Every call but
+   * /me, the CSRF token, the password change and the logout then answers 403.
+   */
+  passwordChangeRequired?: boolean;
 }
 
 /**
@@ -265,6 +271,8 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
       createdAt: options.calendarFeedSince ?? null,
     } as CalendarFeedStatus,
     calendarFeedCount: 0,
+    passwordChangeRequired: options.passwordChangeRequired ?? false,
+    password: DEMO_PASSWORD,
   };
   const calls: string[] = [];
   const settings = settingsBackend();
@@ -281,6 +289,13 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
     remaining: options.twoFactor?.remaining,
   });
   const publicDeadlines = publicDeadlineBackend();
+  const firmUsers = firmUsersBackend(FIRM_USERS, { role: options.role ?? DEMO_ME.role });
+  const allowedWithTemporaryPassword = new Set([
+    "GET /api/v1/me",
+    "GET /api/v1/auth/csrf",
+    "POST /api/v1/me/password",
+    "POST /api/v1/auth/logout",
+  ]);
   const people = options.persons
     ? personsBackend(
         { persons: options.persons, clients: options.clients },
@@ -304,6 +319,37 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
 
     if (method !== "GET" && request.headers()["x-xsrf-token"] !== "e2e-token") {
       return problem(route, 403, "access-denied");
+    }
+
+    if (
+      state.signedIn &&
+      state.passwordChangeRequired &&
+      !allowedWithTemporaryPassword.has(`${method} ${path}`)
+    ) {
+      return problem(route, 403, "password-change-required");
+    }
+    if (method === "POST" && path === "/api/v1/me/password" && state.signedIn) {
+      const change = request.postDataJSON() as { currentPassword: string; newPassword: string };
+      if (change.currentPassword !== state.password) {
+        return problem(route, 422, "invalid-confirmation");
+      }
+      if (change.newPassword.length < 12 || change.newPassword === change.currentPassword) {
+        return problem(route, 400, "invalid-password");
+      }
+      // Like PasswordController: the password changes and every session of the user ends.
+      state.password = change.newPassword;
+      state.passwordChangeRequired = false;
+      state.signedIn = false;
+      return route.fulfill({ status: 204 });
+    }
+    const firmUsersAnswer = state.signedIn
+      ? firmUsers.answer(method, path, () => request.postDataJSON())
+      : undefined;
+    if (firmUsersAnswer) {
+      if (firmUsersAnswer.problem) {
+        return problem(route, firmUsersAnswer.status, firmUsersAnswer.problem);
+      }
+      return route.fulfill({ status: firmUsersAnswer.status, json: firmUsersAnswer.json });
     }
 
     const draft = /^\/api\/v1\/cases\/([0-9a-f-]+)\/hearing-drafts$/.exec(path);
@@ -425,6 +471,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
                 ...DEMO_ME,
                 role: options.role ?? DEMO_ME.role,
                 twoFactorEnabled: twoFactor.state.enabled,
+                passwordChangeRequired: state.passwordChangeRequired,
               },
             })
           : problem(route, 401, "authentication-required");

@@ -73,5 +73,8 @@ test("settings on a desktop: deadline rules and users", async ({ page }) => {
   const account = page.getByRole("region", { name: "Tu cuenta" });
   await expect(account).toContainText("Lucía Ejemplo");
   await expect(account).toContainText("Titular");
-  await expect(page.getByText(/llega con una próxima versión/).first()).toBeVisible();
+  // The owner manages the firm's people here (T62).
+  const people = page.getByRole("region", { name: "Personas del estudio" });
+  await expect(people.getByRole("table", { name: "Personas del estudio" })).toBeVisible();
+  await expect(people.getByRole("button", { name: "Sumá una persona" })).toBeVisible();
 });

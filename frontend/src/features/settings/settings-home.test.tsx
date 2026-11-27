@@ -46,7 +46,7 @@ describe("settings: index and users", () => {
     );
   });
 
-  it("shows the account, its role and 2FA status, and what each role can do, without a fake user list", async () => {
+  it("shows the account, its role and 2FA status, and what each role can do, without the firm's user list", async () => {
     signedIn({ ...DEMO_ME, role: "PARALEGAL", twoFactorEnabled: false }, settingsRoutes().routes);
     renderApp("/ajustes/usuarios");
 
@@ -61,11 +61,9 @@ describe("settings: index and users", () => {
       await within(twoFactor).findByRole("button", { name: "Activá la verificación en dos pasos" }),
     ).toBeInTheDocument();
     expect(document.body).not.toHaveTextContent("llega con una próxima versión; mientras");
-    expect(
-      screen.getByText(
-        /Invitar personas, cambiar roles y desactivar cuentas llega con una próxima versión/,
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Personas del estudio" })).toHaveTextContent(
+      "Las cuentas del equipo las maneja la persona titular del estudio",
+    );
 
     const roles = screen.getByRole("region", { name: "Qué puede hacer cada rol" });
     expect(

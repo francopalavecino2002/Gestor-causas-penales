@@ -1,16 +1,17 @@
 import { useId } from "react";
-import { Info, ShieldOff } from "lucide-react";
+import { ShieldOff } from "lucide-react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { initialsOf } from "@/components/shell/user-initials";
+import { ChangePasswordButton } from "@/features/account/change-password-dialog";
 import { useMe } from "@/features/auth/me-query";
 import { ROLE_LABELS } from "@/features/auth/roles";
+import { FirmUsersSection } from "@/features/firm-users/firm-users-section";
 import { ROLE_DESCRIPTIONS, ROLE_ORDER } from "@/features/settings/settings-copy";
 import { SettingsPage } from "@/features/settings/settings-layout";
 import { TwoFactorSection } from "@/features/two-factor/two-factor-section";
 
-/** Who is signed in, with which role, and whether the second step is on. */
+/** Who is signed in, with which role, whether the second step is on, and the password change. */
 function AccountCard() {
   const titleId = useId();
   const { data: me } = useMe();
@@ -21,40 +22,48 @@ function AccountCard() {
       <h2 id={titleId} className="text-title font-bold">
         Tu cuenta
       </h2>
-      <div className="grid gap-4 rounded-xl border bg-card px-4 py-4 sm:flex sm:items-start">
-        <span
-          aria-hidden="true"
-          className="inline-flex size-14 shrink-0 items-center justify-center rounded-full bg-accent text-title font-bold text-accent-foreground"
-        >
-          {initialsOf(me.displayName, me.email)}
-        </span>
-        <dl className="grid min-w-0 flex-1 gap-3 text-body sm:grid-cols-2">
-          <div className="grid gap-0.5">
-            <dt className="text-meta text-muted-foreground">Nombre</dt>
-            <dd className="font-bold">{me.displayName}</dd>
-          </div>
-          <div className="grid min-w-0 gap-0.5">
-            <dt className="text-meta text-muted-foreground">Email</dt>
-            <dd className="break-all">{me.email}</dd>
-          </div>
-          <div className="grid gap-0.5">
-            <dt className="text-meta text-muted-foreground">Rol</dt>
-            <dd className="font-semibold">{ROLE_LABELS[me.role]}</dd>
-          </div>
-          <div className="grid gap-1">
-            <dt className="text-meta text-muted-foreground">Verificación en dos pasos</dt>
-            <dd className="grid gap-1">
-              {me.twoFactorEnabled ? (
-                <Badge variant="efectiva">Activada</Badge>
-              ) : (
-                <Badge variant="deadline">
-                  <ShieldOff aria-hidden="true" />
-                  Desactivada
-                </Badge>
-              )}
-            </dd>
-          </div>
-        </dl>
+      <div className="grid gap-4 rounded-xl border bg-card px-4 py-4">
+        <div className="grid gap-4 sm:flex sm:items-start">
+          <span
+            aria-hidden="true"
+            className="inline-flex size-14 shrink-0 items-center justify-center rounded-full bg-accent text-title font-bold text-accent-foreground"
+          >
+            {initialsOf(me.displayName, me.email)}
+          </span>
+          <dl className="grid min-w-0 flex-1 gap-3 text-body sm:grid-cols-2">
+            <div className="grid gap-0.5">
+              <dt className="text-meta text-muted-foreground">Nombre</dt>
+              <dd className="font-bold">{me.displayName}</dd>
+            </div>
+            <div className="grid min-w-0 gap-0.5">
+              <dt className="text-meta text-muted-foreground">Email</dt>
+              <dd className="break-all">{me.email}</dd>
+            </div>
+            <div className="grid gap-0.5">
+              <dt className="text-meta text-muted-foreground">Rol</dt>
+              <dd className="font-semibold">{ROLE_LABELS[me.role]}</dd>
+            </div>
+            <div className="grid gap-1">
+              <dt className="text-meta text-muted-foreground">Verificación en dos pasos</dt>
+              <dd className="grid gap-1">
+                {me.twoFactorEnabled ? (
+                  <Badge variant="efectiva">Activada</Badge>
+                ) : (
+                  <Badge variant="deadline">
+                    <ShieldOff aria-hidden="true" />
+                    Desactivada
+                  </Badge>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
+        <div className="grid gap-2 border-t pt-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+          <p className="max-w-prose text-meta text-muted-foreground">
+            Al cambiarla se cierra tu sesión en todos tus dispositivos.
+          </p>
+          <ChangePasswordButton />
+        </div>
       </div>
     </section>
   );
@@ -92,27 +101,26 @@ function RolesGuide() {
 }
 
 /**
- * `/ajustes/usuarios`: the account, its second factor (which the member turns on and off here) and
- * the roles. The API has no endpoint to list, invite or change users yet (ADR-0026), so the screen
- * says so plainly.
+ * `/ajustes/usuarios`: the member's own account (password and second factor), the people of the
+ * firm (the owner manages them, ADR-0044) and what each role can do.
  */
 export function UsersSection() {
   return (
     <SettingsPage
       section="/ajustes/usuarios"
-      intro="Tu cuenta en este estudio, su verificación en dos pasos y los permisos de cada rol."
+      intro="Tu cuenta, su verificación en dos pasos, las personas del estudio y los permisos de cada rol."
     >
-      <div className="grid max-w-3xl gap-7">
-        <AccountCard />
-        <TwoFactorSection />
-        <Alert>
-          <Info aria-hidden="true" />
-          <AlertDescription>
-            Invitar personas, cambiar roles y desactivar cuentas llega con una próxima versión. Por
-            ahora, las cuentas del estudio las crea quien administra el sistema.
-          </AlertDescription>
-        </Alert>
-        <RolesGuide />
+      <div className="grid gap-7">
+        <div className="grid max-w-3xl gap-7">
+          <AccountCard />
+          <TwoFactorSection />
+        </div>
+        <div className="max-w-5xl">
+          <FirmUsersSection />
+        </div>
+        <div className="max-w-3xl">
+          <RolesGuide />
+        </div>
       </div>
     </SettingsPage>
   );

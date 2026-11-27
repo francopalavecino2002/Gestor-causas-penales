@@ -77,7 +77,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   {
     to: "/ajustes/usuarios",
     title: "Usuarios y roles",
-    summary: "Tu cuenta, la verificación en dos pasos y qué puede hacer cada rol.",
+    summary: "Tu cuenta y tu contraseña, las personas del estudio y qué puede hacer cada rol.",
     icon: UsersRound,
   },
   {
