@@ -45,6 +45,7 @@ referencia completa está en [`.env.example`](../.env.example).
 | `PORT` | no (8081) | La mayoría de las plataformas la define sola. |
 | `GEMINI_API_KEY` | no | Asistencia con IA. Dejala vacía con causas reales hasta la revisión legal (ADR-0033). |
 | `MAIL_SMTP_*`, `MAIL_FROM` | no | Correo saliente: ver *Correo saliente*. Sin ellas no se manda ningún correo. |
+| `APP_PUBLIC_URL` | sí, con correo | `https://<dominio>`: los enlaces de los correos (recuperar la contraseña). Ver *Correo saliente*. |
 
 `SPRING_PROFILES_ACTIVE=prod` ya viene en la imagen.
 
@@ -183,6 +184,14 @@ del estudio como `LOGGED`.
 | `MAIL_SMTP_SECURITY` | no (`STARTTLS`) | `STARTTLS`, `TLS` (puerto 465) o `NONE` (solo Mailpit local). |
 | `MAIL_SMTP_USERNAME`, `MAIL_SMTP_PASSWORD` | según el proveedor | Credenciales SMTP. Van en los secretos de la plataforma, nunca en un archivo. |
 | `MAIL_FROM` | sí, si hay SMTP | Remitente, de un dominio verificado en el proveedor (por ejemplo `avisos@<dominio>`). El nombre visible es el del estudio. |
+| `APP_PUBLIC_URL` | sí, si hay SMTP | La dirección con la que se entra al gestor (`https://<dominio>`), para armar los enlaces de los correos. Con `MAIL_SMTP_HOST` y sin `https://` la app no arranca. Nunca se toma del pedido, que un visitante puede falsear. |
+
+**Recuperar la contraseña** ("¿Olvidaste tu contraseña?" en el ingreso,
+[ADR-0049](DECISIONS.md#adr-0049-password-recovery-by-email-t71)): llega un enlace que vence en 30
+minutos y sirve una vez; la respuesta es la misma exista o no la cuenta; se pueden pedir 3 por hora
+por estudio y correo y 10 por hora desde una misma dirección. Al cambiarla se cierran todas las
+sesiones y el segundo factor se sigue pidiendo. Sin SMTP el enlace no llega a nadie: el titular le
+da una clave temporal desde Ajustes → Usuarios.
 
 Para probar: el titular entra y llama a `POST /api/v1/mail/test` (le llega un "Correo de prueba" a
 su propio correo; hasta 5 por hora).
