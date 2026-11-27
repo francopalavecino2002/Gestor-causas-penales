@@ -245,3 +245,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   load the dump into a staging database and only then swap it in, keeping the replaced one as
   `<db>_previa`. `docs/OPERATIONS.md` (Spanish) covers scheduling with the Windows Task Scheduler;
   CI backs up and restores the seeded demo database (`scripts/backup-smoke.sh`) (ADR-0045).
+- Hosting readiness, no deployment (T65): one Docker image (`backend/Dockerfile`) with the PWA served
+  by the backend on the same origin (client routes fall back to `index.html`, hashed assets cached for
+  a year, no CORS); a `prod` profile (`PORT`, forwarded headers, Secure cookies, Flyway only, graceful
+  shutdown, readiness with the database) guarded by `ProductionSafetyCheck`, which refuses `dev`/`demo`,
+  insecure cookies, schema-changing Hibernate and the dev TOTP key; CI builds and smoke-tests the image
+  (`scripts/docker-smoke.sh`) without pushing it; `docs/HOSTING.md` (Spanish) compares Render + Neon,
+  Render Postgres and a Hetzner server with prices of 2026-11-27 and recommends Render + Neon
+  (≈ US$ 7/month for the demo, ≈ US$ 13 for a first firm) (ADR-0046).

@@ -2022,3 +2022,54 @@ Superseded decisions are marked, never deleted.
   sensitive data unencrypted by the script: the docs ask for an encrypted disk (BitLocker) and keep
   `backups/` and `*.dump` out of git. The PowerShell scripts are parse-checked in CI but only run on
   Windows by hand.
+
+## ADR-0046: Hosting readiness: one image, same origin; Render + Neon recommended (T65)
+
+- **Date:** 2026-11-27
+- **Status:** accepted
+- **Context:** Before a real firm uses the product it must be publishable on a low-cost host
+  (CLAUDE.md: running costs close to the hosting bill). T65 is preparation only: nothing is
+  deployed and no account is created.
+- **Decision:**
+  - **One image, one origin.** `backend/Dockerfile` builds the frontend (Node 22) and the jar
+    (Temurin 21) and copies the PWA into `classpath:/static/`; the runtime is
+    `eclipse-temurin:21-jre-noble` as a non-root user with `-XX:MaxRAMPercentage=60` and Serial GC,
+    sized for a 512 MB instance (CI runs it with that limit and fails on an OOM kill). The backend
+    serves the SPA (`SpaResourceConfig`): files as they are, hashed `/assets/**` with a one-year
+    immutable cache, any other path without a dot answered with `index.html` so client routes
+    survive a reload; `/api` and `/actuator` never get the page. A separate CDN was rejected: it needs
+    CORS with credentials and a CSRF cookie readable across origins, more attack surface for no
+    saving at this size.
+  - **No CORS on purpose.** There is no CORS configuration, so a browser on another origin gets no
+    `Access-Control-Allow-*` header; a test pins it. "Allowed origins" is therefore "only our own".
+  - **Security for the frontend.** `SecurityConfig` permits GET/HEAD outside `/api/**` and
+    `/actuator/**` with path-pattern matchers (decoded paths, like Spring MVC, so `/%61pi/...` is
+    still the API). The bundle is public code; every piece of data stays behind the session.
+  - **`prod` profile** (`application-prod.properties`): `PORT`, forwarded headers `native`, Secure
+    cookies, `ddl-auto=validate`, `flyway.clean-disabled`, graceful shutdown, a pool of 5, response
+    compression, readiness that includes the database. `ProductionSafetyCheck` refuses to start with
+    `dev` or `demo` active, non-Secure cookies, a schema-changing `ddl-auto` or the dev TOTP key, so a
+    wrong variable fails the deploy instead of weakening a live firm. Demo seeding is `@Profile("demo")`
+    already, so `prod` seeds nothing.
+  - **Health checks** are the platform's HTTP probes on `/actuator/health/liveness` and
+    `/readiness`; no Dockerfile `HEALTHCHECK`, because the JRE image has no HTTP client and platforms
+    ignore it anyway.
+  - **CI** builds the image and runs it (`scripts/docker-smoke.sh`) against a throwaway Postgres:
+    probes, served SPA, cache headers, 401 on the API, Secure CSRF cookie, no users, and `prod,demo`
+    refused. The image is never pushed.
+  - The Dockerfile lives in `backend/`, next to the jar it produces, with the repository root as
+    build context and BuildKit's `backend/Dockerfile.dockerignore`, so the root holds no second
+    ignore file that would also apply to other builds. (It also fits the autonomous runs, which may
+    only write inside the project folders.) Moving it to the root later changes nothing else.
+  - **Recommended host** (`docs/HOSTING.md`, prices of 2026-11-27): Render Starter web service
+    (US$ 7) + Neon Postgres in the same region: Free for the demo (≈ US$ 7/month), Launch for the
+    first real firm (≈ US$ 13/month estimated). Alternatives: Render Postgres (≈ US$ 13 to 14.50
+    depending on storage, one vendor, a very small database) and a Hetzner CX23 with Docker Compose (≈ € 7, EU data, but we
+    run the server). Supabase was rejected: the free plan pauses after a week and Pro costs US$ 25+.
+- **Consequences:** Publishing is choosing the provider and setting four required variables
+  (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `TOTP_ENCRYPTION_KEY`). Data would sit in the US with the
+  recommended option; criminal records are sensitive data (Ley 25.326, arts. 7 and 12), so the region
+  is `[validar]` with a lawyer before the first real case, and the Hetzner option (EU) remains the
+  fallback. Non-hashed static files (icons) keep Spring Security's no-store header, and the SPA has
+  no Content-Security-Policy yet: both are small follow-ups. `prod` starts with no users: creating the first firm and owner safely is a new task
+  (T66). Prices are a snapshot and must be re-checked before contracting.
