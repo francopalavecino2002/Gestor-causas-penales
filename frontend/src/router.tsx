@@ -18,7 +18,19 @@ import { DeadlinesPage } from "@/features/deadlines/deadlines-page";
 import { parseDeadlineSearch } from "@/features/deadlines/deadline-search";
 import { LoginPage, type LoginSearch } from "@/features/auth/login-page";
 import { meQueryOptions } from "@/features/auth/me-query";
-import { LOGIN_PATH, loginSearchFor, parseLoginNotice } from "@/features/auth/redirect";
+import {
+  LOGIN_PATH,
+  loginSearchFor,
+  parseLoginNotice,
+  RECOVER_PASSWORD_PATH,
+  RESET_PASSWORD_PATH,
+} from "@/features/auth/redirect";
+import {
+  RecoverPasswordPage,
+  type RecoverPasswordSearch,
+} from "@/features/password-reset/recover-password-page";
+import { ResetPasswordPage } from "@/features/password-reset/reset-password-page";
+import { useResetTokenFromFragment } from "@/features/password-reset/reset-token";
 import { FeesPage } from "@/features/fees/fees-page";
 import { JusValuesSection } from "@/features/fees/jus-values-section";
 import { ImportPage } from "@/features/imports/import-page";
@@ -75,6 +87,41 @@ const loginRoute = createRoute({
   component: function LoginRoute() {
     const search = loginRoute.useSearch();
     return <LoginPage {...search} />;
+  },
+});
+
+/** Public: asks for a password reset link by email (T71). Signed-in users go to the agenda. */
+const recoverPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: RECOVER_PASSWORD_PATH,
+  validateSearch: (search: Record<string, unknown>): RecoverPasswordSearch => ({
+    estudio: optionalString(search.estudio),
+  }),
+  beforeLoad: async ({ context }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions);
+    if (me) throw redirect({ to: "/" });
+  },
+  errorComponent: ({ error }) => <SessionErrorPage error={error} />,
+  component: function RecoverPasswordRoute() {
+    const search = recoverPasswordRoute.useSearch();
+    return <RecoverPasswordPage {...search} />;
+  },
+});
+
+/**
+ * Public: where the emailed link lands (T71). No session check: the link is for whoever owns the
+ * mailbox, and a confirmed reset closes every session of that user anyway.
+ */
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: RESET_PASSWORD_PATH,
+  validateSearch: (search: Record<string, unknown>): RecoverPasswordSearch => ({
+    estudio: optionalString(search.estudio),
+  }),
+  component: function ResetPasswordRoute() {
+    const search = resetPasswordRoute.useSearch();
+    const token = useResetTokenFromFragment();
+    return <ResetPasswordPage estudio={search.estudio} token={token} />;
   },
 });
 
@@ -276,6 +323,8 @@ const importRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
+  recoverPasswordRoute,
+  resetPasswordRoute,
   designSystemRoute,
   publicCalculatorRoute,
   appRoute.addChildren([
