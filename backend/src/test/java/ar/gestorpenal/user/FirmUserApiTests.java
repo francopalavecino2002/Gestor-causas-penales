@@ -40,6 +40,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
@@ -237,16 +238,19 @@ class FirmUserApiTests {
     void archiveRestoreAndResetShouldLeaveAHistoryWithoutThePassword() throws Exception {
         String user = "/api/v1/firm/users/" + lawyerUser.getId();
         postEmpty(owner, user + "/archive").andExpect(status().isOk());
-        postEmpty(owner, user + "/password-reset").andExpect(status().isOk());
+        postEmpty(owner, user + "/password-reset")
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("/problems/archived-user"));
         postEmpty(owner, user + "/restore").andExpect(status().isOk());
+        postEmpty(owner, user + "/password-reset").andExpect(status().isOk());
 
         List<AuditEvent> history =
                 TenantContext.callAs(tenantA, () -> auditTrail.historyOf(AppUser.class, lawyerUser.getId()));
         assertThat(history).extracting(AuditEvent::getAction)
-                .containsExactly(AuditAction.CREATE, AuditAction.ARCHIVE, AuditAction.UPDATE, AuditAction.RESTORE);
+                .containsExactly(AuditAction.CREATE, AuditAction.ARCHIVE, AuditAction.RESTORE, AuditAction.UPDATE);
         assertThat(history.subList(1, 4)).allSatisfy(event ->
                 assertThat(event.getActorUserId()).isEqualTo(ownerUser.getId()));
-        assertThat(history.get(2).getChanges()).anySatisfy(change -> {
+        assertThat(history.get(3).getChanges()).anySatisfy(change -> {
             assertThat(change.field()).isEqualTo("passwordHash");
             assertThat(change.newValue()).isEqualTo(FieldChange.REDACTED);
         });
@@ -338,20 +342,20 @@ class FirmUserApiTests {
     }
 
     /**
-     * Through the API an owner can only target someone else, so the last owner is only reachable
-     * when two owners act on each other at the same time; the service enforces it either way.
+     * A session still says "owner" for a moment after another owner demoted or archived its user;
+     * the service checks the actor against the locked active owners, so that request is refused.
      */
     @Test
-    void theLastActiveOwnerShouldNeverBeArchivedOrDemoted() {
-        UUID someoneElse = UUID.randomUUID();
+    void anActorWhoIsNoLongerAnActiveOwnerShouldBeRefused() {
+        UUID formerOwner = lawyerUser.getId();
+        UUID target = ownerUser.getId();
         TenantContext.runAs(tenantA, () -> {
-            assertThatThrownBy(() -> firmUsers.archive(someoneElse, ownerUser.getId()))
-                    .isInstanceOf(UserManagementException.class)
-                    .extracting(e -> ((UserManagementException) e).reason())
-                    .isEqualTo(UserManagementException.Reason.LAST_OWNER);
-            assertThatThrownBy(() -> firmUsers.changeRole(someoneElse, ownerUser.getId(), Role.LAWYER))
-                    .isInstanceOf(UserManagementException.class);
-            firmUsers.changeRole(someoneElse, ownerUser.getId(), Role.OWNER);
+            assertThatThrownBy(() -> firmUsers.archive(formerOwner, target)).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> firmUsers.changeRole(formerOwner, target, Role.LAWYER))
+                    .isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> firmUsers.restore(formerOwner, target)).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> firmUsers.resetPassword(formerOwner, target))
+                    .isInstanceOf(AccessDeniedException.class);
         });
     }
 
@@ -376,13 +380,16 @@ class FirmUserApiTests {
         assertThat(owners).isEqualTo(1);
     }
 
-    /** True if the demotion went through, false if the last-owner rule refused it. */
+    /**
+     * True if the demotion went through, false if it was refused: the second one waits for the lock
+     * and then finds its actor no longer an owner.
+     */
     private boolean demote(CountDownLatch start, UUID actorId, UUID targetId) throws InterruptedException {
         start.await();
         try {
             TenantContext.runAs(tenantA, () -> firmUsers.changeRole(actorId, targetId, Role.LAWYER));
             return true;
-        } catch (UserManagementException e) {
+        } catch (AccessDeniedException | UserManagementException e) {
             return false;
         }
     }

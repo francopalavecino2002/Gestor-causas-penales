@@ -49,7 +49,8 @@ public class UserService {
         AppUser user = newUser(email, displayName, temporaryPassword, role);
         // Before saving, so the history shows one creation and no follow-up update.
         user.replacePassword(user.getPasswordHash(), true, clock.instant());
-        return new CreatedUser(users.save(user), temporaryPassword);
+        // Flushed here so a concurrent duplicate email fails as a translated DataIntegrityViolationException.
+        return new CreatedUser(users.saveAndFlush(user), temporaryPassword);
     }
 
     /** Gives the user a new temporary password and ends their sessions; returns it to show once. */

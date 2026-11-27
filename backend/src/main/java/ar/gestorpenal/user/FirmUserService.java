@@ -3,6 +3,7 @@ package ar.gestorpenal.user;
 import ar.gestorpenal.user.UserManagementException.Reason;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +43,7 @@ class FirmUserService {
 
     @Transactional
     AppUser changeRole(UUID actorId, UUID userId, Role role) {
-        List<AppUser> activeOwners = users.findByRoleAndArchivedAtIsNullOrderByIdAsc(Role.OWNER);
+        List<AppUser> activeOwners = lockActiveOwners(actorId);
         AppUser user = someoneElse(actorId, userId);
         if (role != Role.OWNER) {
             requireAnotherOwner(activeOwners, user);
@@ -53,7 +54,7 @@ class FirmUserService {
 
     @Transactional
     AppUser archive(UUID actorId, UUID userId) {
-        List<AppUser> activeOwners = users.findByRoleAndArchivedAtIsNullOrderByIdAsc(Role.OWNER);
+        List<AppUser> activeOwners = lockActiveOwners(actorId);
         AppUser user = someoneElse(actorId, userId);
         requireAnotherOwner(activeOwners, user);
         user.archive();
@@ -62,15 +63,36 @@ class FirmUserService {
 
     @Transactional
     AppUser restore(UUID actorId, UUID userId) {
+        lockActiveOwners(actorId);
         AppUser user = someoneElse(actorId, userId);
         user.restore();
         return user;
     }
 
-    /** A new temporary password for someone who forgot theirs; their open sessions end. */
+    /**
+     * A new temporary password for someone who forgot theirs; their open sessions end. An archived
+     * user cannot log in, so they are restored first.
+     */
     @Transactional
     String resetPassword(UUID actorId, UUID userId) {
-        return userService.resetToTemporaryPassword(someoneElse(actorId, userId));
+        lockActiveOwners(actorId);
+        AppUser user = someoneElse(actorId, userId);
+        if (!user.isActive()) {
+            throw new UserManagementException(Reason.ARCHIVED_USER);
+        }
+        return userService.resetToTemporaryPassword(user);
+    }
+
+    /**
+     * The active owners, locked until commit. The session said the actor is an owner; if another
+     * owner demoted or archived them a moment ago, the change is refused here.
+     */
+    private List<AppUser> lockActiveOwners(UUID actorId) {
+        List<AppUser> activeOwners = users.findByRoleAndArchivedAtIsNullOrderByIdAsc(Role.OWNER);
+        if (activeOwners.stream().noneMatch(owner -> owner.getId().equals(actorId))) {
+            throw new AccessDeniedException("Only an active owner manages the firm's users");
+        }
+        return activeOwners;
     }
 
     private AppUser someoneElse(UUID actorId, UUID userId) {

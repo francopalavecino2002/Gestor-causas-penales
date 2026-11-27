@@ -1977,10 +1977,11 @@ Superseded decisions are marked, never deleted.
     before it: an owner's reset or the user's own change logs out every device, the current one too.
     A role change or archiving already logged the user out (ADR-0008).
   - **The firm keeps an active owner:** an owner cannot change, archive or reset their own account
-    here (`409 own-account`), so the last owner can only be targeted by a race between two owners;
-    the active owners are read `FOR UPDATE` in id order and the change is refused with
-    `409 last-owner` if it would leave none (archiving and demoting share the same lock; a
-    concurrency test covers two owners demoting each other).
+    here (`409 own-account`). Every change reads the active owners `FOR UPDATE` in id order and
+    refuses it (403) if the actor is no longer one of them, so when two owners demote each other at
+    once the second waits for the lock and is refused (a concurrency test covers it); `409 last-owner`
+    stays as a second line of defense. A password reset of an archived user is refused
+    (`409 archived-user`): restore them first.
   - An owner can reset another owner's password: owners trust each other by definition in a 1–5
     lawyer firm, and that owner's 2FA still protects their account.
   - No email is sent (no mail service, no cost): the owner hands the temporary password over in

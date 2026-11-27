@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Optional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -79,20 +80,31 @@ class ActiveUserFilter extends OncePerRequestFilter {
     /**
      * With a temporary password the SPA may only read who is logged in and change the password; the
      * public endpoints and a new login stay reachable too. Exact matches on the raw path, so any
-     * variant (trailing slash, encoding) is refused: the check fails closed. Logout is served by
-     * Spring Security's logout filter, before this one.
+     * variant (trailing slash, encoding) is refused: the check fails closed. The two public prefixes
+     * also refuse any dot segment, encoding or empty segment themselves, without relying on the
+     * firewall. Logout is served by Spring Security's logout filter, before this one.
      */
-    private static boolean allowedWithTemporaryPassword(HttpServletRequest request) {
+    static boolean allowedWithTemporaryPassword(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
         return switch (request.getMethod()) {
             case "GET" -> ME_PATH.equals(path)
                     || SecurityConfig.CSRF_PATH.equals(path)
-                    || path.startsWith(PUBLIC_PREFIX)
-                    || path.startsWith(CALENDAR_FEED_PREFIX);
+                    || plainPathUnder(PUBLIC_PREFIX, path)
+                    || plainPathUnder(CALENDAR_FEED_PREFIX, path);
             case "POST" -> PasswordController.PATH.equals(path)
                     || SecurityConfig.LOGIN_PATH.equals(path)
                     || SecurityConfig.SECOND_FACTOR_PATH.equals(path);
             default -> false;
         };
+    }
+
+    private static boolean plainPathUnder(String prefix, String path) {
+        if (!path.startsWith(prefix)) {
+            return false;
+        }
+        String rest = path.substring(prefix.length());
+        return rest.chars().noneMatch(c -> c == '%' || c == ';' || c == '\\')
+                && Arrays.stream(rest.split("/", -1))
+                        .noneMatch(segment -> segment.isEmpty() || segment.equals(".") || segment.equals(".."));
     }
 }
