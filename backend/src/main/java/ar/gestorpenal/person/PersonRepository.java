@@ -17,6 +17,8 @@ interface PersonRepository extends JpaRepository<Person, UUID> {
 
     Optional<Person> findFirstByFirstNamesAndLastNamesOrderByCreatedAtAscIdAsc(String firstNames, String lastNames);
 
+    Optional<Person> findFirstByKindAndLegalNameOrderByCreatedAtAscIdAsc(PersonKind kind, String legalName);
+
     /**
      * Search by name, legal name or alias ({@code namePattern}) or by document number
      * ({@code numberPattern}); both are SQL LIKE patterns in lower and upper case respectively.

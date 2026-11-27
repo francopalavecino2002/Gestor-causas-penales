@@ -77,4 +77,13 @@ public class Persons {
                         PersonKind.HUMAN, firstNames, lastNames, null, null, null, null, null, null, null, null, null))));
         return PersonSummary.of(person);
     }
+
+    /** Used by the demo data: the legal entity with this exact name, created if the firm has none. */
+    @Transactional
+    public PersonSummary findOrRegisterLegalEntity(String legalName) {
+        Person person = people.findFirstByKindAndLegalNameOrderByCreatedAtAscIdAsc(PersonKind.LEGAL, legalName)
+                .orElseGet(() -> people.save(Person.create(new PersonData(
+                        PersonKind.LEGAL, null, null, legalName, null, null, null, null, null, null, null, null))));
+        return PersonSummary.of(person);
+    }
 }

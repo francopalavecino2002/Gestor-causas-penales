@@ -20,16 +20,19 @@ public class CaseSeeding {
     private final CaseTeamMemberRepository team;
     private final DefendantRepository defendants;
     private final DefendantChargeRepository charges;
+    private final CasePartyRepository parties;
 
     CaseSeeding(
             CaseFileRepository cases,
             CaseTeamMemberRepository team,
             DefendantRepository defendants,
-            DefendantChargeRepository charges) {
+            DefendantChargeRepository charges,
+            CasePartyRepository parties) {
         this.cases = cases;
         this.team = team;
         this.defendants = defendants;
         this.charges = charges;
+        this.parties = parties;
     }
 
     @Transactional(readOnly = true)
@@ -60,6 +63,42 @@ public class CaseSeeding {
         team.save(CaseTeamMember.create(caseFile.getId(), responsibleUserId, TeamRole.RESPONSIBLE));
         return caseFile.getId();
     }
+
+    /**
+     * An active case of an area without defendants (civil, laboral...), in {@code stageCode}, with
+     * {@code responsibleUserId} as its responsible lawyer. The codes are those of the area's catalogs.
+     */
+    @Transactional
+    public UUID createAreaCase(AreaCaseSeed seed, UUID responsibleUserId) {
+        CaseFile caseFile = CaseFile.create(new CaseData(
+                seed.caption(), seed.internalNumber(), null, null, null, seed.circumscriptionCode(),
+                seed.actionType(), seed.represents(), false, null, null, seed.practiceArea(), null, null, null));
+        caseFile.applyCourse(new CaseCourse(seed.stageCode(), CaseStatus.ACTIVE, null));
+        cases.saveAndFlush(caseFile);
+        team.save(CaseTeamMember.create(caseFile.getId(), responsibleUserId, TeamRole.RESPONSIBLE));
+        return caseFile.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasParty(UUID caseId, UUID personId, String roleCode) {
+        return parties.existsByCaseIdAndPersonIdAndRoleCodeAndArchivedAtIsNull(caseId, personId, roleCode);
+    }
+
+    /** A person with a role (actor, demandado...) of the area's {@code party-roles} catalog. */
+    @Transactional
+    public void addParty(UUID caseId, UUID personId, String roleCode) {
+        parties.save(CaseParty.create(caseId, personId, roleCode));
+    }
+
+    /** A case of the demo data in an area without defendants; {@code practiceArea} is the area's code. */
+    public record AreaCaseSeed(
+            String practiceArea,
+            String caption,
+            String internalNumber,
+            String circumscriptionCode,
+            String actionType,
+            String represents,
+            String stageCode) {}
 
     /** An active human defendant in {@code stageCode}, defended by the firm, with one charge. */
     @Transactional
