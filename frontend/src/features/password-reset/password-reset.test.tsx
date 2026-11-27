@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { readResetToken } from "@/features/password-reset/reset-token";
+import { readLinkToken } from "@/features/password-reset/reset-token";
 import { DEMO_ME, noContent, problem, problemWith, signedIn, signedOut } from "@/test/mock-api";
 import { renderApp } from "@/test/render-app";
 
@@ -255,10 +255,10 @@ describe("choosing a new password with the link", () => {
   });
 });
 
-describe("readResetToken", () => {
+describe("readLinkToken", () => {
   it("reads a well-formed token from the fragment", () => {
-    expect(readResetToken(`#token=${TOKEN}`)).toBe(TOKEN);
-    expect(readResetToken(`token=${TOKEN}`)).toBe(TOKEN);
+    expect(readLinkToken(`#token=${TOKEN}`)).toBe(TOKEN);
+    expect(readLinkToken(`token=${TOKEN}`)).toBe(TOKEN);
   });
 
   it.each([
@@ -267,6 +267,6 @@ describe("readResetToken", () => {
     ["too short", "#token=abc"],
     ["not base64url", `#token=${TOKEN.slice(0, 42)}+`],
   ])("ignores %s", (_case, hash) => {
-    expect(readResetToken(hash)).toBeUndefined();
+    expect(readLinkToken(hash)).toBeUndefined();
   });
 });

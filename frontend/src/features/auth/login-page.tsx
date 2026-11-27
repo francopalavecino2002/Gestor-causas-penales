@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import { CircleCheck, Hourglass } from "lucide-react";
 
@@ -9,7 +9,12 @@ import { AuthLayout } from "@/features/auth/auth-layout";
 import { EXPIRED_MESSAGE, loginErrorMessage } from "@/features/auth/login-errors";
 import { meQueryOptions } from "@/features/auth/me-query";
 import { PasswordStep } from "@/features/auth/password-step";
-import { LOGIN_NOTICES, safeRedirect, type LoginNotice } from "@/features/auth/redirect";
+import {
+  LOGIN_NOTICES,
+  safeRedirect,
+  SIGNUP_PATH,
+  type LoginNotice,
+} from "@/features/auth/redirect";
 import { SecondFactorStep, type CodeMode } from "@/features/auth/second-factor-step";
 import {
   findRememberedFirm,
@@ -17,6 +22,7 @@ import {
   rememberFirm,
 } from "@/features/firms/remembered-firms";
 import { PUBLIC_CALCULATOR_PATH } from "@/features/public-deadlines/public-deadline-format";
+import { signupSettingsQueryOptions } from "@/features/signup/signup-api";
 import { isApiError } from "@/lib/api";
 
 export interface LoginSearch {
@@ -131,6 +137,7 @@ export function LoginPage({ redirect, estudio, aviso }: LoginSearch) {
           onBack={backToPassword}
         />
       )}
+      {step.name === "password" && <SignupInvitation />}
       <p className="flex items-start gap-2.5 border-t pt-6 text-meta text-muted-foreground">
         <Hourglass aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-primary" />
         <span>
@@ -145,5 +152,22 @@ export function LoginPage({ redirect, estudio, aviso }: LoginSearch) {
         </span>
       </p>
     </AuthLayout>
+  );
+}
+
+/** "Probá gratis" (T72), only while the server offers it; nothing when it is off or did not answer. */
+function SignupInvitation() {
+  const settings = useQuery(signupSettingsQueryOptions);
+  if (!settings.data?.enabled) return null;
+  return (
+    <p className="text-meta text-muted-foreground">
+      ¿Tu estudio todavía no usa el gestor?{" "}
+      <Link
+        to={SIGNUP_PATH}
+        className="font-semibold whitespace-nowrap text-primary underline underline-offset-4 hover:decoration-2"
+      >
+        Probá gratis
+      </Link>
+    </p>
   );
 }

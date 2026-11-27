@@ -15,8 +15,8 @@ export const TOO_LONG_MESSAGE =
 export const MISMATCH_MESSAGE =
   "Las dos contraseñas nuevas no coinciden. Escribila igual en los dos campos.";
 
-// Passwords are sent exactly as typed: no trimming.
-const newPassword = z
+// Passwords are sent exactly as typed: no trimming. Also the sign-up's (T72).
+export const newPassword = z
   .string()
   .min(
     NEW_PASSWORD_MIN,
@@ -24,7 +24,7 @@ const newPassword = z
   )
   .refine((value) => utf8Length(value) <= NEW_PASSWORD_MAX_BYTES, TOO_LONG_MESSAGE);
 
-const repeatPassword = z.string().min(1, "Repetí la contraseña nueva.");
+export const repeatPassword = z.string().min(1, "Repetí la contraseña nueva.");
 
 /** A new password and the same again, for the reset link (T71): there is no current one. */
 export const passwordResetSchema = z

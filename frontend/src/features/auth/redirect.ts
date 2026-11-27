@@ -6,6 +6,12 @@ export const RECOVER_PASSWORD_PATH = "/recuperar-clave";
 /** Where the emailed link lands: `?estudio=<slug>#token=<token>` (T71). */
 export const RESET_PASSWORD_PATH = "/restablecer-clave";
 
+/** "Probá gratis": a new firm signs up by itself (T72). */
+export const SIGNUP_PATH = "/registro";
+
+/** Where the sign-up's email link lands: `?estudio=<slug>#token=<token>` (T72). */
+export const VERIFY_EMAIL_PATH = "/verificar-email";
+
 /** Messages the login shows on arrival, from `?aviso=`. */
 export const LOGIN_NOTICES = {
   "contrasena-cambiada": "Listo. Ingresá con tu contraseña nueva.",
