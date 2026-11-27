@@ -26,6 +26,7 @@ jobs:
       backend: ${{ steps.decide.outputs.backend }}
       frontend: ${{ steps.decide.outputs.frontend }}
       screenshots: ${{ steps.filter.outputs.screenshots }}
+      scripts: ${{ steps.filter.outputs.scripts }}
     steps:
       - uses: actions/checkout@v7
       - id: filter
@@ -41,6 +42,9 @@ jobs:
               - '.github/workflows/ci.yml'
             screenshots:
               - 'frontend/e2e-demo/screenshots.capture.ts'
+            scripts:
+              - 'scripts/**'
+              - 'docker-compose.yml'
       - id: decide
         env:
           IS_PR: ${{ github.event_name == 'pull_request' }}
@@ -116,9 +120,12 @@ jobs:
 
   # The demo flow (T32) end to end: real backend with the fictitious seed, Postgres from
   # docker-compose.yml and the production build of the frontend, driven by Playwright.
+  # Also the backup smoke test (T64), which needs the seeded database this job leaves behind.
   e2e-demo:
     needs: changes
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
+    if: >-
+      needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true' ||
+      needs.changes.outputs.scripts == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -138,6 +145,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - run: chmod +x backend/mvnw && bash scripts/e2e-demo.sh
+      - name: Back up and restore the seeded database
+        run: bash scripts/backup-smoke.sh gestor_e2e
       # The screens of docs/DEMO.md against a fresh seed, on a manual run
       # (`gh workflow run ci.yml --ref <branch>`) or a PR that changes the capture, so they can be
       # refreshed without a local Docker setup: download the artifact into docs/screenshots/demo/.
@@ -173,8 +182,10 @@ jobs:
             bash -n "$script"
           done
       # shellcheck and pwsh are preinstalled on ubuntu-latest runners.
-      - name: Lint the demo scripts
-        run: shellcheck scripts/demo.sh scripts/e2e-demo.sh
+      - name: Lint the demo and backup scripts
+        run: >-
+          shellcheck scripts/demo.sh scripts/e2e-demo.sh scripts/backup.sh scripts/restore.sh
+          scripts/backup-smoke.sh
       - name: Check PowerShell scripts parse
         shell: pwsh
         run: |

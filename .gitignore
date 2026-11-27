@@ -31,6 +31,11 @@ frontend/test-results/
 # Local demo (scripts/demo.sh, scripts/demo.ps1)
 .demo-logs/
 
+# Database backups (scripts/backup.*): real firm data, never in the repository
+backups/
+*.dump
+*.dump.partial
+
 # Agents
 .agent-logs/
 .agent-tmp/

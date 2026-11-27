@@ -1989,3 +1989,36 @@ Superseded decisions are marked, never deleted.
 - **Consequences:** A forgotten password is solved by the owner in the app. A firm whose only owner
   forgets their password still needs the operator: acceptable for a 1–5 lawyer firm, documented in
   `docs/OPERATIONS.md` later.
+
+## ADR-0045: Backups with pg_dump and a swap-in restore (T64)
+
+- **Date:** 2026-11-27
+- **Status:** accepted
+- **Context:** A firm running the product on its own machine (Docker Compose) needs daily backups
+  it can schedule without a sysadmin, and a restore that cannot leave it without data. The tools must
+  work from Windows PowerShell 5.1 and from bash, and cost nothing.
+- **Decision:**
+  - `scripts/backup.{sh,ps1}` run `pg_dump --format=custom --compress=9 --no-owner` **inside the
+    Postgres container** and copy the file out with `docker compose cp`. Streaming the dump through
+    stdout was rejected: Windows PowerShell 5.1 re-encodes binary pipes. The file is copied as
+    `.partial` and renamed, so rotation never counts a half-written backup. Names are
+    `<db>-YYYYMMDD-HHMMSS.dump`, which sort by date; the newest N (default 14) of each database are
+    kept. Settings come from flags, the environment or `.env` (`BACKUP_DIR`, `BACKUP_KEEP`,
+    `DB_NAME`), like docker compose.
+  - `scripts/restore.{sh,ps1}` ask the user to type the database name (or `--yes`), load the dump
+    into `<db>_restaurando` with `pg_restore --exit-on-error`, and only then swap: the current
+    database is renamed to `<db>_previa` (closing its connections with `ALLOW_CONNECTIONS false`
+    first) and the restored one takes its name. A broken file or a mistaken restore loses nothing;
+    `_previa` is replaced on the next restore. A plain `pg_restore --clean` was rejected: a failure
+    halfway leaves a mixed database, and objects created after the backup survive.
+  - Database names are validated (`[a-z_][a-z0-9_]*`) because they go into SQL as identifiers.
+  - Windows scheduling is the Task Scheduler (`schtasks`), documented in `docs/OPERATIONS.md`; no
+    service or extra tool.
+  - `scripts/backup-smoke.sh` runs in the CI `e2e-demo` job right after the demo suite, against the
+    database it seeded: three backups with `--keep 2`, a change, a refused broken file, a restore, and
+    checks on the case count, the Flyway history and `_previa`.
+- **Consequences:** Backups are logical dumps, fine for a firm's database of a few hundred MB;
+  point-in-time recovery is out of scope (a managed database brings it, T65). The backups hold
+  sensitive data unencrypted by the script: the docs ask for an encrypted disk (BitLocker) and keep
+  `backups/` and `*.dump` out of git. The PowerShell scripts are parse-checked in CI but only run on
+  Windows by hand.

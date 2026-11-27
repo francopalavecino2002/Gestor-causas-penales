@@ -240,3 +240,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   hearing each in the coming days and judicial deadlines loaded by hand. `docs/DEMO.md` gains an
   optional "Otros fueros" minute after the criminal story; CI now captures the demo screenshots as
   an artifact (`demo-screenshots`) so they can be refreshed without a local Docker setup.
+- Backups (T64): `scripts/backup.{sh,ps1}` dump the Compose database with `pg_dump` (custom format,
+  compressed) to dated files and keep the newest N; `scripts/restore.{sh,ps1}` ask for confirmation,
+  load the dump into a staging database and only then swap it in, keeping the replaced one as
+  `<db>_previa`. `docs/OPERATIONS.md` (Spanish) covers scheduling with the Windows Task Scheduler;
+  CI backs up and restores the seeded demo database (`scripts/backup-smoke.sh`) (ADR-0045).
