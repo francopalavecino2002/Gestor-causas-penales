@@ -10,13 +10,8 @@ import ar.gestorpenal.user.UserService;
 import jakarta.annotation.PreDestroy;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -25,7 +20,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,11 +48,7 @@ class PasswordResetService {
     static final String RESET_PAGE = "/restablecer-clave";
 
     private static final Logger log = LoggerFactory.getLogger(PasswordResetService.class);
-    private static final int SECRET_BYTES = 32;
     private static final int MAX_QUEUED_REQUESTS = 100;
-
-    /** 32 bytes in unpadded base64url. Anything else cannot be a link and is not looked up. */
-    private static final Pattern SECRET_FORMAT = Pattern.compile("[A-Za-z0-9_-]{43}");
 
     private final TenantService tenants;
     private final UserRepository users;
@@ -70,7 +60,6 @@ class PasswordResetService {
     private final String publicUrl;
     private final Clock clock;
     private final TransactionTemplate transaction;
-    private final SecureRandom random = new SecureRandom();
     private final ExecutorService background = new ThreadPoolExecutor(
             1, 1, 0, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(MAX_QUEUED_REQUESTS),
             runnable -> {
@@ -140,7 +129,7 @@ class PasswordResetService {
      *     link stays usable
      */
     void resetPassword(String secret, String newPassword) {
-        if (secret == null || !SECRET_FORMAT.matcher(secret).matches()) {
+        if (!LinkSecrets.isWellFormed(secret)) {
             throw new InvalidResetTokenException();
         }
         String hash = hash(secret);
@@ -162,7 +151,7 @@ class PasswordResetService {
     private String issue(UUID userId) {
         Instant now = clock.instant();
         revokeOpenLinks(userId, now);
-        String secret = newSecret();
+        String secret = LinkSecrets.newSecret();
         tokens.save(new PasswordResetToken(userId, hash(secret), now, now.plus(properties.tokenTtl())));
         return secret;
     }
@@ -177,19 +166,8 @@ class PasswordResetService {
                 + "#token=" + secret;
     }
 
-    private String newSecret() {
-        byte[] bytes = new byte[SECRET_BYTES];
-        random.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
     static String hash(String secret) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(secret.getBytes(StandardCharsets.US_ASCII));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 is required by every Java platform", e);
-        }
+        return LinkSecrets.hash(secret);
     }
 
     @PreDestroy

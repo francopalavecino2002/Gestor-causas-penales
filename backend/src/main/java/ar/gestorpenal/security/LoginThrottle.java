@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * State is per application instance and is lost on restart.
  */
 @Component
-class LoginThrottle {
+public class LoginThrottle {
 
     static final int MAX_TRACKED_KEYS = 50_000;
 
@@ -33,7 +33,7 @@ class LoginThrottle {
         }
     };
 
-    LoginThrottle(LoginThrottleProperties limits, Clock clock) {
+    public LoginThrottle(LoginThrottleProperties limits, Clock clock) {
         this.limits = limits;
         this.clock = clock;
     }
@@ -43,7 +43,7 @@ class LoginThrottle {
      *
      * @throws LoginThrottledException if the account or the client is over its limit
      */
-    synchronized void acquire(String accountKey, String clientKey) {
+    public synchronized void acquire(String accountKey, String clientKey) {
         Instant now = clock.instant();
         Deque<Instant> account = recent(account(accountKey), now);
         Deque<Instant> client = recent(client(clientKey), now);

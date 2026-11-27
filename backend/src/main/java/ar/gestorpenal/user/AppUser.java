@@ -75,6 +75,10 @@ public class AppUser extends TenantScopedEntity {
     @Column(name = "credentials_changed_at")
     private Instant credentialsChangedAt;
 
+    /** Set for the owner of a firm that signed up by itself until they open the emailed link (ADR-0050). */
+    @Column(name = "email_verification_pending", nullable = false)
+    private boolean emailVerificationPending;
+
     AppUser(String email, String displayName, String passwordHash, Role role) {
         this.email = Objects.requireNonNull(email, "email");
         this.displayName = Objects.requireNonNull(displayName, "displayName");
@@ -110,6 +114,15 @@ public class AppUser extends TenantScopedEntity {
         this.passwordHash = Objects.requireNonNull(newPasswordHash, "newPasswordHash");
         this.passwordChangeRequired = temporary;
         this.credentialsChangedAt = Objects.requireNonNull(now, "now");
+    }
+
+    void requireEmailVerification() {
+        this.emailVerificationPending = true;
+    }
+
+    /** The user proved they own the email: they can log in from now on. */
+    public void markEmailVerified() {
+        this.emailVerificationPending = false;
     }
 
     /** Whether a session opened at {@code authenticatedAt} predates the last password change. */

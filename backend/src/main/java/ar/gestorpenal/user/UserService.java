@@ -105,6 +105,32 @@ public class UserService {
         }).orElse(false);
     }
 
+    /**
+     * Checks and hashes a password chosen by a new user. Separate from {@link #createUnverifiedOwner} so
+     * the slow hash runs before the caller takes any lock.
+     *
+     * @throws InvalidPasswordException if the password is missing, too short or too long
+     */
+    public String hashNewPassword(String rawPassword) {
+        requireValidNewPassword(rawPassword);
+        return passwordEncoder.encode(rawPassword);
+    }
+
+    /**
+     * Creates the owner of a firm that signed up by itself (ADR-0050), with the password they chose,
+     * already hashed by {@link #hashNewPassword}. They cannot log in until they open the verification
+     * link sent to {@code email}.
+     *
+     * @throws IllegalArgumentException if the email or the name is not valid
+     */
+    @Transactional
+    public AppUser createUnverifiedOwner(String email, String displayName, String passwordHash) {
+        AppUser owner = new AppUser(validEmail(email), validDisplayName(displayName), passwordHash, Role.OWNER);
+        // Before saving, so the history shows one creation and no follow-up update.
+        owner.requireEmailVerification();
+        return users.saveAndFlush(owner);
+    }
+
     @Transactional
     public AppUser createUser(String email, String displayName, String rawPassword, Role role) {
         return users.save(newUser(email, displayName, rawPassword, role));
@@ -112,19 +138,39 @@ public class UserService {
 
     private AppUser newUser(String email, String displayName, String rawPassword, Role role) {
         requireAcceptablePassword(rawPassword);
+        return new AppUser(validEmail(email), validDisplayName(displayName), passwordEncoder.encode(rawPassword), role);
+    }
+
+    private static String validEmail(String email) {
         String normalizedEmail = normalizeEmail(email);
         if (normalizedEmail.length() > 254 || normalizedEmail.indexOf('@') < 1) {
             throw new IllegalArgumentException("Email is not valid");
         }
+        return normalizedEmail;
+    }
+
+    private static String validDisplayName(String displayName) {
         String name = displayName.strip();
         if (name.isEmpty() || name.length() > 200) {
             throw new IllegalArgumentException("Display name must have between 1 and 200 characters");
         }
-        return new AppUser(normalizedEmail, name, passwordEncoder.encode(rawPassword), role);
+        return name;
     }
 
     public static String normalizeEmail(String email) {
         return email.strip().toLowerCase(Locale.ROOT);
+    }
+
+    /** @throws InvalidPasswordException if the password is missing, too short or too long */
+    public static void requireValidNewPassword(String rawPassword) {
+        if (rawPassword == null) {
+            throw new InvalidPasswordException("A password is required");
+        }
+        try {
+            requireAcceptablePassword(rawPassword);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidPasswordException(e.getMessage());
+        }
     }
 
     public static boolean fitsPasswordHash(String rawPassword) {

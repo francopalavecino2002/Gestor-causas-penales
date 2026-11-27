@@ -99,6 +99,18 @@ class SecurityProblemHandler {
                 "The password reset link is not valid, was already used or expired. Ask for a new one.");
     }
 
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    ProblemDetail emailNotVerified() {
+        return problem(HttpStatus.FORBIDDEN, "email-not-verified", "Email not verified",
+                "Open the link we sent to your email before logging in. A new link is on its way.");
+    }
+
+    @ExceptionHandler(InvalidVerificationTokenException.class)
+    ProblemDetail invalidVerificationToken() {
+        return problem(HttpStatus.BAD_REQUEST, "invalid-verification-token", "Invalid verification link",
+                "The verification link is not valid, was already used or expired. Log in to get a new one.");
+    }
+
     private static ProblemDetail problem(HttpStatus status, String type, String title, String detail) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
         problem.setType(URI.create("/problems/" + type));

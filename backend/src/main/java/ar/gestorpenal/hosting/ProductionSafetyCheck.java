@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 /**
  * Refuses to start the {@code prod} profile with a setting that is only safe on a developer's
  * machine (ADR-0046): the dev or demo profile, session cookies without {@code Secure}, Hibernate
- * changing the schema, the fictitious development TOTP key, or emails with links that are not
- * HTTPS. A wrong environment variable then
+ * changing the schema, the fictitious development TOTP key, emails with links that are not HTTPS,
+ * or self sign-up without email. A wrong environment variable then
  * fails the deployment instead of weakening a live firm.
  */
 @Component
@@ -53,6 +53,10 @@ class ProductionSafetyCheck {
         String publicUrl = environment.getProperty("app.public-url", "");
         if (!smtpHost.isBlank() && !publicUrl.startsWith("https://")) {
             problems.add("MAIL_SMTP_HOST is set but APP_PUBLIC_URL is not an https:// address");
+        }
+        // A signed-up owner logs in only after opening the emailed link (ADR-0050).
+        if (environment.getProperty("app.signup.enabled", Boolean.class, false) && smtpHost.isBlank()) {
+            problems.add("APP_SIGNUP_ENABLED is true but MAIL_SMTP_HOST is not set");
         }
         return problems;
     }

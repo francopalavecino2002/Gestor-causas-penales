@@ -35,6 +35,7 @@ class LoginService {
     private final PasswordEncoder passwordEncoder;
     private final LoginThrottle throttle;
     private final TwoFactorService twoFactor;
+    private final EmailVerificationService emailVerification;
     private final Clock clock;
     private final Duration secondFactorTimeout;
     private final String hashForUnknownUsers;
@@ -45,6 +46,7 @@ class LoginService {
             PasswordEncoder passwordEncoder,
             LoginThrottle throttle,
             TwoFactorService twoFactor,
+            EmailVerificationService emailVerification,
             Clock clock,
             @Value("${app.security.two-factor.login-timeout}") Duration secondFactorTimeout) {
         this.tenants = tenants;
@@ -52,6 +54,7 @@ class LoginService {
         this.passwordEncoder = passwordEncoder;
         this.throttle = throttle;
         this.twoFactor = twoFactor;
+        this.emailVerification = emailVerification;
         this.clock = clock;
         this.secondFactorTimeout = secondFactorTimeout;
         this.hashForUnknownUsers = passwordEncoder.encode(UUID.randomUUID().toString());
@@ -60,6 +63,8 @@ class LoginService {
     /**
      * @throws LoginThrottledException if there were too many recent failures
      * @throws BadCredentialsException if the credentials are not valid
+     * @throws EmailNotVerifiedException if they are, but the owner of a signed-up firm has not verified
+     *     the email yet: a new verification link is sent (ADR-0050)
      */
     LoginResult authenticate(LoginRequest request, String clientAddress) {
         String slug = request.tenant().strip().toLowerCase(Locale.ROOT);
@@ -69,6 +74,11 @@ class LoginService {
         throttle.acquire(accountKey, clientAddress);
         AppUser user = verify(slug, email, request.password())
                 .orElseThrow(() -> new BadCredentialsException("Invalid firm, email or password"));
+        if (user.isEmailVerificationPending()) {
+            // The attempt stays counted, so the throttle also limits how many links this can send.
+            TenantContext.runAs(user.getTenantId(), () -> emailVerification.sendLink(user.getId()));
+            throw new EmailNotVerifiedException();
+        }
         Instant now = clock.instant();
         if (user.isTotpEnabled()) {
             return new LoginResult.SecondFactorRequired(new PendingSecondFactor(

@@ -1,0 +1,9 @@
+Hola, {{displayName}}:
+
+Creaste el estudio {{firmName}}. Para empezar a usarlo, confirmá que este email es tuyo:
+
+{{link}}
+
+Para ingresar vas a usar el estudio {{firmSlug}}, este email y la contraseña que elegiste. El enlace vence en {{hours}} horas y sirve una sola vez; si vence, ingresá igual y te mandamos otro.
+
+Si no fuiste vos, ignorá este correo: nadie va a poder ingresar sin abrir este enlace.
