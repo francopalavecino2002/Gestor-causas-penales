@@ -14,7 +14,7 @@ test("find the demo case by its number and see its two defendants", async ({ pag
     .getByRole("link", { name: "Causas" })
     .click();
   await expect(page.getByRole("heading", { level: 1, name: "Causas" })).toBeVisible();
-  // The seed has about 25 cases.
+  // The seed has about 30 cases: 25 criminal, the rest civil and laboral.
   await expect(page.getByText(/^\d+ causas en el estudio\.$/)).toBeVisible();
 
   await page.getByRole("searchbox", { name: "Buscá una causa" }).fill(DEMO_CASE.number);

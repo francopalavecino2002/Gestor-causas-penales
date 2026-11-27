@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class DeadlineSeeding {
 
+    private static final String MANUAL_RULE = "plazo-judicial";
+
     private final DeadlineRepository deadlines;
     private final FirmRules firmRules;
     private final DeadlineClock clock;
@@ -45,5 +47,16 @@ public class DeadlineSeeding {
         DeadlineRule rule = firmRules.current().rule(ruleCode);
         DeadlineData data = new DeadlineData(ruleCode, defendantId, triggeredOn, null, setDueOn, null, null, notes);
         return deadlines.save(Deadline.create(caseId, defendantId, rule, data, DeadlineClock.ZONE, clock.today())).getId();
+    }
+
+    /**
+     * A deadline loaded by hand in an area without computed rules (civil, laboral...): the generic
+     * judicial deadline of the area's package, starting {@code triggeredOn} and due {@code dueOn}.
+     */
+    @Transactional
+    public UUID createManualDeadline(UUID caseId, String areaCode, LocalDate triggeredOn, LocalDate dueOn, String notes) {
+        DeadlineRule rule = firmRules.current(areaCode).rule(MANUAL_RULE);
+        DeadlineData data = new DeadlineData(MANUAL_RULE, null, triggeredOn, null, dueOn, null, null, notes);
+        return deadlines.save(Deadline.create(caseId, null, rule, data, DeadlineClock.ZONE, clock.today())).getId();
     }
 }

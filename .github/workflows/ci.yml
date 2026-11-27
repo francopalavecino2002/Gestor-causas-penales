@@ -25,6 +25,7 @@ jobs:
     outputs:
       backend: ${{ steps.decide.outputs.backend }}
       frontend: ${{ steps.decide.outputs.frontend }}
+      screenshots: ${{ steps.filter.outputs.screenshots }}
     steps:
       - uses: actions/checkout@v7
       - id: filter
@@ -38,6 +39,8 @@ jobs:
             frontend:
               - 'frontend/**'
               - '.github/workflows/ci.yml'
+            screenshots:
+              - 'frontend/e2e-demo/screenshots.capture.ts'
       - id: decide
         env:
           IS_PR: ${{ github.event_name == 'pull_request' }}
@@ -117,7 +120,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
@@ -135,6 +138,19 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - run: chmod +x backend/mvnw && bash scripts/e2e-demo.sh
+      # The screens of docs/DEMO.md against a fresh seed, on a manual run
+      # (`gh workflow run ci.yml --ref <branch>`) or a PR that changes the capture, so they can be
+      # refreshed without a local Docker setup: download the artifact into docs/screenshots/demo/.
+      - name: Capture the demo screenshots
+        if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.screenshots == 'true'
+        run: bash scripts/e2e-demo.sh --screenshots
+      - if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.screenshots == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: demo-screenshots
+          path: docs/screenshots/demo/*.png
+          if-no-files-found: error
+          retention-days: 7
       - if: failure()
         uses: actions/upload-artifact@v7
         with:

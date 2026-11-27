@@ -133,3 +133,8 @@ task end to end. The loop for one task:
 - Headless runs may deny `rm` and `git rm`: a file that becomes unused cannot be deleted in that run.
   Note it in the PR as a follow-up instead of leaving it unmentioned. GitHub has no area labels yet:
   open PRs without `--label`.
+- In a worktree `docker compose` clashes with the main checkout's `gestor-penal-postgres` container, so
+  `scripts/e2e-demo.sh` cannot run locally. CI captures the demo screenshots when a PR changes
+  `frontend/e2e-demo/screenshots.capture.ts` (or on a manual run). `gh run download` never
+  overwrites and headless `cp` is denied: download with `-n demo-screenshots -D <new folder>`, then
+  `git add <new folder>` and `git mv -f <new folder>/*.png docs/screenshots/demo/`.

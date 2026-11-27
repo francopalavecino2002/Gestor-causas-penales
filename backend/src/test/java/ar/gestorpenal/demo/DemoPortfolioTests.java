@@ -40,7 +40,7 @@ class DemoPortfolioTests {
     private static final ZoneId FIRM_ZONE = ZoneId.of("America/Argentina/Salta");
 
     private static final List<String> TABLES =
-            List.of("case_file", "defendant", "person", "hearing", "coercive_measure", "deadline");
+            List.of("case_file", "defendant", "person", "case_party", "hearing", "coercive_measure", "deadline");
 
     @Autowired
     private DemoDataSeeder seeder;
@@ -58,7 +58,7 @@ class DemoPortfolioTests {
     void shouldSeedAboutTwentyFiveCasesWithDefendantsInEveryStage() {
         UUID tenantId = demoFirm();
 
-        assertThat(count("SELECT count(*) FROM case_file WHERE tenant_id = ?", tenantId))
+        assertThat(count("SELECT count(*) FROM case_file WHERE tenant_id = ? AND practice_area = 'penal'", tenantId))
                 .isEqualTo(25);
         assertThat(count("SELECT count(DISTINCT stage_code) FROM defendant WHERE tenant_id = ?", tenantId))
                 .as("the 10 stages of stages.yml, closed included")
@@ -149,6 +149,85 @@ class DemoPortfolioTests {
                 .isEqualTo(1);
         assertThat(count("SELECT count(*) FROM deadline WHERE tenant_id = ? AND notes LIKE '%[validar]%'", tenantId))
                 .isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void shouldEnableCivilAndLaboralBesidePenalWithPenalFirst() {
+        UUID tenantId = demoFirm();
+
+        assertThat(jdbc.queryForObject(
+                        "SELECT array_to_string(enabled_practice_areas, ',') FROM tenant WHERE id = ?",
+                        String.class, tenantId))
+                .isEqualTo("penal,civil,laboral");
+    }
+
+    @Test
+    void shouldSeedThreeCivilAndTwoLaboralCasesWithTheirPartiesOnFictitiousNames() {
+        UUID tenantId = demoFirm();
+
+        assertThat(jdbc.queryForList(
+                        "SELECT internal_number FROM case_file WHERE tenant_id = ? AND practice_area = 'civil'"
+                                + " ORDER BY internal_number",
+                        String.class, tenantId))
+                .containsExactly("DEMO-CIV-001", "DEMO-CIV-002", "DEMO-CIV-003");
+        assertThat(jdbc.queryForList(
+                        "SELECT internal_number FROM case_file WHERE tenant_id = ? AND practice_area = 'laboral'"
+                                + " ORDER BY internal_number",
+                        String.class, tenantId))
+                .containsExactly("DEMO-LAB-001", "DEMO-LAB-002");
+        assertThat(count(
+                        "SELECT count(*) FROM case_file WHERE tenant_id = ? AND practice_area <> 'penal'"
+                                + " AND stage_code IS NOT NULL AND status = 'ACTIVE'"
+                                + " AND NOT EXISTS (SELECT 1 FROM defendant d WHERE d.case_id = case_file.id)",
+                        tenantId))
+                .as("they keep their stage and status on the case and have no defendants")
+                .isEqualTo(5);
+        assertThat(count(
+                        "SELECT count(DISTINCT user_id) FROM case_team_member WHERE tenant_id = ?"
+                                + " AND team_role = 'RESPONSIBLE' AND case_id IN"
+                                + " (SELECT id FROM case_file WHERE practice_area <> 'penal')",
+                        tenantId))
+                .as("the new cases are spread across the three lawyers")
+                .isEqualTo(3);
+        assertThat(jdbc.queryForList(
+                        "SELECT p.role_code FROM case_party p JOIN case_file c ON c.id = p.case_id"
+                                + " WHERE p.tenant_id = ? AND c.internal_number = 'DEMO-LAB-002' ORDER BY p.role_code",
+                        String.class, tenantId))
+                .containsExactly("actor", "aseguradora", "demandado");
+        assertThat(count(
+                        "SELECT count(*) FROM case_party p JOIN person x ON x.id = p.person_id"
+                                + " WHERE p.tenant_id = ? AND x.kind = 'LEGAL' AND x.legal_name LIKE '%S.A.'"
+                                + " AND x.document_number IS NULL",
+                        tenantId))
+                .isGreaterThanOrEqualTo(3);
+    }
+
+    @Test
+    void shouldGiveEachNewCaseAHearingAfterTodayAtTheEveningSlotAndManualDeadlines() {
+        UUID tenantId = demoFirm();
+        Date today = Date.valueOf(DemoCalendar.weekday(LocalDate.now(FIRM_ZONE), 0));
+        String localDay = "(h.starts_at AT TIME ZONE 'America/Argentina/Salta')::date";
+        String ofTheNewAreas = " JOIN case_file c ON c.id = h.case_id WHERE h.tenant_id = ? AND c.practice_area <> 'penal'";
+
+        assertThat(count("SELECT count(*) FROM hearing h" + ofTheNewAreas, tenantId)).isEqualTo(5);
+        assertThat(count(
+                        "SELECT count(*) FROM hearing h" + ofTheNewAreas + " AND " + localDay + " > ?"
+                                + " AND (h.starts_at AT TIME ZONE 'America/Argentina/Salta')::time = '17:30'"
+                                + " AND extract(isodow FROM h.starts_at AT TIME ZONE 'America/Argentina/Salta') <= 5",
+                        tenantId, today))
+                .as("on a weekday after today, after every criminal hearing")
+                .isEqualTo(5);
+        assertThat(jdbc.queryForList(
+                        "SELECT DISTINCT h.type_code FROM hearing h" + ofTheNewAreas + " ORDER BY h.type_code",
+                        String.class, tenantId))
+                .containsExactly("de-conciliacion", "de-conciliacion-o-acuerdo", "de-prueba", "preliminar");
+        assertThat(count(
+                        "SELECT count(*) FROM deadline l JOIN case_file c ON c.id = l.case_id"
+                                + " WHERE l.tenant_id = ? AND c.practice_area <> 'penal' AND l.rule_code = 'plazo-judicial'"
+                                + " AND l.set_due_on > ? AND l.notes IS NOT NULL AND l.defendant_id IS NULL",
+                        tenantId, today))
+                .as("seven manual deadlines, all still to come")
+                .isEqualTo(7);
     }
 
     @Test

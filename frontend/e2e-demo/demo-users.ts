@@ -55,5 +55,13 @@ export const PROBATION_CASE = {
   caption: "Ledesma Prueba, Hernán s/ hurto (ficticio)",
 } as const;
 
+/** The laboral case of the "otros fueros" segment (DemoAreaCases): three parties, no defendants. */
+export const LABORAL_CASE = {
+  number: "DEMO-LAB-002",
+  caption:
+    "Arce Prueba, Nélida c/ Obras del Sur Ficticia S.A. y ART Muestra S.A. s/ accidente de trabajo (ficticio)",
+  parties: ["Arce Prueba, Nélida", "Obras del Sur Ficticia S.A.", "ART Muestra S.A."],
+} as const;
+
 /** The firm's zone: the seed and the agenda count days in it. */
 export const FIRM_TIME_ZONE = "America/Argentina/Buenos_Aires";
