@@ -137,7 +137,8 @@ Las capturas de cada paso, en celular (390×844) y en compu (1440×900), están 
 - **Qué hacés:** tocá **Semana**. Después, en **Abogado o abogada**, elegí **Julián Muestra** y
   volvé a **Todo el estudio**.
 - **Qué decís:**
-  - "La semana del estudio entero (23 audiencias, 4 con detenidos), día por día".
+  - "La semana del estudio entero (11 audiencias en la captura, sacada un viernes; 4 con
+    detenidos), día por día".
   - "Si sos titular, ves la agenda de cada abogado del estudio; cada uno ve la suya".
 - **Capturas:** [semana, compu](screenshots/demo/04-agenda-week-desktop.png),
   [semana, celular](screenshots/demo/04-agenda-week-mobile.png).
@@ -147,8 +148,8 @@ Las capturas de cada paso, en celular (390×844) y en compu (1440×900), están 
 - **Qué hacés:** andá a **Plazos**. Mostrá el vencido de arriba y prendé **Solo personas
   detenidas**.
 - **Qué decís:**
-  - "Acá está todo lo que vence en los próximos 30 días (6 plazos), agrupado: vencidos, vencen
-    pronto, próximos".
+  - "Acá está todo lo que vence en los próximos 30 días (13 plazos, 7 de ellos de civil y
+    laboral), agrupado: vencidos, vencen pronto, próximos".
   - "Cada plazo trae su norma (*Art. 158; 160 inc. 7, CPP de Neuquén*), cómo se cuenta, desde
     cuándo corre y qué pasa si vence. La jurisprudencia también: después de «Olave» el plazo de
     la investigación sigue, pero la consecuencia fue declarada inconstitucional".

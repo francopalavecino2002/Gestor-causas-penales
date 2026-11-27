@@ -135,5 +135,6 @@ task end to end. The loop for one task:
   open PRs without `--label`.
 - In a worktree `docker compose` clashes with the main checkout's `gestor-penal-postgres` container, so
   `scripts/e2e-demo.sh` cannot run locally. CI captures the demo screenshots when a PR changes
-  `frontend/e2e-demo/screenshots.capture.ts` (or on a manual run): `gh run download <run-id> -n
-  demo-screenshots -D docs/screenshots/demo`.
+  `frontend/e2e-demo/screenshots.capture.ts` (or on a manual run). `gh run download` never
+  overwrites and headless `cp` is denied: download with `-n demo-screenshots -D <new folder>`, then
+  `git add <new folder>` and `git mv -f <new folder>/*.png docs/screenshots/demo/`.
