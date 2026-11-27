@@ -24,12 +24,19 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 /**
  * Cookie session + CSRF for the same-origin SPA (ADR-0008). Deny by default: only the health
  * check, the CSRF bootstrap, the two login steps (ADR-0009), the calendar feed (ADR-0034) and the
- * read-only public deadline calculator (ADR-0041) are public.
+ * read-only public deadline calculator (ADR-0041) and the built frontend (ADR-0046) are public.
+ * There is no CORS configuration on purpose: the SPA and the API share one origin, so a browser on
+ * any other origin gets no {@code Access-Control-Allow-*} header (ADR-0046).
  */
 @Configuration
 @EnableConfigurationProperties(LoginThrottleProperties.class)
@@ -78,8 +85,23 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.HEAD, CALENDAR_FEED_PATTERN).permitAll()
                         // The public deadline calculator: read only and rate-limited (ADR-0041).
                         .requestMatchers(HttpMethod.GET, PUBLIC_API_PATTERN).permitAll()
+                        // The built frontend (ADR-0046) is public code; the data behind /api is not.
+                        .requestMatchers(frontendRequests()).permitAll()
                         .anyRequest().authenticated());
         return http.build();
+    }
+
+    /**
+     * Reads (GET, HEAD) of anything outside {@code /api} and {@code /actuator}: the frontend's files
+     * and client routes, served by the backend in production. Path patterns match the decoded path
+     * like Spring MVC does, so an encoded {@code /%61pi/...} is still the API and stays protected.
+     */
+    private static RequestMatcher frontendRequests() {
+        PathPatternRequestMatcher.Builder paths = PathPatternRequestMatcher.withDefaults();
+        RequestMatcher reads = new OrRequestMatcher(
+                paths.matcher(HttpMethod.GET, "/**"), paths.matcher(HttpMethod.HEAD, "/**"));
+        RequestMatcher backend = new OrRequestMatcher(paths.matcher("/api/**"), paths.matcher("/actuator/**"));
+        return new AndRequestMatcher(reads, new NegatedRequestMatcher(backend));
     }
 
     /**

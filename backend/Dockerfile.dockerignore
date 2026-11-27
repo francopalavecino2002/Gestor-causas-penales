@@ -1,0 +1,15 @@
+# Used by BuildKit for backend/Dockerfile (context: the repository root). Only the sources the
+# Dockerfile copies get in: never .env, backups or local builds.
+*
+!backend/.mvn/wrapper/maven-wrapper.properties
+!backend/mvnw
+!backend/pom.xml
+!backend/src/main/
+!frontend/
+frontend/node_modules/
+frontend/dist/
+frontend/dev-dist/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+frontend/.env*
