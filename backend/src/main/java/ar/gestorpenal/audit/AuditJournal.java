@@ -34,6 +34,20 @@ public class AuditJournal {
     /** An update of {@code entityClass} {@code entityId} of firm {@code tenantId}, by the logged-in user. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void recordUpdate(UUID tenantId, Class<?> entityClass, UUID entityId, List<FieldChange> changes) {
+        writeEntry(tenantId, entityClass, entityId, AuditAction.UPDATE, changes);
+    }
+
+    /**
+     * The creation of {@code entityClass} {@code entityId} of firm {@code tenantId}, by the logged-in
+     * user, or by nobody (the system) when there is none, as in the first-firm bootstrap.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordCreate(UUID tenantId, Class<?> entityClass, UUID entityId, List<FieldChange> changes) {
+        writeEntry(tenantId, entityClass, entityId, AuditAction.CREATE, changes);
+    }
+
+    private void writeEntry(
+            UUID tenantId, Class<?> entityClass, UUID entityId, AuditAction action, List<FieldChange> changes) {
         String json = jsonMapper.writeValueAsString(changes);
         UUID actor = AuditRecorder.currentActor(tenantId);
         entityManager.unwrap(Session.class).doWork(connection -> {
@@ -43,7 +57,7 @@ public class AuditJournal {
                 insert.setObject(3, actor);
                 insert.setString(4, AuditRecorder.entityTypeOf(entityClass));
                 insert.setObject(5, entityId);
-                insert.setString(6, AuditAction.UPDATE.name());
+                insert.setString(6, action.name());
                 insert.setString(7, json);
                 insert.executeUpdate();
             }
