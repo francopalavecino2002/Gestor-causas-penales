@@ -1,0 +1,6 @@
+{{firmName}}
+
+{{content}}
+
+--
+Te escribimos en nombre de {{firmName}} desde su gestor de causas. Si no esperabas este correo, podés ignorarlo.

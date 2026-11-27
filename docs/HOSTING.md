@@ -44,6 +44,7 @@ referencia completa está en [`.env.example`](../.env.example).
 | `DB_POOL_SIZE` | no (5) | Conexiones a la base. Los planes chicos permiten pocas. |
 | `PORT` | no (8081) | La mayoría de las plataformas la define sola. |
 | `GEMINI_API_KEY` | no | Asistencia con IA. Dejala vacía con causas reales hasta la revisión legal (ADR-0033). |
+| `MAIL_SMTP_*`, `MAIL_FROM` | no | Correo saliente: ver *Correo saliente*. Sin ellas no se manda ningún correo. |
 
 `SPRING_PROFILES_ACTIVE=prod` ya viene en la imagen.
 
@@ -167,6 +168,48 @@ lo evita cuesta US$ 25/mes más cómputo: más caro que A o B para lo que se usa
 pasa a un estudio real cambiando de plan, no de proveedor. C queda como alternativa si en algún
 momento hay quien mantenga el servidor, o si la ubicación de los datos lo exige.
 
+## Correo saliente
+
+El gestor manda correos (recuperar la contraseña, el resumen diario de la agenda) por **SMTP**, así
+que sirve cualquier proveedor y cambiarlo es cambiar variables, no código
+([ADR-0048](DECISIONS.md#adr-0048-outbound-email-behind-a-port-smtp-adapter-off-when-unset-t70)).
+Sin `MAIL_SMTP_HOST` no se manda nada: cada correo queda en el log (sin el cuerpo) y en el registro
+del estudio como `LOGGED`.
+
+| Variable | Obligatoria | Para qué |
+|----------|-------------|----------|
+| `MAIL_SMTP_HOST` | no (vacía = sin envío) | Servidor SMTP del proveedor. |
+| `MAIL_SMTP_PORT` | no (587) | 587 con STARTTLS o 465 con TLS directo. |
+| `MAIL_SMTP_SECURITY` | no (`STARTTLS`) | `STARTTLS`, `TLS` (puerto 465) o `NONE` (solo Mailpit local). |
+| `MAIL_SMTP_USERNAME`, `MAIL_SMTP_PASSWORD` | según el proveedor | Credenciales SMTP. Van en los secretos de la plataforma, nunca en un archivo. |
+| `MAIL_FROM` | sí, si hay SMTP | Remitente, de un dominio verificado en el proveedor (por ejemplo `avisos@<dominio>`). El nombre visible es el del estudio. |
+
+Para probar: el titular entra y llama a `POST /api/v1/mail/test` (le llega un "Correo de prueba" a
+su propio correo; hasta 5 por hora).
+
+### Dos proveedores con plan gratis
+
+Precios consultados el 27/11/2026.
+
+| | Brevo | Resend |
+|---|---|---|
+| Plan gratis | **300 correos por día**, sin vencimiento ([Brevo, planes](https://help.brevo.com/hc/en-us/articles/208589409), [SMTP gratis](https://www.brevo.com/free-smtp-server)) | **3.000 por mes con tope de 100 por día** ([Resend, cuotas](https://resend.com/docs/knowledge-base/account-quotas-and-limits), [precios](https://resend.com/docs/knowledge-base/what-is-resend-pricing)) |
+| Primer plan pago | *Starter* desde **US$ 9/mes**, sin tope diario ([Brevo, precios](https://www.brevo.com/pricing/)) | *Pro* **US$ 20/mes** por 50.000 correos ([Resend, precios](https://resend.com/pricing)) |
+| SMTP | `smtp-relay.brevo.com`, puerto 587, usuario y **clave SMTP** (no la clave de API) ([Brevo, SMTP](https://developers.brevo.com/docs/smtp-integration)) | `smtp.resend.com`, puerto 465 (TLS) o 587, usuario `resend` y la clave de API como contraseña ([Resend, SMTP](https://resend.com/docs/send-with-smtp)) |
+| Empresa y datos | Francia (Unión Europea) | EE. UU. |
+| En contra | El plan gratis tiene un solo usuario y soporte limitado. | El tope de 100 por día se alcanza con pocos estudios usando el resumen diario. |
+
+Los dos piden verificar el dominio del remitente (registros SPF y DKIM en el DNS) antes de mandar.
+
+**Recomendación: Brevo.** El tope diario del plan gratis es el triple, el primer plan pago es más
+barato y la empresa está en la Unión Europea, lo que simplifica la parte de *Datos personales*: los
+correos llevan nombres de clientes y fechas de audiencias. `[validar]` con un abogado igual que el
+hosting, y leer los términos del plan gratis antes de usarlo con un estudio real.
+
+Para desarrollo, `docker compose --profile mail up -d mailpit` levanta Mailpit, que atrapa todos los
+correos sin mandarlos: `MAIL_SMTP_HOST=localhost`, `MAIL_SMTP_PORT=1025`, `MAIL_SMTP_SECURITY=NONE`, y
+se leen en <http://localhost:8025>.
+
 ## Datos personales
 
 Los antecedentes penales son datos sensibles (Ley 25.326, art. 7). Guardarlos en un servidor fuera
@@ -183,3 +226,5 @@ región según esa respuesta.
 4. Probar una restauración de la base del proveedor antes del primer estudio real.
 5. Dominio propio con HTTPS (lo dan Render y Caddy sin costo).
 6. Crear el primer estudio y su titular con el comando de *Alta del primer estudio* (una sola vez).
+7. Elegir el proveedor de correo (*Correo saliente*), verificar el dominio, cargar las variables
+   `MAIL_*` y mandar el correo de prueba.

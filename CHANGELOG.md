@@ -258,3 +258,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   creates the first firm and its owner in one locked transaction, prints a temporary password that must
   be changed at the first login, records both creations in the history and exits; it refuses once any
   firm exists. Documented in `docs/HOSTING.md` and smoke-tested on the image in CI (ADR-0047).
+- Outbound email (T70): a `Mailer` behind a mail port with an SMTP adapter configured by `MAIL_SMTP_*`
+  and `MAIL_FROM` (off when unset: emails are logged without their body), Spanish HTML and plain-text
+  templates signed with the firm's name, every attempt recorded and audited without the body
+  (`mail_delivery`), an owner-only test email (`POST /api/v1/mail/test`, 5 per hour), Mailpit in
+  Docker Compose (`--profile mail`, ports 1025 and 8025), GreenMail integration tests, and a Brevo vs
+  Resend comparison in `docs/HOSTING.md` (ADR-0048).
