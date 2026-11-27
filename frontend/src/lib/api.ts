@@ -58,7 +58,13 @@ export function isUnauthorized(error: unknown): boolean {
   return isApiError(error) && error.status === 401;
 }
 
-type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+/**
+ * 403 answers that are the server's real verdict, not a rejected CSRF token: sending them again
+ * would not help, and for a login with an unverified email (T72) it would mail a second link.
+ */
+const FINAL_FORBIDDEN = new Set(["email-not-verified"]);
+
+type Method ="GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 interface RequestOptions {
   method?: Method;
@@ -87,6 +93,8 @@ export async function apiFetch<T = undefined>(
 
   // A 403 on a write can be a stale CSRF token (rotated in another tab): refresh it once.
   if (response.status === 403 && method !== "GET") {
+    const error = await toApiError(response);
+    if (FINAL_FORBIDDEN.has(error.type)) throw error;
     await fetchCsrfToken();
     return parse<T>(await send(path, method, options));
   }

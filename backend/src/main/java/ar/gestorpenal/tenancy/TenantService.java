@@ -2,6 +2,7 @@ package ar.gestorpenal.tenancy;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,21 +41,75 @@ public class TenantService {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<TenantSummary> createFirstFirmInScope(String name, String slug) {
-        UUID id = TenantContext.explicitTenant()
-                .orElseThrow(() -> new IllegalStateException("Enter the new firm's TenantContext scope first"));
-        // EXCLUSIVE still lets readers in but blocks every other writer, this same lock included.
-        entityManager.createNativeQuery("LOCK TABLE tenant IN EXCLUSIVE MODE").executeUpdate();
+        UUID id = scopeOfTheNewFirm();
+        lockFirms();
         if (tenants.count() > 0) {
             return Optional.empty();
         }
-        // Native: the entity's id is generated, and this one must be the scope's. The other columns
-        // take their defaults (jurisdiction, practice areas, created_at), like a new Tenant.
-        entityManager.createNativeQuery("INSERT INTO tenant (id, name, slug) VALUES (?1, ?2, ?3)")
+        return Optional.of(insert(id, name, slug, List.of(Tenant.DEFAULT_PRACTICE_AREA), null));
+    }
+
+    /**
+     * Creates a firm that signed up by itself (T72, ADR-0050) inside the caller's transaction, with the
+     * id of the explicit {@link TenantContext} scope, like {@link #createFirstFirmInScope}. The slug is
+     * {@code baseSlug}, or {@code baseSlug-2}, {@code -3}... when a firm, archived or not, already uses
+     * it: slugs are never reused. The {@code tenant} table stays locked until the caller commits, so two
+     * sign-ups with the same name get different slugs.
+     *
+     * @param practiceAreas codes already checked against the default jurisdiction package
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public TenantSummary createSignedUpFirmInScope(
+            String name, String baseSlug, List<String> practiceAreas, Instant trialEndsAt) {
+        UUID id = scopeOfTheNewFirm();
+        lockFirms();
+        return insert(id, name, firstFreeSlug(baseSlug), practiceAreas, trialEndsAt);
+    }
+
+    /**
+     * {@code baseSlug}, or the first of {@code baseSlug-2}, {@code -3}... that no firm, archived or not,
+     * uses. Without the lock of {@link #createSignedUpFirmInScope} it is only a prediction.
+     */
+    @Transactional(readOnly = true)
+    public String firstFreeSlug(String baseSlug) {
+        String slug = baseSlug;
+        for (int suffix = 2; isSlugTaken(slug); suffix++) {
+            slug = baseSlug + "-" + suffix;
+        }
+        return slug;
+    }
+
+    private static UUID scopeOfTheNewFirm() {
+        return TenantContext.explicitTenant()
+                .orElseThrow(() -> new IllegalStateException("Enter the new firm's TenantContext scope first"));
+    }
+
+    /** EXCLUSIVE still lets readers in but blocks every other writer, this same lock included. */
+    private void lockFirms() {
+        entityManager.createNativeQuery("LOCK TABLE tenant IN EXCLUSIVE MODE").executeUpdate();
+    }
+
+    /**
+     * Native: the entity's id is generated, and this one must be the scope's. The jurisdiction and
+     * {@code created_at} take their defaults, like a new Tenant.
+     */
+    private TenantSummary insert(UUID id, String name, String slug, List<String> practiceAreas, Instant trialEndsAt) {
+        entityManager.createNativeQuery("""
+                        INSERT INTO tenant (id, name, slug, enabled_practice_areas)
+                        VALUES (?1, ?2, ?3, cast(?4 as text[]))""")
                 .setParameter(1, id)
                 .setParameter(2, name)
                 .setParameter(3, slug)
+                .setParameter(4, "{" + String.join(",", practiceAreas) + "}")
                 .executeUpdate();
-        return Optional.of(new TenantSummary(id, name, slug));
+        // A separate statement: a null parameter has no type a native query could bind it with.
+        if (trialEndsAt != null) {
+            entityManager.createNativeQuery("UPDATE tenant SET trial_ends_at = ?2 WHERE id = ?1")
+                    .setParameter(1, id)
+                    .setParameter(2, trialEndsAt)
+                    .executeUpdate();
+        }
+        return new TenantSummary(id, name, slug);
     }
 
     /** The id of a non-archived firm, used to scope the login lookup. */

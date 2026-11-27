@@ -119,7 +119,24 @@ interface MockBackendOptions {
   passwordChangeRequired?: boolean;
   /** Asking for a password reset link answers 429 (T71), to show its message. */
   passwordResetThrottled?: boolean;
+  /** "Probá gratis" is offered (T72); off by default, as in the backend. */
+  signup?: boolean;
+  /**
+   * The demo owner has not confirmed the email yet (T72): the right login answers 403
+   * `email-not-verified` until the link is opened.
+   */
+  emailNotVerified?: boolean;
 }
+
+/** The fictitious token of the sign-up's email link (T72): 43 base64url characters. */
+export const VERIFY_TOKEN = "ZyXwVuTsRqPoNmLkJiHgFeDcBa9876543210_-ZyXwV";
+
+/** What the fictitious sign-up of the e2e tests and screenshots answers. */
+export const SIGNED_UP = {
+  tenant: "estudio-ficticio-robles",
+  firmName: "Estudio Ficticio Robles",
+  email: "lucia.ficticia@ejemplo.test",
+};
 
 /** The fictitious token of the emailed reset link (T71): 43 base64url characters. */
 export const RESET_TOKEN = "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789-_AbCdE";
@@ -278,6 +295,7 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
     calendarFeedCount: 0,
     passwordChangeRequired: options.passwordChangeRequired ?? false,
     password: DEMO_PASSWORD,
+    emailVerified: !options.emailNotVerified,
   };
   const calls: string[] = [];
   const settings = settingsBackend();
@@ -485,6 +503,8 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
         if (body.tenant !== DEMO_ME.tenant.slug || body.email !== DEMO_ME.email) {
           return problem(route, 401, "invalid-credentials");
         }
+        // Like LoginService: right data, unconfirmed email, and a new link goes out.
+        if (!state.emailVerified) return problem(route, 403, "email-not-verified");
         if (options.secondFactor) {
           state.pendingSecondFactor = true;
           return route.fulfill({ status: 202, json: { status: "SECOND_FACTOR_REQUIRED" } });
@@ -522,6 +542,42 @@ export async function mockBackend(page: Page, options: MockBackendOptions = {}) 
         state.password = reset.newPassword;
         state.signedIn = false;
         return route.fulfill({ status: 204 });
+      }
+      case "GET /api/v1/public/signup":
+        return route.fulfill({
+          status: 200,
+          json: options.signup
+            ? {
+                enabled: true,
+                trialDays: 30,
+                practiceAreas: [
+                  { code: "penal", name: "Penal" },
+                  { code: "civil", name: "Civil" },
+                  { code: "laboral", name: "Laboral" },
+                  { code: "familia", name: "Familia" },
+                ],
+              }
+            : { enabled: false, trialDays: 0, practiceAreas: [] },
+        });
+      // Like SignupController: 404 while off; the honeypot is answered like a real sign-up.
+      case "POST /api/v1/auth/signup": {
+        if (!options.signup) return problem(route, 404, "not-found");
+        const form = request.postDataJSON() as { practiceAreas: string[]; password: string };
+        if (form.practiceAreas.length === 0) return problem(route, 400, "invalid-signup");
+        if (form.password.length < 12) return problem(route, 400, "invalid-password");
+        return route.fulfill({
+          status: 202,
+          json: { tenant: SIGNED_UP.tenant, email: SIGNED_UP.email },
+        });
+      }
+      case "POST /api/v1/auth/email-verification": {
+        const { token } = request.postDataJSON() as { token: string };
+        if (token !== VERIFY_TOKEN) return problem(route, 400, "invalid-verification-token");
+        state.emailVerified = true;
+        return route.fulfill({
+          status: 200,
+          json: { tenant: SIGNED_UP.tenant, firmName: SIGNED_UP.firmName },
+        });
       }
       case "GET /api/v1/agenda": {
         if (!state.signedIn) return problem(route, 401, "authentication-required");

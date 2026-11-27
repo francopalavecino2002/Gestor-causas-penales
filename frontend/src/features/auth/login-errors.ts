@@ -25,6 +25,9 @@ export function loginErrorMessage(error: unknown, step: "password" | "totp" | "r
       return NETWORK_MESSAGE;
     case "invalid-credentials":
       return "Los datos no coinciden con una cuenta activa. Revisá el estudio, el email y la contraseña, y probá de nuevo.";
+    // The data was right but the owner of a new firm has not opened the link yet (T72).
+    case "email-not-verified":
+      return "Todavía no confirmaste tu email. Te mandamos un enlace nuevo: abrilo y volvé a ingresar.";
     case "invalid-second-factor":
       return step === "recovery"
         ? "Ese código de recuperación no es válido o ya lo usaste. Probá con otro de tu lista."

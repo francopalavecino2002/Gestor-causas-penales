@@ -24,13 +24,17 @@ import {
   parseLoginNotice,
   RECOVER_PASSWORD_PATH,
   RESET_PASSWORD_PATH,
+  SIGNUP_PATH,
+  VERIFY_EMAIL_PATH,
 } from "@/features/auth/redirect";
 import {
   RecoverPasswordPage,
   type RecoverPasswordSearch,
 } from "@/features/password-reset/recover-password-page";
 import { ResetPasswordPage } from "@/features/password-reset/reset-password-page";
-import { useResetTokenFromFragment } from "@/features/password-reset/reset-token";
+import { useLinkTokenFromFragment } from "@/features/password-reset/reset-token";
+import { SignupPage } from "@/features/signup/signup-page";
+import { VerifyEmailPage } from "@/features/signup/verify-email-page";
 import { FeesPage } from "@/features/fees/fees-page";
 import { JusValuesSection } from "@/features/fees/jus-values-section";
 import { ImportPage } from "@/features/imports/import-page";
@@ -120,8 +124,37 @@ const resetPasswordRoute = createRoute({
   }),
   component: function ResetPasswordRoute() {
     const search = resetPasswordRoute.useSearch();
-    const token = useResetTokenFromFragment();
+    const token = useLinkTokenFromFragment();
     return <ResetPasswordPage estudio={search.estudio} token={token} />;
+  },
+});
+
+/** Public: "Probá gratis", a new firm signs up by itself (T72). Signed-in users go to the agenda. */
+const signupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: SIGNUP_PATH,
+  beforeLoad: async ({ context }) => {
+    const me = await context.queryClient.ensureQueryData(meQueryOptions);
+    if (me) throw redirect({ to: "/" });
+  },
+  errorComponent: ({ error }) => <SessionErrorPage error={error} />,
+  component: SignupPage,
+});
+
+/**
+ * Public: where the sign-up's email link lands (T72). No session check, like the reset link: it
+ * is for whoever owns the mailbox, maybe on another device.
+ */
+const verifyEmailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: VERIFY_EMAIL_PATH,
+  validateSearch: (search: Record<string, unknown>): RecoverPasswordSearch => ({
+    estudio: optionalString(search.estudio),
+  }),
+  component: function VerifyEmailRoute() {
+    const search = verifyEmailRoute.useSearch();
+    const token = useLinkTokenFromFragment();
+    return <VerifyEmailPage estudio={search.estudio} token={token} />;
   },
 });
 
@@ -325,6 +358,8 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   recoverPasswordRoute,
   resetPasswordRoute,
+  signupRoute,
+  verifyEmailRoute,
   designSystemRoute,
   publicCalculatorRoute,
   appRoute.addChildren([

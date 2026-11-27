@@ -16,7 +16,7 @@ import { ALL_JUS_VALUES, MIN_EXCARCELACION } from "../src/test/fee-fixtures";
 import { CASE_EJEMPLAR, CASE_MODELO } from "../src/test/case-fixtures";
 import { ALL_PERSONS, PERSON_JULIAN } from "../src/test/person-fixtures";
 import { DEMO_PASSWORD, DEMO_TOTP_CODE } from "../src/test/two-factor-fixtures";
-import { DEMO_ME, mockBackend, RESET_TOKEN } from "./mock-backend";
+import { DEMO_ME, mockBackend, RESET_TOKEN, SIGNED_UP, VERIFY_TOKEN } from "./mock-backend";
 
 /*
  * Captures the screens of each task for its PR. Not a regression check: it is excluded from
@@ -1275,6 +1275,90 @@ const SCREENS: Record<string, Screen[]> = {
       prepare: async (page) => {
         await rememberFirms(page);
         await mockBackend(page);
+      },
+      fullPage: false,
+    },
+  ],
+  t72: [
+    {
+      path: "/registro",
+      name: "signup",
+      viewports: ["small", "mobile", "desktop"],
+      prepare: (page) => mockBackend(page, { signup: true }),
+      act: (page) => page.getByLabel("Nombre del estudio").waitFor(),
+    },
+    {
+      path: "/registro",
+      name: "signup-errors",
+      viewports: ["small"],
+      themes: ["light"],
+      prepare: (page) => mockBackend(page, { signup: true }),
+      act: async (page) => {
+        await page.getByLabel("Nombre del estudio").fill(SIGNED_UP.firmName);
+        await page.getByRole("checkbox", { name: "Penal" }).uncheck();
+        await page.getByLabel("Contraseña", { exact: true }).fill("una frase larga ficticia");
+        await page.getByLabel("Repetí la contraseña", { exact: true }).fill("otra frase");
+        await page.getByRole("button", { name: "Crear mi estudio" }).click();
+        await page.getByText("Elegí al menos un fuero.").waitFor();
+      },
+    },
+    {
+      path: "/registro",
+      name: "signup-sent",
+      viewports: ["small", "mobile", "desktop"],
+      prepare: (page) => mockBackend(page, { signup: true }),
+      act: async (page) => {
+        await page.getByLabel("Nombre del estudio").fill(SIGNED_UP.firmName);
+        await page.getByLabel("Tu nombre").fill("Lucía Ficticia");
+        await page.getByLabel("Email", { exact: true }).fill(SIGNED_UP.email);
+        await page.getByLabel("Contraseña", { exact: true }).fill("una frase larga ficticia");
+        await page
+          .getByLabel("Repetí la contraseña", { exact: true })
+          .fill("una frase larga ficticia");
+        await page.getByRole("button", { name: "Crear mi estudio" }).click();
+        await page.getByRole("heading", { name: "Revisá tu email" }).waitFor();
+        await page.mouse.move(0, 0);
+      },
+    },
+    {
+      path: "/registro",
+      name: "signup-disabled",
+      viewports: ["small"],
+      themes: ["light"],
+      prepare: (page) => mockBackend(page),
+      act: (page) => page.getByRole("heading", { name: /no está disponible/ }).waitFor(),
+    },
+    {
+      path: `/verificar-email?estudio=${SIGNED_UP.tenant}#token=${VERIFY_TOKEN}`,
+      name: "verify-success",
+      viewports: ["small", "mobile", "desktop"],
+      prepare: (page) => mockBackend(page),
+      act: (page) => page.getByRole("heading", { name: /Ya confirmaste tu email/ }).waitFor(),
+    },
+    {
+      path: `/verificar-email?estudio=${SIGNED_UP.tenant}`,
+      name: "verify-invalid",
+      viewports: ["small", "mobile", "desktop"],
+      prepare: (page) => mockBackend(page),
+    },
+    {
+      path: "/ingresar",
+      name: "login-signup-link",
+      viewports: ["small", "desktop"],
+      themes: ["light"],
+      prepare: (page) => mockBackend(page, { signup: true }),
+      act: (page) => page.getByRole("link", { name: "Probá gratis" }).waitFor(),
+    },
+    {
+      path: `/ingresar?estudio=${DEMO_ME.tenant.slug}`,
+      name: "login-email-not-verified",
+      viewports: ["small"],
+      prepare: (page) => mockBackend(page, { emailNotVerified: true, signup: true }),
+      act: async (page) => {
+        await page.getByLabel("Email", { exact: true }).fill(DEMO_ME.email);
+        await page.getByLabel("Contraseña", { exact: true }).fill("una-clave-ficticia");
+        await page.getByRole("button", { name: "Ingresá" }).click();
+        await page.getByRole("alert").waitFor();
       },
       fullPage: false,
     },

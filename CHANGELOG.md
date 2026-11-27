@@ -271,3 +271,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   and email and 10 per client address; `/restablecer-clave` sets the new password, closes every
   session and leaves two-factor in place; links and password changes are in the firm's history
   (ADR-0049).
+- Firm self sign-up (T72): a public "Probá gratis" page (`/registro`, off unless
+  `APP_SIGNUP_ENABLED=true`; `prod` refuses it without outbound email) creates a firm with the chosen
+  practice areas and a 30-day trial and its owner through the same founding path as the first-firm
+  bootstrap; the slug comes from the firm's name; the owner logs in only after opening the emailed
+  verification link (`/verificar-email`, hashed, once, 24 hours; a login before that sends a new one);
+  a honeypot field and limits of 3 per hour per email and 5 per client address instead of a CAPTCHA
+  (ADR-0050).

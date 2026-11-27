@@ -75,6 +75,17 @@ class ProductionSafetyCheckTests {
     }
 
     @Test
+    void shouldRejectSelfSignUpWithoutOutboundEmail() {
+        assertThat(ProductionSafetyCheck.problems(production().withProperty("app.signup.enabled", "true")))
+                .containsExactly("APP_SIGNUP_ENABLED is true but MAIL_SMTP_HOST is not set");
+        assertThat(ProductionSafetyCheck.problems(production()
+                        .withProperty("app.signup.enabled", "true")
+                        .withProperty("app.mail.smtp.host", "smtp.ejemplo.test")
+                        .withProperty("app.public-url", "https://gestor.ejemplo.test")))
+                .isEmpty();
+    }
+
+    @Test
     void shouldFailTheStartupWhenSomethingIsUnsafe() {
         MockEnvironment environment = production().withProperty("server.servlet.session.cookie.secure", "false");
 

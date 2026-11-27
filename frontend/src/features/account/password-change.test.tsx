@@ -186,10 +186,17 @@ describe("the temporary password must be replaced", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Listo. Ingresá con tu contraseña nueva.");
 
-    // Only /me, the CSRF token and the password change were asked: never the cases.
+    // Only /me, the CSRF token and the password change were asked: never the cases. The login it
+    // ends on also asks the public sign-up settings, which need no session.
     expect(
       [...new Set(requests.map((request) => request.path))].filter(
-        (path) => !["/api/v1/me", "/api/v1/auth/csrf", "/api/v1/me/password"].includes(path),
+        (path) =>
+          ![
+            "/api/v1/me",
+            "/api/v1/auth/csrf",
+            "/api/v1/me/password",
+            "/api/v1/public/signup",
+          ].includes(path),
       ),
     ).toEqual([]);
   });

@@ -55,6 +55,10 @@ public class Tenant {
     @Column(name = "archived_at")
     private Instant archivedAt;
 
+    /** When the free trial of a firm that signed up by itself ends (ADR-0050); null for any other firm. */
+    @Column(name = "trial_ends_at")
+    private Instant trialEndsAt;
+
     public Tenant(String name, String slug) {
         this.name = Objects.requireNonNull(name, "name");
         this.slug = Objects.requireNonNull(slug, "slug");

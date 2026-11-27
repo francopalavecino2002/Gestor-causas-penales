@@ -45,7 +45,8 @@ referencia completa está en [`.env.example`](../.env.example).
 | `PORT` | no (8081) | La mayoría de las plataformas la define sola. |
 | `GEMINI_API_KEY` | no | Asistencia con IA. Dejala vacía con causas reales hasta la revisión legal (ADR-0033). |
 | `MAIL_SMTP_*`, `MAIL_FROM` | no | Correo saliente: ver *Correo saliente*. Sin ellas no se manda ningún correo. |
-| `APP_PUBLIC_URL` | sí, con correo | `https://<dominio>`: los enlaces de los correos (recuperar la contraseña). Ver *Correo saliente*. |
+| `APP_PUBLIC_URL` | sí, con correo | `https://<dominio>`: los enlaces de los correos (recuperar la contraseña, confirmar el email). Ver *Correo saliente*. |
+| `APP_SIGNUP_ENABLED` | no (`false`) | `true` abre la página pública "Probá gratis". Exige `MAIL_SMTP_HOST`: sin correo la app no arranca. Ver *Alta por cuenta propia*. |
 
 `SPRING_PROFILES_ACTIVE=prod` ya viene en la imagen.
 
@@ -60,8 +61,8 @@ No muestran detalles internos. El resto de `/actuator` pide sesión.
 
 ### Alta del primer estudio y su titular
 
-`prod` arranca sin estudios ni usuarios, y no hay ninguna pantalla ni endpoint para crearlos. El
-primer estudio se crea **una sola vez** con la misma imagen y el perfil `bootstrap`
+`prod` arranca sin estudios ni usuarios y, mientras `APP_SIGNUP_ENABLED` no sea `true`, no hay
+ninguna pantalla ni endpoint para crearlos. El primer estudio se crea **una sola vez** con la misma imagen y el perfil `bootstrap`
 ([ADR-0047](DECISIONS.md#adr-0047-first-firm-bootstrap-a-one-time-command-on-an-empty-database-t66)):
 
 ```bash
@@ -89,6 +90,22 @@ docker run --rm \
 - Después: entregale la contraseña temporal al titular por un canal seguro. Al entrar el sistema le
   pide elegir su propia contraseña; que active el segundo factor en *Ajustes* y cree a los demás
   usuarios desde ahí (ADR-0044). Las variables `BOOTSTRAP_*` no se cargan en la plataforma.
+
+### Alta por cuenta propia ("Probá gratis")
+
+Con `APP_SIGNUP_ENABLED=true` (y el correo configurado) el login muestra "Probá gratis": cualquiera
+crea su estudio con los fueros que elige y una prueba gratis de 30 días
+([ADR-0050](DECISIONS.md#adr-0050-firm-self-sign-up-with-email-verification-and-a-trial-t72)).
+
+- Usa el mismo camino que el alta del primer estudio: una transacción, el alta en el historial sin autor.
+- El titular elige su contraseña, pero **no puede entrar hasta abrir el enlace** que le llega por
+  email (vence a las 24 horas; si vence, al intentar entrar le llega otro).
+- El "estudio" para entrar sale del nombre (`Estudio Peña` → `estudio-pena`, o `estudio-pena-2` si ya
+  existe); se muestra en pantalla y en el email.
+- Contra bots: un campo trampa invisible (si viene lleno se responde igual y no se crea nada) y límites
+  de 3 altas por hora por email y 5 por hora por dirección. Sin CAPTCHA.
+- Hoy la fecha de fin de la prueba solo se guarda: qué pasa al vencer, y archivar estudios que nunca
+  confirmaron el email, lo resuelve la consola de administración (T73).
 
 ## Las opciones
 

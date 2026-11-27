@@ -1,11 +1,7 @@
 package ar.gestorpenal.bootstrap;
 
-import ar.gestorpenal.audit.AuditJournal;
-import ar.gestorpenal.audit.FieldChange;
-import ar.gestorpenal.tenancy.Tenant;
-import ar.gestorpenal.tenancy.TenantContext;
+import ar.gestorpenal.bootstrap.FirmFounding.Founded;
 import ar.gestorpenal.tenancy.TenantService;
-import ar.gestorpenal.tenancy.TenantService.TenantSummary;
 import ar.gestorpenal.user.Role;
 import ar.gestorpenal.user.UserService;
 import ar.gestorpenal.user.UserService.CreatedUser;
@@ -14,8 +10,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Creates the first firm of a production database and its owner (T66, ADR-0047), without the demo
@@ -37,15 +31,12 @@ public class FirstFirmBootstrap {
 
     private final TenantService tenants;
     private final UserService users;
-    private final AuditJournal journal;
-    private final TransactionTemplate transaction;
+    private final FirmFounding founding;
 
-    FirstFirmBootstrap(
-            TenantService tenants, UserService users, AuditJournal journal, PlatformTransactionManager transactionManager) {
+    FirstFirmBootstrap(TenantService tenants, UserService users, FirmFounding founding) {
         this.tenants = tenants;
         this.users = users;
-        this.journal = journal;
-        this.transaction = new TransactionTemplate(transactionManager);
+        this.founding = founding;
     }
 
     /** What the operator needs to hand over to the owner; the temporary password is never logged. */
@@ -68,17 +59,14 @@ public class FirstFirmBootstrap {
         String ownerEmail = strip(request.ownerEmail());
         String ownerName = strip(request.ownerName());
         requireValid(firmName, firmSlug, ownerEmail, ownerName);
-        // The scope must be entered before the transaction starts (TenantContext).
-        return TenantContext.callAs(UUID.randomUUID(), () -> transaction.execute(status -> {
-            TenantSummary firm = tenants.createFirstFirmInScope(firmName, firmSlug)
-                    .orElseThrow(FirmAlreadyExistsException::new);
-            journal.recordCreate(firm.id(), Tenant.class, firm.id(), List.of(
-                    new FieldChange("name", null, firm.name()),
-                    new FieldChange("slug", null, firm.slug())));
-            CreatedUser owner = users.createWithTemporaryPassword(ownerEmail, ownerName, Role.OWNER);
-            return new FirstFirm(
-                    firm.id(), firm.slug(), owner.user().getId(), owner.user().getEmail(), owner.temporaryPassword());
-        }));
+        Founded<CreatedUser> founded = founding.found(
+                        () -> tenants.createFirstFirmInScope(firmName, firmSlug),
+                        List.of(),
+                        firm -> users.createWithTemporaryPassword(ownerEmail, ownerName, Role.OWNER))
+                .orElseThrow(FirmAlreadyExistsException::new);
+        CreatedUser owner = founded.owner();
+        return new FirstFirm(founded.firm().id(), founded.firm().slug(), owner.user().getId(),
+                owner.user().getEmail(), owner.temporaryPassword());
     }
 
     /** Every problem at once, so the operator fixes them in one go. The email is checked by UserService too. */

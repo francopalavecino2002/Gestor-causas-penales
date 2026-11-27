@@ -2208,3 +2208,56 @@ Superseded decisions are marked, never deleted.
   reveals nothing and the owner's temporary password still works. A rejected new password (only
   possible with a usable link) is refunded to the login throttle: it is not a guess. A firm whose
   only owner lost both the password and the second factor still needs the operator.
+
+## ADR-0050: Firm self sign-up with email verification and a trial (T72)
+
+- **Date:** 2026-11-27
+- **Status:** accepted
+- **Context:** Until now a firm exists only when the operator runs the first-firm bootstrap (ADR-0047)
+  or the demo seeds one. To sell without hand-holding, a firm must be able to try the product by
+  itself, without letting anonymous visitors flood the database, enumerate firms or impersonate
+  someone else's email. No CAPTCHA: they need a third-party account and track visitors.
+- **Decision:**
+  - **Off unless configured.** `APP_SIGNUP_ENABLED` (`app.signup.enabled`) defaults to `false`; only the
+    `dev` profile turns it on. In `prod`, `ProductionSafetyCheck` refuses to start with sign-up on and no
+    `MAIL_SMTP_HOST`, since nobody could verify their email. `GET /api/v1/public/signup` tells the SPA
+    whether to show "Probá gratis" (with the trial length and the practice areas of the default
+    jurisdiction package); `POST /api/v1/auth/signup` answers `404` while it is off.
+  - **Create at once, unlock by email.** The sign-up creates the firm (default jurisdiction, the chosen
+    practice areas validated against the package, `trial_ends_at` = now + 30 days) and its owner with the
+    password they chose, through `FirmFounding`: the same path as the bootstrap, now shared (new firm's
+    `TenantContext` scope, one transaction, the firm's creation in its history with no author, then the
+    owner). The owner has `email_verification_pending = true` and cannot log in until they open the
+    emailed link. Creating at once, instead of keeping a pending sign-up somewhere, lets the email be
+    sent through the normal `Mailer` (which signs every email with a firm's name and records it in that
+    firm) and keeps one creation path.
+  - **The slug comes from the name**, never from the visitor: "Estudio Peña & Asociados" becomes
+    `estudio-pena-asociados`, or `-2`, `-3`... when taken (archived firms included, slugs are never
+    reused), picked under the same `tenant` table lock as the bootstrap. The owner learns what to type
+    as "estudio" both on screen and in the email (`202 {tenant, email}`). The password is hashed
+    before the lock is taken, so a sign-up holds it only for a few inserts.
+  - **The verification link** works like the recovery link of ADR-0049 (shared in `LinkSecrets`): 256
+    random bits in the fragment of `APP_PUBLIC_URL/verificar-email?estudio=<slug>#token=<secret>`, only
+    its SHA-256 stored in `email_verification_token` (audited, hash redacted), valid 24 hours
+    (`app.signup.verification-ttl`), once, a newer link revoking the open ones. The SPA posts it to
+    `POST /api/v1/auth/email-verification`, so a mail scanner that fetches the link verifies nothing;
+    attempts draw on the login throttle. It does not log the owner in.
+  - **No resend endpoint.** A login with the right password and an unverified email answers `403`
+    `email-not-verified` and sends a new link. Only someone who knows the password gets that answer,
+    and the attempt stays counted by the login throttle, which also caps how many links it can send.
+  - **Bots.** A hidden honeypot field (sent as `website`; in the form its name and label look like no
+    real field, so autofill leaves it empty): when filled, the request answers exactly like a real
+    sign-up, with the slug a real one would get, and creates nothing. Request limits with their own
+    counters: 3 per hour per email and 5 per hour per client address, `429` `signup-throttled` with
+    `Retry-After`, counting honeypot and invalid requests too. While sign-up is off, every body gets
+    the same `404` (validation runs after the switch).
+- **Consequences:** A bot that gets past the honeypot can still create up to 5 unverified firms per hour
+  per address; they hold no data and nobody can log in to them. A suffixed slug in the answer tells
+  that a firm with that name already exists: accepted, since a slug alone opens nothing (the login
+  still needs email, password and the second factor), firm names are public anyway, and the limits
+  cap the probing. Anyone can spend an email's 3 sign-ups per hour and delay that sign-up for an hour;
+  accepted like the recovery limits of ADR-0049. The verification email is sent on the request
+  thread, so a slow SMTP server slows the sign-up answer, which reveals nothing here. Archiving firms never verified after
+  some days, and showing or extending the trial, belong to the platform-admin console (T73), which also
+  decides what happens when a trial ends: today `trial_ends_at` is only recorded. The limits are per
+  instance and reset on restart, like the login throttle.

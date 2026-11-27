@@ -73,6 +73,21 @@ describe("apiFetch", () => {
     );
   });
 
+  it("does not send a login again when the 403 says the email is not verified", async () => {
+    document.cookie = "XSRF-TOKEN=token-1; path=/";
+    const requests = mockFetch({
+      "POST /api/v1/auth/login": () => problem(403, "email-not-verified"),
+    });
+
+    const error = await catchError(
+      apiFetch("/api/v1/auth/login", { method: "POST", body: { tenant: "x" } }),
+    );
+
+    expect(error.status).toBe(403);
+    expect(error.type).toBe("email-not-verified");
+    expect(requests.map((r) => `${r.method} ${r.path}`)).toEqual(["POST /api/v1/auth/login"]);
+  });
+
   it("turns problem+json into an ApiError with status, type and Retry-After", async () => {
     mockFetch({
       "POST /api/v1/auth/login": () => problem(429, "login-throttled", { "Retry-After": "120" }),
